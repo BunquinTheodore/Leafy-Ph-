@@ -1,0 +1,44 @@
+# reference material, local only
+DAHON-main/
+.dev/
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# node
+node_modules/
+.next/
+out/
+.pnpm-store/
+*.tsbuildinfo
+next-env.d.ts
+.lighthouseci/
+playwright-report/
+test-results/
+
+# python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# runtime data and reports
+uploads/
+coverage/
+htmlcov/
+.coverage
+coverage.xml
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# note: *.pdf is intentionally NOT ignored so docs/ PDFs can be committed

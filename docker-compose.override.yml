@@ -1,0 +1,17 @@
+# Dev only. Docker Compose loads this automatically next to docker-compose.yml.
+# Production: run with `docker compose -f docker-compose.yml up -d` to publish only `app`.
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+  minio:
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+  mailpit:
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+  api:
+    ports:
+      - "127.0.0.1:8000:8000"

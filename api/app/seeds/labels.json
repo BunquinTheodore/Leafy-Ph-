@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "reserved": {
+    "healthy": "healthy",
+    "unknown": "unknown"
+  },
+  "plants": {
+    "apple": [
+      "apple-scab",
+      "black-rot",
+      "cedar-apple-rust"
+    ],
+    "bell-pepper": [
+      "bacterial-spot",
+      "phytophthora-blight"
+    ],
+    "blueberry": [],
+    "cherry": [
+      "powdery-mildew"
+    ],
+    "corn": [
+      "common-rust",
+      "gray-leaf-spot",
+      "northern-corn-leaf-blight"
+    ],
+    "grape": [
+      "black-rot",
+      "esca",
+      "leaf-blight"
+    ],
+    "orange": [
+      "huanglongbing"
+    ],
+    "peach": [
+      "bacterial-spot"
+    ],
+    "potato": [
+      "early-blight",
+      "late-blight"
+    ],
+    "soybean": [],
+    "squash": [
+      "powdery-mildew"
+    ],
+    "strawberry": [
+      "leaf-scorch"
+    ],
+    "tomato": [
+      "bacterial-spot",
+      "early-blight",
+      "late-blight",
+      "leaf-mold",
+      "septoria-leaf-spot",
+      "spider-mites",
+      "target-spot",
+      "tomato-mosaic-virus",
+      "tomato-yellow-leaf-curl-virus"
+    ]
+  }
+}

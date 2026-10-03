@@ -1,0 +1,95 @@
+"""Application settings. Missing or unsafe values stop startup (fail fast)."""
+
+from functools import lru_cache
+from typing import Literal, Self
+
+from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+PLACEHOLDER_SECRET_PREFIX = "replace-with"  # noqa: S105 - marks the .env.example value
+MIN_JWT_SECRET_LENGTH = 32
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
+
+    env: Literal["dev", "test", "prod"] = "dev"
+    log_level: str = "INFO"
+
+    database_url: str
+    jwt_secret: SecretStr
+    jwt_issuer: str = "leafy-api"
+    jwt_audience: str = "leafy-web"
+
+    access_token_ttl_seconds: int = Field(default=900, ge=60, le=3600)
+    refresh_token_ttl_days: int = Field(default=30, ge=1, le=90)
+    refresh_family_max_days: int = Field(default=90, ge=1, le=365)
+    refresh_grace_seconds: int = Field(default=10, ge=0, le=60)
+    verify_email_ttl_hours: int = Field(default=24, ge=1)
+    reset_password_ttl_hours: int = Field(default=1, ge=1)
+
+    argon2_time_cost: int = Field(default=2, ge=1)
+    argon2_memory_kib: int = Field(default=19456, ge=8)
+    argon2_parallelism: int = Field(default=1, ge=1)
+
+    ml_service: str = "stub"
+    max_upload_bytes: int = Field(default=8_388_608, ge=1)
+    scan_quota: int = Field(default=500, ge=1)
+
+    rate_limit_enabled: bool = True
+    trusted_proxy_hops: int = Field(default=0, ge=0, le=5)
+
+    app_origin: str = "http://localhost:3000"
+    verify_resend_cooldown_seconds: int = Field(default=60, ge=0, le=3600)
+    fresh_session_seconds: int = Field(default=600, ge=60, le=3600)
+
+    smtp_host: str = "localhost"
+    smtp_port: int = Field(default=1025, ge=1, le=65535)
+    smtp_username: str | None = None
+    smtp_password: SecretStr | None = None
+    smtp_use_tls: bool = False
+    smtp_starttls: bool = False
+    smtp_from: str = "Leafy <no-reply@leafy.local>"
+    smtp_timeout_seconds: int = Field(default=10, ge=1, le=120)
+
+    s3_endpoint_url: str | None = None
+    s3_public_endpoint: str = "http://localhost:9000"
+    s3_region: str = "us-east-1"
+    s3_access_key: SecretStr | None = None
+    s3_secret_key: SecretStr | None = None
+    s3_scans_bucket: str = "leafy-scans"
+    s3_catalog_bucket: str = "leafy-catalog"
+    s3_presign_ttl_seconds: int = Field(default=600, ge=30, le=3600)
+
+    google_client_id: str | None = None
+    google_client_secret: SecretStr | None = None
+    google_redirect_uri: str = "http://localhost:3000/api/auth/google/callback"
+    google_mock: bool = False
+
+    @field_validator("database_url")
+    @classmethod
+    def _require_asyncpg(cls, value: str) -> str:
+        if not value.startswith("postgresql+asyncpg://"):
+            raise ValueError("DATABASE_URL must start with postgresql+asyncpg://")
+        return value
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def _require_strong_secret(cls, value: SecretStr) -> SecretStr:
+        secret = value.get_secret_value()
+        if len(secret) < MIN_JWT_SECRET_LENGTH:
+            raise ValueError("JWT_SECRET must be at least 32 characters")
+        if secret.startswith(PLACEHOLDER_SECRET_PREFIX):
+            raise ValueError("JWT_SECRET still has the placeholder value")
+        return value
+
+    @model_validator(mode="after")
+    def _forbid_mock_google_in_prod(self) -> Self:
+        if self.google_mock and self.env == "prod":
+            raise ValueError("GOOGLE_MOCK must not be enabled in prod")
+        return self
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

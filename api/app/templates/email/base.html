@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>{{ subject }}</title>
+<style>
+  body { margin: 0; padding: 0; background: #f5faf4; }
+  .canvas { background: #f5faf4; }
+  .card { background: #ffffff; border: 1px solid #cfe0cb; border-radius: 12px; }
+  .wordmark { font-family: 'Josefin Sans', 'Trebuchet MS', Arial, sans-serif; font-weight: 300; letter-spacing: 0.18em; color: #17542d; }
+  .body-text { font-family: Manrope, 'Segoe UI', Helvetica, Arial, sans-serif; color: #0e2316; font-size: 16px; line-height: 1.65; }
+  .muted { font-family: Manrope, 'Segoe UI', Helvetica, Arial, sans-serif; color: #46604f; font-size: 14px; line-height: 1.6; }
+  .button { background: #23813a; border-radius: 999px; }
+  .button a { display: inline-block; padding: 14px 28px; font-family: Poppins, 'Segoe UI', Helvetica, Arial, sans-serif; font-weight: 600; font-size: 16px; color: #ffffff; text-decoration: none; }
+  .link { color: #23813a; word-break: break-all; }
+  @media (prefers-color-scheme: dark) {
+    body, .canvas { background: #06120b !important; }
+    .card { background: #0b1d12 !important; border-color: #1e3d2b !important; }
+    .wordmark { color: #7be495 !important; }
+    .body-text { color: #e9f4ec !important; }
+    .muted { color: #9bb8a6 !important; }
+    .button { background: #40c057 !important; }
+    .button a { color: #06120b !important; }
+    .link { color: #7be495 !important; }
+  }
+</style>
+</head>
+<body>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">{{ preheader }}</div>
+<table role="presentation" class="canvas" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td align="center" style="padding: 32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 560px;">
+        <tr>
+          <td class="wordmark" style="padding: 0 8px 16px 8px; font-size: 22px;">LEAFY</td>
+        </tr>
+        <tr>
+          <td class="card" style="padding: 32px 28px;">
+            {% block content %}{% endblock %}
+          </td>
+        </tr>
+        <tr>
+          <td class="muted" style="padding: 16px 8px 0 8px;">
+            Leafy helps you read a leaf and know what to do next.
+            If you did not expect this email, you can ignore it.
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

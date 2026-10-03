@@ -1,0 +1,572 @@
+[
+  {
+    "plant": "apple",
+    "disease": "apple-scab",
+    "species": "Apple (Malus domestica)",
+    "position": 1
+  },
+  {
+    "plant": "apple",
+    "disease": "apple-scab",
+    "species": "Crabapple (Malus spp.)",
+    "position": 2
+  },
+  {
+    "plant": "apple",
+    "disease": "black-rot",
+    "species": "Apple (Malus domestica)",
+    "position": 1
+  },
+  {
+    "plant": "apple",
+    "disease": "black-rot",
+    "species": "Crabapple (Malus spp.)",
+    "position": 2
+  },
+  {
+    "plant": "apple",
+    "disease": "cedar-apple-rust",
+    "species": "Apple (Malus domestica)",
+    "position": 1
+  },
+  {
+    "plant": "apple",
+    "disease": "cedar-apple-rust",
+    "species": "Crabapple (Malus spp.)",
+    "position": 2
+  },
+  {
+    "plant": "apple",
+    "disease": "cedar-apple-rust",
+    "species": "Eastern red cedar (Juniperus virginiana) and other Juniperus species",
+    "position": 3
+  },
+  {
+    "plant": "bell-pepper",
+    "disease": "bacterial-spot",
+    "species": "Capsicum annuum",
+    "position": 1
+  },
+  {
+    "plant": "bell-pepper",
+    "disease": "bacterial-spot",
+    "species": "Capsicum frutescens",
+    "position": 2
+  },
+  {
+    "plant": "bell-pepper",
+    "disease": "bacterial-spot",
+    "species": "Solanum lycopersicum",
+    "position": 3
+  },
+  {
+    "plant": "bell-pepper",
+    "disease": "bacterial-spot",
+    "species": "Solanum melongena",
+    "position": 4
+  },
+  {
+    "plant": "bell-pepper",
+    "disease": "phytophthora-blight",
+    "species": "Capsicum annuum",
+    "position": 1
+  },
+  {
+    "plant": "bell-pepper",
+    "disease": "phytophthora-blight",
+    "species": "Capsicum frutescens",
+    "position": 2
+  },
+  {
+    "plant": "bell-pepper",
+    "disease": "phytophthora-blight",
+    "species": "Solanum lycopersicum",
+    "position": 3
+  },
+  {
+    "plant": "bell-pepper",
+    "disease": "phytophthora-blight",
+    "species": "Solanum melongena",
+    "position": 4
+  },
+  {
+    "plant": "bell-pepper",
+    "disease": "phytophthora-blight",
+    "species": "Cucurbits",
+    "position": 5
+  },
+  {
+    "plant": "cherry",
+    "disease": "powdery-mildew",
+    "species": "Prunus avium",
+    "position": 1
+  },
+  {
+    "plant": "cherry",
+    "disease": "powdery-mildew",
+    "species": "Prunus cerasus",
+    "position": 2
+  },
+  {
+    "plant": "cherry",
+    "disease": "powdery-mildew",
+    "species": "Peach, plum, and other Prunus species (occasionally)",
+    "position": 3
+  },
+  {
+    "plant": "corn",
+    "disease": "common-rust",
+    "species": "Corn (maize) (Zea mays)",
+    "position": 1
+  },
+  {
+    "plant": "corn",
+    "disease": "gray-leaf-spot",
+    "species": "Corn (Zea mays)",
+    "position": 1
+  },
+  {
+    "plant": "corn",
+    "disease": "northern-corn-leaf-blight",
+    "species": "Corn (Zea mays)",
+    "position": 1
+  },
+  {
+    "plant": "grape",
+    "disease": "black-rot",
+    "species": "Vitis vinifera",
+    "position": 1
+  },
+  {
+    "plant": "grape",
+    "disease": "black-rot",
+    "species": "Vitis labrusca",
+    "position": 2
+  },
+  {
+    "plant": "grape",
+    "disease": "black-rot",
+    "species": "Hybrids",
+    "position": 3
+  },
+  {
+    "plant": "grape",
+    "disease": "black-rot",
+    "species": "Virginia creeper (Parthenocissus quinquefolia)",
+    "position": 4
+  },
+  {
+    "plant": "grape",
+    "disease": "esca",
+    "species": "Vitis vinifera",
+    "position": 1
+  },
+  {
+    "plant": "grape",
+    "disease": "esca",
+    "species": "Vitis labrusca",
+    "position": 2
+  },
+  {
+    "plant": "grape",
+    "disease": "esca",
+    "species": "Other woody vines occasionally affected",
+    "position": 3
+  },
+  {
+    "plant": "grape",
+    "disease": "leaf-blight",
+    "species": "Vitis vinifera",
+    "position": 1
+  },
+  {
+    "plant": "grape",
+    "disease": "leaf-blight",
+    "species": "Vitis labrusca",
+    "position": 2
+  },
+  {
+    "plant": "grape",
+    "disease": "leaf-blight",
+    "species": "Vitis riparia",
+    "position": 3
+  },
+  {
+    "plant": "grape",
+    "disease": "leaf-blight",
+    "species": "Wild grape species",
+    "position": 4
+  },
+  {
+    "plant": "orange",
+    "disease": "huanglongbing",
+    "species": "Citrus × sinensis",
+    "position": 1
+  },
+  {
+    "plant": "orange",
+    "disease": "huanglongbing",
+    "species": "Other citrus species including lemon, lime, grapefruit, and mandarin",
+    "position": 2
+  },
+  {
+    "plant": "peach",
+    "disease": "bacterial-spot",
+    "species": "Peach (Prunus persica)",
+    "position": 1
+  },
+  {
+    "plant": "peach",
+    "disease": "bacterial-spot",
+    "species": "Nectarine",
+    "position": 2
+  },
+  {
+    "plant": "peach",
+    "disease": "bacterial-spot",
+    "species": "Apricot",
+    "position": 3
+  },
+  {
+    "plant": "peach",
+    "disease": "bacterial-spot",
+    "species": "Plum",
+    "position": 4
+  },
+  {
+    "plant": "potato",
+    "disease": "early-blight",
+    "species": "Potato (Solanum tuberosum)",
+    "position": 1
+  },
+  {
+    "plant": "potato",
+    "disease": "early-blight",
+    "species": "Tomato (Solanum lycopersicum)",
+    "position": 2
+  },
+  {
+    "plant": "potato",
+    "disease": "early-blight",
+    "species": "Eggplant (Solanum melongena)",
+    "position": 3
+  },
+  {
+    "plant": "potato",
+    "disease": "early-blight",
+    "species": "Peppers (Capsicum spp.)",
+    "position": 4
+  },
+  {
+    "plant": "potato",
+    "disease": "early-blight",
+    "species": "Other Solanaceae family members",
+    "position": 5
+  },
+  {
+    "plant": "potato",
+    "disease": "late-blight",
+    "species": "Potato (Solanum tuberosum)",
+    "position": 1
+  },
+  {
+    "plant": "potato",
+    "disease": "late-blight",
+    "species": "Tomato (Solanum lycopersicum)",
+    "position": 2
+  },
+  {
+    "plant": "potato",
+    "disease": "late-blight",
+    "species": "Other Solanaceae family members",
+    "position": 3
+  },
+  {
+    "plant": "squash",
+    "disease": "powdery-mildew",
+    "species": "Cucurbita spp. (including zucchini, yellow squash, and pattypan)",
+    "position": 1
+  },
+  {
+    "plant": "squash",
+    "disease": "powdery-mildew",
+    "species": "Other cucurbits like cucumbers, melons, and pumpkins",
+    "position": 2
+  },
+  {
+    "plant": "strawberry",
+    "disease": "leaf-scorch",
+    "species": "Fragaria × ananassa",
+    "position": 1
+  },
+  {
+    "plant": "strawberry",
+    "disease": "leaf-scorch",
+    "species": "Fragaria virginiana",
+    "position": 2
+  },
+  {
+    "plant": "strawberry",
+    "disease": "leaf-scorch",
+    "species": "Fragaria vesca",
+    "position": 3
+  },
+  {
+    "plant": "tomato",
+    "disease": "bacterial-spot",
+    "species": "Solanum lycopersicum",
+    "position": 1
+  },
+  {
+    "plant": "tomato",
+    "disease": "bacterial-spot",
+    "species": "Capsicum spp.",
+    "position": 2
+  },
+  {
+    "plant": "tomato",
+    "disease": "bacterial-spot",
+    "species": "Solanum melongena",
+    "position": 3
+  },
+  {
+    "plant": "tomato",
+    "disease": "bacterial-spot",
+    "species": "Nicotiana tabacum",
+    "position": 4
+  },
+  {
+    "plant": "tomato",
+    "disease": "early-blight",
+    "species": "Solanum lycopersicum",
+    "position": 1
+  },
+  {
+    "plant": "tomato",
+    "disease": "early-blight",
+    "species": "Solanum tuberosum",
+    "position": 2
+  },
+  {
+    "plant": "tomato",
+    "disease": "late-blight",
+    "species": "Tomato (Solanum lycopersicum)",
+    "position": 1
+  },
+  {
+    "plant": "tomato",
+    "disease": "late-blight",
+    "species": "Potato (Solanum tuberosum)",
+    "position": 2
+  },
+  {
+    "plant": "tomato",
+    "disease": "late-blight",
+    "species": "Eggplant (Solanum melongena)",
+    "position": 3
+  },
+  {
+    "plant": "tomato",
+    "disease": "late-blight",
+    "species": "Petunia (Petunia spp.)",
+    "position": 4
+  },
+  {
+    "plant": "tomato",
+    "disease": "late-blight",
+    "species": "Other Solanaceae family members (rare)",
+    "position": 5
+  },
+  {
+    "plant": "tomato",
+    "disease": "leaf-mold",
+    "species": "Solanum lycopersicum",
+    "position": 1
+  },
+  {
+    "plant": "tomato",
+    "disease": "leaf-mold",
+    "species": "Solanum pimpinellifolium",
+    "position": 2
+  },
+  {
+    "plant": "tomato",
+    "disease": "septoria-leaf-spot",
+    "species": "Solanum lycopersicum",
+    "position": 1
+  },
+  {
+    "plant": "tomato",
+    "disease": "septoria-leaf-spot",
+    "species": "Solanum melongena",
+    "position": 2
+  },
+  {
+    "plant": "tomato",
+    "disease": "septoria-leaf-spot",
+    "species": "Solanum tuberosum",
+    "position": 3
+  },
+  {
+    "plant": "tomato",
+    "disease": "spider-mites",
+    "species": "Solanum lycopersicum",
+    "position": 1
+  },
+  {
+    "plant": "tomato",
+    "disease": "spider-mites",
+    "species": "Fragaria × ananassa",
+    "position": 2
+  },
+  {
+    "plant": "tomato",
+    "disease": "spider-mites",
+    "species": "Vitis vinifera",
+    "position": 3
+  },
+  {
+    "plant": "tomato",
+    "disease": "spider-mites",
+    "species": "Capsicum spp.",
+    "position": 4
+  },
+  {
+    "plant": "tomato",
+    "disease": "spider-mites",
+    "species": "Solanum melongena",
+    "position": 5
+  },
+  {
+    "plant": "tomato",
+    "disease": "spider-mites",
+    "species": "Phaseolus spp.",
+    "position": 6
+  },
+  {
+    "plant": "tomato",
+    "disease": "spider-mites",
+    "species": "Cucurbitaceae",
+    "position": 7
+  },
+  {
+    "plant": "tomato",
+    "disease": "spider-mites",
+    "species": "Ornamentals",
+    "position": 8
+  },
+  {
+    "plant": "tomato",
+    "disease": "target-spot",
+    "species": "Solanum lycopersicum",
+    "position": 1
+  },
+  {
+    "plant": "tomato",
+    "disease": "target-spot",
+    "species": "Solanum tuberosum",
+    "position": 2
+  },
+  {
+    "plant": "tomato",
+    "disease": "target-spot",
+    "species": "Capsicum annuum",
+    "position": 3
+  },
+  {
+    "plant": "tomato",
+    "disease": "target-spot",
+    "species": "Solanum melongena",
+    "position": 4
+  },
+  {
+    "plant": "tomato",
+    "disease": "target-spot",
+    "species": "Carica papaya",
+    "position": 5
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-mosaic-virus",
+    "species": "Solanum lycopersicum",
+    "position": 1
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-mosaic-virus",
+    "species": "Nicotiana tabacum",
+    "position": 2
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-mosaic-virus",
+    "species": "Capsicum spp.",
+    "position": 3
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-mosaic-virus",
+    "species": "Petunia spp.",
+    "position": 4
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-mosaic-virus",
+    "species": "Spinacia oleracea",
+    "position": 5
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-mosaic-virus",
+    "species": "Lactuca sativa",
+    "position": 6
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-mosaic-virus",
+    "species": "Cucumis sativus",
+    "position": 7
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-mosaic-virus",
+    "species": "Various ornamentals",
+    "position": 8
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-yellow-leaf-curl-virus",
+    "species": "Solanum lycopersicum",
+    "position": 1
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-yellow-leaf-curl-virus",
+    "species": "Capsicum spp.",
+    "position": 2
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-yellow-leaf-curl-virus",
+    "species": "Nicotiana tabacum",
+    "position": 3
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-yellow-leaf-curl-virus",
+    "species": "Solanum melongena",
+    "position": 4
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-yellow-leaf-curl-virus",
+    "species": "Phaseolus spp.",
+    "position": 5
+  },
+  {
+    "plant": "tomato",
+    "disease": "tomato-yellow-leaf-curl-virus",
+    "species": "Petunia spp.",
+    "position": 6
+  }
+]

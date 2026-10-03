@@ -1,0 +1,10 @@
+Hello {{ first_name }},
+
+We received a request to set a new password for your Leafy account.
+
+Choose a new password: {{ action_url }}
+
+This link works for {{ expires_in }} and can be used once.
+If you did not ask for this, your password has not changed and you can ignore this email.
+
+Leafy

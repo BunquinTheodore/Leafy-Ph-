@@ -1,0 +1,137 @@
+# Slug and naming contract for the Leafy seed catalog.
+#
+# Two audiences read this file:
+#
+# 1. The prediction resolver (runtime): `plant_aliases` and `disease_aliases`.
+#    A raw model answer is normalized to a slug (lowercase, letters and digits
+#    separated by single hyphens) and looked up here before it is matched to the
+#    canonical slugs in labels.json. Aliases never replace canonical slugs: the
+#    values below must always be a canonical slug.
+#
+# 2. The extraction tool (api/tools/extract_dahon.py): everything under `source`.
+#    It maps the names found in the DAHON MySQL dump to canonical slugs and
+#    names. An unmapped "Plant: Disease" prefix is a hard failure on purpose.
+#
+# Edit this file, then re-run the extraction so labels.json stays in sync.
+
+version: 1
+
+# ---------------------------------------------------------------------------
+# Runtime aliases (normalized raw slug -> canonical slug)
+# ---------------------------------------------------------------------------
+plant_aliases:
+  pepper-bell: bell-pepper
+  pepper: bell-pepper
+  bell-peppers: bell-pepper
+  maize: corn
+  corn-maize: corn
+  cherry-including-sour: cherry
+  sour-cherry: cherry
+  sweet-cherry: cherry
+  grapes: grape
+  tomatoes: tomato
+  potatoes: potato
+  strawberries: strawberry
+  oranges: orange
+
+# Per plant: normalized raw disease slug -> canonical disease slug.
+disease_aliases:
+  apple:
+    cedar-rust: cedar-apple-rust
+    apple-cedar-rust: cedar-apple-rust
+  bell-pepper:
+    phytophthora: phytophthora-blight
+  corn:
+    northern-leaf-blight: northern-corn-leaf-blight
+    nclb: northern-corn-leaf-blight
+    grey-leaf-spot: gray-leaf-spot
+    gls: gray-leaf-spot
+  grape:
+    esca-black-measles: esca
+    black-measles: esca
+  orange:
+    haunglongbing: huanglongbing
+    haunglongbing-citrus-greening: huanglongbing
+    huanglongbing-citrus-greening: huanglongbing
+    citrus-greening: huanglongbing
+    hlb: huanglongbing
+  tomato:
+    yellow-leaf-curl-virus: tomato-yellow-leaf-curl-virus
+    tylcv: tomato-yellow-leaf-curl-virus
+    mosaic-virus: tomato-mosaic-virus
+    spider-mite: spider-mites
+    two-spotted-spider-mites: spider-mites
+
+# ---------------------------------------------------------------------------
+# Extraction settings (read only by api/tools/extract_dahon.py)
+# ---------------------------------------------------------------------------
+source:
+  # Rows dropped from the dump (pseudo entries, not real catalog items).
+  drop_plants: ["Unknown"]
+  drop_diseases: ["Healthy", "Unknown"]
+
+  # Longest display_name that still fits a single line card title.
+  display_name_max: 24
+
+  # Typos fixed everywhere in seed text (names, causes, entries).
+  text_fixes:
+    Haunglongbing: Huanglongbing
+
+  # Dump plant name -> canonical slug and name. Plants not listed here are
+  # slugified from the dump name.
+  plants:
+    "Pepper Bell": { slug: bell-pepper, name: Bell Pepper }
+    "Corn (Maize)": { slug: corn, name: Corn }
+    "Cherry (including sour)": { slug: cherry, name: Cherry }
+
+  # The dump has no plant foreign key on diseases. Disease names look like
+  # "Plant: Disease"; the text before the first ": " must be listed here.
+  prefix_to_plant:
+    "Apple": apple
+    "Bell Pepper": bell-pepper
+    "Cherry (including sour)": cherry
+    "Corn (Maize)": corn
+    "Grape": grape
+    "Orange": orange
+    "Peach": peach
+    "Potato": potato
+    "Squash": squash
+    "Strawberry": strawberry
+    "Tomato": tomato
+
+  # Per disease overrides, keyed "<plant slug>/<disease name after the prefix>"
+  # using the dump spelling (after text_fixes). `display_name` is the short
+  # single line title used on cards; it is required whenever the name is
+  # longer than display_name_max.
+  diseases:
+    "grape/Esca (Black measles)":
+      slug: esca
+      name: Esca (Black Measles)
+      display_name: Esca
+    "orange/Huanglongbing (Citrus Greening)":
+      slug: huanglongbing
+      display_name: Citrus Greening
+    "tomato/Tomato Yellow Leaf Curl Virus":
+      display_name: Yellow Leaf Curl Virus
+    "corn/Northern Corn Leaf Blight":
+      display_name: Northern Leaf Blight
+
+  # Plant photo files (frontend assets/plant) by canonical plant slug.
+  plant_photos:
+    apple: apple.jpg
+    bell-pepper: bellpepper.jpg
+    blueberry: blueberry.jpg
+    cherry: cherry.jpg
+    corn: corn.jpg
+    grape: grapes.jpg
+    orange: orange.jpg
+    peach: peach.jpg
+    potato: potato.jpg
+    soybean: soybean.jpg
+    squash: squash.jpg
+    strawberry: strawberry.jpg
+    tomato: tomato.jpg
+
+  # Photos present in the folder that are deliberately not used.
+  ignored_plant_photos:
+    - raspberry.jpg # Raspberry is not seeded: a raspberry prediction resolves to unknown.

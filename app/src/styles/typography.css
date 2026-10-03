@@ -1,0 +1,114 @@
+/* Typography: Josefin Sans Light caps for display, Poppins for headings and UI, Manrope for reading. */
+.display,
+.display-hero {
+  font-family: var(--font-display);
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  line-height: 1.08;
+  text-wrap: balance;
+  hyphens: none;
+  margin: 0;
+}
+
+/* Page titles and section labels: at most two lines, tuned for caps and tracking. */
+.display {
+  font-size: clamp(1.75rem, 1rem + 3.4vw, 4.5rem);
+  max-width: 22ch;
+}
+
+/* The landing headline stays on one line at every width. */
+.display-hero {
+  font-size: clamp(1.5rem, 7.2vw, 4.5rem);
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+/* Denser pages such as the brand guide. */
+.display.display-sm {
+  font-size: clamp(1.5rem, 1rem + 1.8vw, 2.75rem);
+}
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.h2,
+.h3 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.15;
+  text-wrap: balance;
+  hyphens: none;
+  margin: 0;
+}
+
+.h2 {
+  font-size: clamp(1.75rem, 1.25rem + 1.6vw, 2.75rem);
+  max-width: 28ch;
+}
+
+.h3 {
+  font-size: clamp(1.125rem, 1rem + 0.5vw, 1.5rem);
+}
+
+/* Card titles stay on one line. */
+.title-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stat {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reading text: 62ch measure, 1.65 leading, left aligned, never justified. */
+.prose {
+  max-width: var(--measure);
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+  line-height: 1.65;
+  text-align: left;
+  hyphens: none;
+}
+
+.prose p {
+  text-wrap: pretty;
+  margin: 0 0 1em;
+}
+
+.prose p:last-child {
+  margin-bottom: 0;
+}
+
+.prose :is(h1, h2, h3, h4) {
+  text-wrap: balance;
+  hyphens: none;
+}
+
+.prose :is(ul, ol) {
+  margin: 0 0 1em;
+  padding-left: 1.25em;
+}
+
+.prose li {
+  margin-bottom: 0.4em;
+  text-wrap: pretty;
+}
+
+.blurb {
+  text-wrap: balance;
+  max-width: 46ch;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 0.96rem + 0.3vw, 1.25rem);
+  line-height: 1.5;
+}

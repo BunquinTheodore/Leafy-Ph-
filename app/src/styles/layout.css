@@ -1,0 +1,311 @@
+/* Page shell: header, stage, sideways panels, hero. */
+.site-header {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  height: var(--header-h);
+  padding: 0 var(--gutter);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(2px, 1vw, 12px);
+}
+
+.nav-link {
+  display: inline-flex;
+  white-space: nowrap;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 clamp(8px, 1.4vw, 16px);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.nav-link:hover {
+  background: color-mix(in srgb, var(--brand) 14%, transparent);
+}
+
+/* One viewport stage: the page never needs vertical document scroll. */
+.stage {
+  min-height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.stage-fill {
+  height: calc(100dvh - var(--header-h));
+  height: calc(100vh - var(--header-h));
+  height: calc(100dvh - var(--header-h));
+}
+
+/* ---- SlidePanels ---- */
+.panels {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.panels__viewport {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+
+.panels__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.panels__viewport[data-dragging="true"] {
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+  user-select: none;
+}
+
+.panels__panel {
+  flex: 0 0 100%;
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--space-6) var(--gutter);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  content-visibility: auto;
+}
+
+.panels__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--gutter) var(--space-4);
+}
+
+.panels__dots {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panels__dot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font-family: var(--font-heading);
+  font-size: 0.8125rem;
+}
+
+.panels__dot::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+  transition:
+    transform var(--dur-micro) var(--ease),
+    opacity var(--dur-micro) var(--ease);
+}
+
+.panels__dot[aria-current="true"] {
+  color: var(--text);
+}
+
+.panels__dot[aria-current="true"]::before {
+  background: var(--brand-glow);
+  opacity: 1;
+  transform: scale(1.5);
+}
+
+.panels__dot:hover::before {
+  transform: scale(1.5);
+  opacity: 1;
+}
+
+.panels__dot-label {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .panels__dot[aria-current="true"] .panels__dot-label {
+    display: inline;
+  }
+}
+
+.panels__arrow {
+  flex: none;
+}
+
+/* Phones swipe natively; the arrows would squeeze the 44px dots. */
+@media (max-width: 720px) {
+  .panels__arrow {
+    display: none;
+  }
+}
+
+.panels__hint {
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panels__viewport {
+    scroll-behavior: auto;
+  }
+
+  .panels__panel[data-active="true"] {
+    animation: panel-fade var(--dur-panel) ease;
+  }
+}
+
+@keyframes panel-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---- Landing hero ---- */
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  align-items: center;
+  padding: var(--space-6) var(--gutter);
+}
+
+.hero__scene {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.hero__poster {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center end;
+  padding-right: 10vw;
+  background:
+    radial-gradient(
+      60% 70% at 78% 45%,
+      color-mix(in srgb, var(--brand-deep) 55%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      50% 50% at 15% 85%,
+      color-mix(in srgb, var(--brand-deep) 28%, transparent),
+      transparent 70%
+    );
+  transition: opacity var(--dur-scene) var(--ease);
+}
+
+.hero__poster svg {
+  width: clamp(160px, 26vw, 360px);
+  height: auto;
+  opacity: 0.55;
+}
+
+.hero__scene[data-ready="true"] .hero__poster {
+  opacity: 0;
+}
+
+.hero__canvas {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--dur-scene) var(--ease);
+}
+
+.hero__scene[data-ready="true"] .hero__canvas {
+  opacity: 1;
+}
+
+.hero__content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(16px, 3vh, 28px);
+  max-width: min(100%, 78rem);
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* Soft scrim so text stays readable where the leaf sits behind it on small screens. */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--bg) 78%, transparent),
+    color-mix(in srgb, var(--bg) 62%, transparent) 46%,
+    transparent 66%
+  );
+}
+
+/* Compact: the leaf moves above the text so nothing overlaps. */
+@media (max-width: 1100px) {
+  .hero {
+    align-items: end;
+    padding-bottom: clamp(32px, 9vh, 72px);
+  }
+
+  .hero::after {
+    background: linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--bg) 82%, transparent),
+      transparent 70%
+    );
+  }
+
+  .hero__poster {
+    place-items: start center;
+    padding: 6vh 0 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .hero__actions .btn {
+    flex: 1 1 100%;
+  }
+}

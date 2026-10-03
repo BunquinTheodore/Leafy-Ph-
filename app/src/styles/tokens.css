@@ -1,0 +1,115 @@
+/*
+ * Leafy design tokens. Dark forest is the default; light follows [data-theme=light], and the
+ * system preference when no choice has been stored. Contrast is verified by tokens.contrast.test.ts.
+ */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #06120b;
+  --bg-raised: #0b1d12;
+  --surface: #10281a;
+  --border: #1e3d2b;
+  --text: #e9f4ec;
+  --text-muted: #9bb8a6;
+  --brand: #40c057;
+  --brand-deep: #1f6b3a;
+  --brand-glow: #7be495;
+  --focus: #7be495;
+  --accent: #ffb300;
+  --info: #5cc8d0;
+  --danger: #ff6b6b;
+  --on-brand: #06120b;
+  --on-accent: #1a1100;
+  --logo-big: #40c057;
+  --logo-small: #7be495;
+  --glass-alpha: 70%;
+  --scene-fog: #06120b;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f5faf4;
+  --bg-raised: #ffffff;
+  --surface: #eaf3e8;
+  --border: #cfe0cb;
+  --text: #0e2316;
+  --text-muted: #46604f;
+  --brand: #23813a;
+  --brand-deep: #17542d;
+  --brand-glow: #40c057;
+  --focus: #23813a;
+  --accent: #955d00;
+  --info: #0f7480;
+  --danger: #c0362c;
+  --on-brand: #ffffff;
+  --on-accent: #ffffff;
+  --logo-big: #17542d;
+  --logo-small: #23813a;
+  --glass-alpha: 78%;
+  --scene-fog: #f5faf4;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --bg: #f5faf4;
+    --bg-raised: #ffffff;
+    --surface: #eaf3e8;
+    --border: #cfe0cb;
+    --text: #0e2316;
+    --text-muted: #46604f;
+    --brand: #23813a;
+    --brand-deep: #17542d;
+    --brand-glow: #40c057;
+    --focus: #23813a;
+    --accent: #955d00;
+    --info: #0f7480;
+    --danger: #c0362c;
+    --on-brand: #ffffff;
+    --on-accent: #ffffff;
+    --logo-big: #17542d;
+    --logo-small: #23813a;
+    --glass-alpha: 78%;
+    --scene-fog: #f5faf4;
+  }
+}
+
+:root {
+  /* Severity scale: always shown with a label and an icon, never color only. */
+  --sev-healthy: var(--brand);
+  --sev-low: #a3d65c;
+  --sev-moderate: #ffb300;
+  --sev-high: #ff7a3d;
+  --sev-severe: #ff4d4f;
+
+  --glass: color-mix(in srgb, var(--surface) var(--glass-alpha), transparent);
+  --ring: color-mix(in srgb, var(--brand-glow) 70%, transparent);
+  --glow:
+    0 0 0 3px color-mix(in srgb, var(--brand-glow) 35%, transparent),
+    0 0 24px color-mix(in srgb, var(--brand-glow) 28%, transparent);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --gutter: clamp(16px, 3vw, 48px);
+
+  --radius-card: 12px;
+  --radius-panel: 24px;
+  --radius-pill: 999px;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-micro: 200ms;
+  --dur-panel: 400ms;
+  --dur-scene: 800ms;
+
+  --font-display: var(--font-josefin), "Josefin Sans", "Century Gothic", system-ui, sans-serif;
+  --font-heading: var(--font-poppins), Poppins, system-ui, sans-serif;
+  --font-body: var(--font-manrope), Manrope, system-ui, sans-serif;
+
+  --header-h: 64px;
+  --measure: 62ch;
+}

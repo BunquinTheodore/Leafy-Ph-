@@ -156,7 +156,10 @@ jobs:
           until curl -sf http://127.0.0.1:3000/robots.txt > /dev/null; do sleep 1; done
           pnpm exec playwright install --with-deps chromium
           pnpm a11y:axe
+          pkill -f "next-server" || true
           pkill -f "next start" || true
+          fuser -k 3000/tcp > /dev/null 2>&1 || true
+          sleep 2
       - name: Chrome wrapper that accepts the local self signed certificate
         run: |
           REAL="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
@@ -164,23 +167,6 @@ jobs:
           printf '#!/bin/sh\nexec "%s" --ignore-certificate-errors --no-sandbox --disable-gpu "$@"\n' "$REAL" > "$WRAP"
           chmod +x "$WRAP"
           echo "CHROME_PATH=$WRAP" >> "$GITHUB_ENV"
-      - name: Diagnose the local TLS proxy before Lighthouse
-        working-directory: app
-        env:
-          APP_ORIGIN: https://localhost:3443
-        run: |
-          node scripts/lh-serve.mjs > "$RUNNER_TEMP/lh-serve.log" 2>&1 &
-          PID=$!
-          for i in $(seq 1 120); do grep -q "Lighthouse server ready" "$RUNNER_TEMP/lh-serve.log" && break; sleep 1; done
-          tail -n 15 "$RUNNER_TEMP/lh-serve.log" || true
-          echo "--- listeners"; ss -ltn | grep -E ":3000|:3443" || true
-          echo "--- curl localhost over h2"; curl -sk --http2 -o /dev/null -w "code=%{http_code} http=%{http_version} ssl=%{ssl_verify_result}\n" https://localhost:3443/robots.txt || true
-          echo "--- curl 127.0.0.1"; curl -sk -o /dev/null -w "code=%{http_code}\n" https://127.0.0.1:3443/robots.txt || true
-          echo "--- curl ipv6"; curl -sk -g -o /dev/null -w "code=%{http_code}\n" "https://[::1]:3443/robots.txt" || true
-          kill "$PID" 2>/dev/null || true
-          pkill -f "next start" || true
-          sleep 2
-        continue-on-error: true
       - name: Lighthouse, public pages, mobile
         working-directory: app
         env:

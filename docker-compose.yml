@@ -3,6 +3,8 @@
 name: leafy
 
 x-api-env: &api-env
+  # Defaults to prod so every production guard is on. docker-compose.override.yml sets dev.
+  ENV: ${ENV:-prod}
   DATABASE_URL: ${DATABASE_URL}
   JWT_SECRET: ${JWT_SECRET}
   ACCESS_TOKEN_TTL_SECONDS: ${ACCESS_TOKEN_TTL_SECONDS:-900}
@@ -13,17 +15,17 @@ x-api-env: &api-env
   RESET_PASSWORD_TTL_HOURS: ${RESET_PASSWORD_TTL_HOURS:-1}
   SMTP_HOST: ${SMTP_HOST:-mailpit}
   SMTP_PORT: ${SMTP_PORT:-1025}
-  SMTP_USER: ${SMTP_USER:-}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
   SMTP_PASSWORD: ${SMTP_PASSWORD:-}
   SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
   SMTP_FROM: ${SMTP_FROM:-Leafy <no-reply@leafy.local>}
-  S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+  S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
   S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
   S3_REGION: ${S3_REGION:-us-east-1}
   S3_ACCESS_KEY: ${S3_ACCESS_KEY}
   S3_SECRET_KEY: ${S3_SECRET_KEY}
-  S3_BUCKET_SCANS: ${S3_BUCKET_SCANS:-leafy-scans}
-  S3_BUCKET_CATALOG: ${S3_BUCKET_CATALOG:-leafy-catalog}
+  S3_SCANS_BUCKET: ${S3_SCANS_BUCKET:-leafy-scans}
+  S3_CATALOG_BUCKET: ${S3_CATALOG_BUCKET:-leafy-catalog}
   ML_SERVICE: ${ML_SERVICE:-stub}
   MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-8388608}
   SCAN_QUOTA: ${SCAN_QUOTA:-500}
@@ -32,7 +34,8 @@ x-api-env: &api-env
   GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
   GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3000/api/auth/google/callback}
   GOOGLE_MOCK: ${GOOGLE_MOCK:-0}
-  SENTRY_DSN: ${SENTRY_DSN:-}
+  # Next forwards one validated client address, so the API trusts exactly one hop.
+  TRUSTED_PROXY_HOPS: ${API_TRUSTED_PROXY_HOPS:-1}
 
 services:
   postgres:
@@ -80,17 +83,17 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
-      S3_BUCKET_SCANS: ${S3_BUCKET_SCANS:-leafy-scans}
-      S3_BUCKET_CATALOG: ${S3_BUCKET_CATALOG:-leafy-catalog}
+      S3_SCANS_BUCKET: ${S3_SCANS_BUCKET:-leafy-scans}
+      S3_CATALOG_BUCKET: ${S3_CATALOG_BUCKET:-leafy-catalog}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         set -eu
         mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
-        mc mb --ignore-existing "local/$$S3_BUCKET_SCANS"
-        mc mb --ignore-existing "local/$$S3_BUCKET_CATALOG"
-        mc anonymous set none "local/$$S3_BUCKET_SCANS"
-        mc anonymous set download "local/$$S3_BUCKET_CATALOG"
+        mc mb --ignore-existing "local/$$S3_SCANS_BUCKET"
+        mc mb --ignore-existing "local/$$S3_CATALOG_BUCKET"
+        mc anonymous set none "local/$$S3_SCANS_BUCKET"
+        mc anonymous set download "local/$$S3_CATALOG_BUCKET"
         cat > /tmp/leafy-policy.json <<POLICY
         {
           "Version": "2012-10-17",
@@ -99,8 +102,8 @@ services:
               "Effect": "Allow",
               "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket", "s3:GetBucketLocation"],
               "Resource": [
-                "arn:aws:s3:::$$S3_BUCKET_SCANS", "arn:aws:s3:::$$S3_BUCKET_SCANS/*",
-                "arn:aws:s3:::$$S3_BUCKET_CATALOG", "arn:aws:s3:::$$S3_BUCKET_CATALOG/*"
+                "arn:aws:s3:::$$S3_SCANS_BUCKET", "arn:aws:s3:::$$S3_SCANS_BUCKET/*",
+                "arn:aws:s3:::$$S3_CATALOG_BUCKET", "arn:aws:s3:::$$S3_CATALOG_BUCKET/*"
               ]
             }
           ]
@@ -127,7 +130,7 @@ services:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
-    # entrypoint.sh runs: alembic upgrade head, seeds, then uvicorn (added with the API image)
+    # api/entrypoint.sh (default command "serve") runs: alembic upgrade head, seeds, then uvicorn.
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/healthz')"]
       interval: 10s
@@ -141,7 +144,12 @@ services:
       context: ./api
     restart: unless-stopped
     environment: *api-env
+    # The entrypoint execs any command other than "serve" as is (no migrate or seed here).
+    # --loop also runs cleanup_tokens every few ticks, so no separate cleanup service is needed.
     command: ["python", "-m", "app.jobs.purge_storage", "--loop"]
+    # The image HEALTHCHECK probes the HTTP API, which this worker does not serve.
+    healthcheck:
+      disable: true
     depends_on:
       api:
         condition: service_healthy
@@ -152,11 +160,15 @@ services:
       context: ./app
     restart: unless-stopped
     environment:
+      ENV: ${ENV:-prod}
       API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
       APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       COOKIE_PREFIX: ${COOKIE_PREFIX:-}
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-8388608}
+      # Added to the CSP img-src so browsers may load presigned scan photos and catalog images.
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      TRUSTED_PROXY_HOPS: ${WEB_TRUSTED_PROXY_HOPS:-0}
     depends_on:
       api:
         condition: service_healthy

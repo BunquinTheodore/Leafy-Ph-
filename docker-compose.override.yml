@@ -13,5 +13,13 @@ services:
       - "127.0.0.1:1025:1025"
       - "127.0.0.1:8025:8025"
   api:
+    environment:
+      ENV: dev
     ports:
       - "127.0.0.1:8000:8000"
+  purge:
+    environment:
+      ENV: dev
+  app:
+    environment:
+      ENV: dev

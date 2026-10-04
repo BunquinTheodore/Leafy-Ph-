@@ -1,0 +1,13 @@
+# Normalize line endings so Windows checkouts do not produce CRLF noise.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.glb binary
+*.pdf binary

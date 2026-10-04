@@ -26,6 +26,13 @@ x-api-env: &api-env
   GOOGLE_MOCK: ${GOOGLE_MOCK:-0}
   # Next forwards one validated client address, so the API trusts exactly one hop.
   TRUSTED_PROXY_HOPS: ${API_TRUSTED_PROXY_HOPS:-1}
+  HF_HOME: /tmp/huggingface
+  ML_LEAF_GATE: ${ML_LEAF_GATE:-true}
+  ML_LEAF_MIN_PROB: ${ML_LEAF_MIN_PROB:-0.5}
+  ML_MIN_CONFIDENCE: ${ML_MIN_CONFIDENCE:-0.5}
+  ML_INPUT_SIZE: ${ML_INPUT_SIZE:-256}
+  ML_LETTERBOX: ${ML_LETTERBOX:-true}
+  ML_NORMALIZE: ${ML_NORMALIZE:-none}
 
 services:
   postgres:

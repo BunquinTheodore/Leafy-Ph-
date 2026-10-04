@@ -1,0 +1,185 @@
+<style>
+/* 07 API: identifiers never break (no hyphen or mid word splits), chips hug punctuation. */
+.api-table code, .api-note code { white-space: nowrap; overflow-wrap: normal; padding: 0 0.5mm; }
+.api-table code.wrap, .card code { white-space: normal; overflow-wrap: break-word; padding: 0 0.5mm; }
+.api-table td, .api-table th { overflow-wrap: break-word; }
+.api-table th:last-child, .api-table td:last-child { padding-right: 5mm; }
+p.api-note, .api-note p, p.api-intro { max-width: none; }
+/* inline code never stretches the line box, so paragraphs keep an even 1.6 rhythm */
+p code, .api-note code, .callout code, .lede code { line-height: 1; }
+.api-table.ep { font-size: 9pt; }
+.api-table.ep td { padding: 1.6mm 2.5mm; }
+.api-table.ep td, .api-table.ep th { overflow-wrap: normal; }
+.api-table.ep td.wrapok { overflow-wrap: break-word; }
+/* error cells: one error per line, status in a fixed column, code beside it */
+.er { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 1.5mm; }
+.er + .er { margin-top: 0.8mm; }
+.er .st { flex: none; min-width: 7mm; font-variant-numeric: tabular-nums; }
+.er .x { color: var(--ink-soft); }
+.lim span { display: block; }
+.lim span + span { color: var(--ink-soft); font-weight: 500; }
+/* error chips: status and code stay together on one line */
+.er { flex-wrap: nowrap; }
+.er .st { white-space: nowrap; }
+.er .x { font-weight: 500; }
+/* last lines never end on a single word */
+.api-table td { text-wrap: pretty; }
+/* the second error table starts its own page so no row is cut at the footer */
+.api-table.pg-break { break-before: page; margin-top: 0; }
+.hl { display: flex; flex-wrap: wrap; gap: 1.2mm 1.5mm; }
+.api-table.ep tbody tr:last-child td:first-child { border-bottom-left-radius: 2mm; }
+.api-table.ep tbody tr:last-child td:last-child { border-bottom-right-radius: 2mm; }
+</style>
+<section class="sheet portrait">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">REST API</h1>
+    <p class="lede">All endpoints live under <code>/api/v1</code>. The browser never calls them directly: Next.js route handlers and server components proxy every call.</p>
+  </header>
+  <h2>Conventions</h2>
+  <div class="card-grid cols-2">
+    <div class="card"><span class="tag">Envelope</span><h3>One response shape</h3><p><code class="wrap">{success, data, error:{code, message, details, request_id}}</code>. Messages are static text, never the raw exception.</p></div>
+    <div class="card"><span class="tag">Tracing</span><h3>Request id</h3><p>Every response carries <code>X-Request-Id</code>. The same id appears in the error body and in the structured JSON logs.</p></div>
+    <div class="card"><span class="tag">Auth</span><h3>Bearer access token</h3><p>Protected calls send the 15 minute access token. Next.js attaches it from the httpOnly cookie.</p></div>
+    <div class="card"><span class="tag">Ownership</span><h3>404, never 403</h3><p>Another user's scan answers 404. Every scan query is scoped by <code>user_id</code>.</p></div>
+  </div>
+  <h2>Next.js route handlers</h2>
+  <p>These are the only URLs the browser calls. State changing handlers run <code>assertSameOrigin</code> first. Uploads stream through with a body of at most 8 MiB.</p>
+  <table class="table api-table h">
+    <colgroup><col style="width:54%"><col style="width:46%"></colgroup>
+    <thead><tr><th>Handler</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><div class="hl"><code>/api/auth/register</code><code>/api/auth/login</code><code>/api/auth/logout</code><code>/api/auth/refresh</code></div></td><td>Call FastAPI, then set or clear the <code>leafy_at</code> and <code>leafy_rt</code> cookies.</td></tr>
+      <tr><td><div class="hl"><code>/api/auth/verify-email</code><code>/api/auth/resend-verification</code><code>/api/auth/forgot-password</code><code>/api/auth/reset-password</code></div></td><td>Email token flows. Reset and account delete clear cookies.</td></tr>
+      <tr><td><div class="hl"><code>/api/auth/google</code><code>/api/auth/google/callback</code></div></td><td>Start the OAuth redirect, then verify <code>state</code> and hand the code to FastAPI.</td></tr>
+      <tr><td><div class="hl"><code>/api/me</code><code>/api/me/password</code></div></td><td>Profile, password and account delete.</td></tr>
+      <tr><td><div class="hl"><code>/api/scans</code><code>/api/scans/[id]</code></div></td><td>Create, poll, list, retry, delete and feedback for scans.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet landscape">
+  <h2>Auth endpoints</h2>
+  <table class="table api-table ep">
+    <colgroup><col style="width:24%"><col style="width:7%"><col style="width:17%"><col style="width:15%"><col style="width:24%"><col style="width:13%"></colgroup>
+    <thead><tr><th>Endpoint</th><th>Auth</th><th>Request</th><th>Response</th><th>Errors</th><th>Limits</th></tr></thead>
+    <tbody>
+      <tr><td><code>POST /auth/register</code></td><td>No</td><td>Name, email, password</td><td>201 session</td><td><div class="er"><span class="st">409</span><code>email_taken</code></div><div class="er"><span class="st">422</span><code>validation_error</code></div></td><td class="lim"><span>5 per hour</span></td></tr>
+      <tr><td><code>POST /auth/login</code></td><td>No</td><td>Email, password</td><td>Session</td><td><div class="er"><span class="st">401</span><code>invalid_credentials</code> <span class="x">uniform</span></div></td><td class="lim"><span>10 per 15 min</span><span>per ip and email</span></td></tr>
+      <tr><td><code>POST /auth/refresh</code></td><td>No</td><td><code class="wrap">{refresh_token}</code></td><td>New session</td><td><div class="er"><span class="st">401</span><code>refresh_invalid</code></div><div class="er"><span class="st">401</span><code>refresh_reuse_detected</code></div></td><td>None</td></tr>
+      <tr><td><code>POST /auth/logout</code></td><td>No</td><td><code class="wrap">{refresh_token}</code></td><td>Success, idempotent</td><td>None</td><td>None</td></tr>
+      <tr><td><code>POST /auth/verify-email</code></td><td>No</td><td>Token</td><td>Email verified</td><td><div class="er"><span class="st">400</span><code>token_invalid_or_expired</code></div></td><td>None</td></tr>
+      <tr><td><code>POST /auth/resend-verification</code></td><td>Yes</td><td>None</td><td>Success</td><td><div class="er"><span class="st">409</span><code>already_verified</code></div><div class="er"><span class="st">429</span><code>rate_limited</code></div></td><td class="lim"><span>Cooldown</span><span>60&nbsp;s</span></td></tr>
+      <tr><td><code>POST /auth/forgot-password</code></td><td>No</td><td>Email</td><td>Always 200</td><td>None, never reveals if the account exists</td><td>None</td></tr>
+      <tr><td><code>POST /auth/reset-password</code></td><td>No</td><td>Token, new password</td><td>Success, all sessions end</td><td><div class="er"><span class="st">400</span><code>token_invalid_or_expired</code></div></td><td>None</td></tr>
+      <tr><td><code>POST /auth/google</code></td><td>No</td><td><code class="wrap">{code, code_verifier, nonce, redirect_uri}</code></td><td>Session</td><td><div class="er"><span class="st">400</span><code>google_auth_failed</code></div><div class="er"><span class="st">400</span><code>google_email_unverified</code></div></td><td class="lim"><span>10 per 15 min</span><span>per ip</span></td></tr>
+    </tbody>
+  </table>
+  <p class="muted api-note">Session means the <code>AuthSessionOut</code> object with the access and refresh tokens. Reset and verify tokens are single use and return one uniform error for unknown, used or expired.</p>
+</section>
+
+<section class="sheet landscape">
+  <h2>User endpoints</h2>
+  <table class="table api-table ep">
+    <colgroup><col style="width:29%"><col style="width:7%"><col style="width:22%"><col style="width:19%"><col style="width:23%"></colgroup>
+    <thead><tr><th>Endpoint</th><th>Auth</th><th>Request</th><th>Response</th><th>Errors</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /users/me</code></td><td>Yes</td><td>None</td><td>Profile, including <code>auth_methods</code></td><td><div class="er"><span class="st">401</span><code>not_authenticated</code></div></td></tr>
+      <tr><td><code>PATCH /users/me</code></td><td>Yes</td><td>First and last name</td><td>Updated profile</td><td><div class="er"><span class="st">422</span><code>validation_error</code></div></td></tr>
+      <tr><td><code>POST /users/me/password</code></td><td>Yes</td><td><code>current_password</code> only if the user has one, plus new password (10 to 128 characters, not the email, not common)</td><td>Success</td><td><div class="er"><span class="st">403</span><code>password_incorrect</code></div><div class="er"><span class="st">422</span><code>validation_error</code></div></td></tr>
+      <tr><td><code>DELETE /users/me</code></td><td>Yes</td><td>Password, or DELETE typed after a fresh sign in for Google only users</td><td>Account and all scans removed</td><td><div class="er"><span class="st">403</span><code>password_incorrect</code></div></td></tr>
+    </tbody>
+  </table>
+  <h2>Catalog and health endpoints</h2>
+  <table class="table api-table ep">
+    <colgroup><col style="width:29%"><col style="width:7%"><col style="width:22%"><col style="width:19%"><col style="width:23%"></colgroup>
+    <thead><tr><th>Endpoint</th><th>Auth</th><th>Request</th><th>Response</th><th>Errors</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /plants?q=</code></td><td>Public</td><td>Optional search text</td><td>List of plants</td><td><div class="er"><span class="st">422</span><code>validation_error</code></div></td></tr>
+      <tr><td><code>GET /plants/{plant}</code></td><td>Public</td><td>Plant slug</td><td>Plant with growth fields and diseases</td><td><div class="er"><span class="st">404</span><code>not_found</code></div></td></tr>
+      <tr><td><code>GET /plants/{plant}/diseases/{disease}</code></td><td>Public</td><td>Plant and disease slugs (disease slugs are unique per plant)</td><td>Disease with entries and images in one query</td><td><div class="er"><span class="st">404</span><code>not_found</code></div></td></tr>
+      <tr><td><code>GET /diseases?q=&amp;plant=</code></td><td>Public</td><td>Optional text and plant filter</td><td>List of diseases</td><td><div class="er"><span class="st">422</span><code>validation_error</code></div></td></tr>
+      <tr><td><code>GET /healthz</code>, <code>GET /readyz</code></td><td>No</td><td>None</td><td>Alive, and ready when the database answers</td><td><div class="er"><span class="st">503</span><code>service_unavailable</code></div></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet landscape">
+  <h2>Scan endpoints</h2>
+  <table class="table api-table ep">
+    <colgroup><col style="width:22%"><col style="width:7%"><col style="width:26%"><col style="width:20%"><col style="width:25%"></colgroup>
+    <thead><tr><th>Endpoint</th><th>Auth</th><th>Request</th><th>Response</th><th>Errors</th></tr></thead>
+    <tbody>
+      <tr><td><code>POST /scans</code></td><td>Yes, verified</td><td class="lim"><span>Multipart <code>image</code></span><span>Limit 10/min, 100/day (see Rate limits)</span></td><td>202 with <code>id</code>, <code>status</code> (<code>processing</code>) and <code>stage</code></td><td><div class="er"><span class="st">403</span><code>email_not_verified</code></div><div class="er"><span class="st">413</span><code>payload_too_large</code></div><div class="er"><span class="st">415</span><code>unsupported_media_type</code></div><div class="er"><span class="st">422</span><code>invalid_image</code></div><div class="er"><span class="st">429</span><code>rate_limited</code></div><div class="er"><span class="st">409</span><code>scan_quota_exceeded</code></div><div class="er"><span class="st">503</span><code>storage_unavailable</code></div></td></tr>
+      <tr><td><code>GET /scans/{id}</code></td><td>Yes</td><td class="lim"><span>None</span><span>Poll every 1&nbsp;s, back off to 2&nbsp;s</span></td><td>Scan with <code>status</code>, <code>stage</code>, <code>failure_code</code></td><td><div class="er"><span class="st">404</span><code>not_found</code></div></td></tr>
+      <tr><td><code>POST /scans/{id}/retry</code></td><td>Yes</td><td>None</td><td>Prediction re-runs on the stored image</td><td><div class="er"><span class="st">409</span><code>scan_not_failed</code></div></td></tr>
+      <tr><td><code>GET /scans</code></td><td>Yes</td><td>Keyset <code>cursor</code>, <code>limit</code> 1 to 50, filters <code>status</code>, <code>verdict</code>, <code>plant</code></td><td>Page of scans with live status badges</td><td><div class="er"><span class="st">400</span><code>invalid_cursor</code></div></td></tr>
+      <tr><td><code>GET /scans/stats</code></td><td>Yes</td><td>None</td><td>Totals, last 30 days, verdict split, top 5 diseases (completed only)</td><td>None</td></tr>
+      <tr><td><code>DELETE /scans/{id}</code></td><td>Yes</td><td>None</td><td>Scan removed, image purge queued</td><td><div class="er"><span class="st">404</span><code>not_found</code></div></td></tr>
+      <tr><td><code>PUT /scans/{id}/feedback</code></td><td>Yes</td><td><code class="wrap">{is_correct, correct_plant?, correct_disease?, comment?}</code>, comment up to 300 characters</td><td>Idempotent upsert. The team exports it as CSV with <code class="wrap">python -m app.tools.export_feedback</code></td><td><div class="er"><span class="st">409</span><code>scan_not_completed</code></div><div class="er"><span class="st">404</span><code>not_found</code></div></td></tr>
+      <tr><td><code>DELETE /scans/{id}/feedback</code></td><td>Yes</td><td>None</td><td>Feedback cleared</td><td><div class="er"><span class="st">404</span><code>not_found</code></div></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet portrait">
+  <h2>Error codes</h2>
+  <p class="api-intro">Every error uses the envelope. The status is the HTTP status. Codes marked Next only never come from FastAPI. The first table covers sign in, tokens, account and upload errors. The second covers server and scan state errors.</p>
+  <table class="table api-table">
+    <colgroup><col style="width:34%"><col style="width:9%"><col style="width:57%"></colgroup>
+    <thead><tr><th>Code</th><th class="num">HTTP</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>token_invalid_or_expired</code></td><td class="num">400</td><td>Email link is unknown, used or expired. One uniform answer.</td></tr>
+      <tr><td><code>not_authenticated</code></td><td class="num">401</td><td>No valid access token on a protected call.</td></tr>
+      <tr><td><code>token_expired</code></td><td class="num">401</td><td>Access token expired. Next.js refreshes and retries once.</td></tr>
+      <tr><td><code>invalid_token</code></td><td class="num">401</td><td>Access token is malformed or fails verification.</td></tr>
+      <tr><td><code>invalid_credentials</code></td><td class="num">401</td><td>Wrong email or password. Same message for both, and for Google only accounts.</td></tr>
+      <tr><td><code>refresh_invalid</code></td><td class="num">401</td><td>Refresh token unknown, expired or revoked.</td></tr>
+      <tr><td><code>refresh_reuse_detected</code></td><td class="num">401</td><td>A rotated token was replayed after the 10 s grace window. The whole family is revoked.</td></tr>
+      <tr><td><code>email_not_verified</code></td><td class="num">403</td><td>Only <code>POST /scans</code> is blocked for unverified users.</td></tr>
+      <tr><td><code>password_incorrect</code></td><td class="num">403</td><td>Current password is wrong on change or delete.</td></tr>
+      <tr><td><code>csrf_failed</code> (Next only)</td><td class="num">403</td><td>Origin check failed on a state changing handler.</td></tr>
+      <tr><td><code>email_taken</code></td><td class="num">409</td><td>Registering with an email that already has an account.</td></tr>
+      <tr><td><code>already_verified</code></td><td class="num">409</td><td>Resend requested for a verified email.</td></tr>
+      <tr><td><code>google_auth_failed</code></td><td class="num">400</td><td>Generic Google failure. Details are logged.</td></tr>
+      <tr><td><code>google_email_unverified</code></td><td class="num">400</td><td>Google reports the email as unverified.</td></tr>
+      <tr><td><code>invalid_state</code> (Next only)</td><td class="num">400</td><td>OAuth <code>state</code> does not match the cookie.</td></tr>
+      <tr><td><code>not_found</code></td><td class="num">404</td><td>Missing resource, or a scan owned by someone else.</td></tr>
+      <tr><td><code>payload_too_large</code></td><td class="num">413</td><td>Body over the 8 MiB cap.</td></tr>
+      <tr><td><code>unsupported_media_type</code></td><td class="num">415</td><td>Upload is not JPEG, PNG or WebP.</td></tr>
+      <tr><td><code>validation_error</code></td><td class="num">422</td><td>Request fields fail validation.</td></tr>
+      <tr><td><code>invalid_image</code></td><td class="num">422</td><td>Image fails decode, pixel cap of 40M, or sniff checks.</td></tr>
+      <tr><td><code>invalid_cursor</code></td><td class="num">400</td><td>Keyset cursor is not valid.</td></tr>
+      <tr><td><code>rate_limited</code></td><td class="num">429</td><td>Too many attempts. Sends <code>Retry-After</code>.</td></tr>
+    </tbody>
+  </table>
+  <table class="table api-table pg-break">
+    <colgroup><col style="width:34%"><col style="width:9%"><col style="width:57%"></colgroup>
+    <thead><tr><th>Code</th><th class="num">HTTP</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>internal_error</code></td><td class="num">500</td><td>Unexpected failure. Details are logged, not returned.</td></tr>
+      <tr><td><code>prediction_failed</code></td><td class="num">502</td><td>Prediction errored or timed out. Stored as the scan <code>failure_code</code>.</td></tr>
+      <tr><td><code>ml_unavailable</code></td><td class="num">503</td><td>The stub raised <code>NotImplementedError</code>. Shown as "Analysis isn't available right now".</td></tr>
+      <tr><td><code>storage_unavailable</code></td><td class="num">503</td><td>S3 could not store the image.</td></tr>
+      <tr><td><code>scan_not_failed</code></td><td class="num">409</td><td>Retry on a scan that has not failed.</td></tr>
+      <tr><td><code>scan_not_completed</code></td><td class="num">409</td><td>Feedback sent before the scan completed.</td></tr>
+      <tr><td><code>scan_quota_exceeded</code></td><td class="num">409</td><td>Stored scan cap reached. The UI asks to delete old scans.</td></tr>
+    </tbody>
+  </table>
+  <p class="muted api-note">Additions in the built API, not in the original plan: <code>service_unavailable</code> (503), <code>method_not_allowed</code> (405) and <code>reauth_required</code> (403, a Google only user needs a fresh sign in before deleting). The 502 for <code>prediction_failed</code> and 409 for <code>scan_quota_exceeded</code> are also build decisions; the plan lists the codes without statuses.</p>
+  <h2>Rate limits</h2>
+  <table class="table api-table">
+    <colgroup><col style="width:36%"><col style="width:26%"><col style="width:38%"></colgroup>
+    <thead><tr><th>Action</th><th>Limit</th><th>Scope</th></tr></thead>
+    <tbody>
+      <tr><td>Register</td><td>5 per hour</td><td>Per ip</td></tr>
+      <tr><td>Login</td><td>10 per 15 minutes</td><td>Per ip and email</td></tr>
+      <tr><td>Google sign in</td><td>10 per 15 minutes</td><td>Per ip</td></tr>
+      <tr><td>Resend verification</td><td>1 per 60 seconds</td><td>Per user (cooldown)</td></tr>
+      <tr><td>Create scan</td><td>10 per minute, 100 per day</td><td>Per user</td></tr>
+      <tr><td>Stored scans</td><td>500 by default (<code>SCAN_QUOTA</code>)</td><td>Per user, then <code>scan_quota_exceeded</code></td></tr>
+      <tr><td>Upload size</td><td>8 MiB</td><td>Next.js, ASGI middleware and the streaming read</td></tr>
+    </tbody>
+  </table>
+  <div class="callout note api-note"><span class="callout-title">How limits behave</span><p>Limits use slowapi in memory for v1, so they reset when the API restarts. Redis is the upgrade path. A limited call answers 429 <code>rate_limited</code> with <code>Retry-After</code>, and the UI shows a countdown.</p></div>
+</section>

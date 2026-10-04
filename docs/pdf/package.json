@@ -1,0 +1,21 @@
+{
+  "name": "leafy-docs-pdf",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Builds the Leafy documentation PDF (HTML + print CSS rendered by headless Chromium).",
+  "scripts": {
+    "docs:pdf": "node build.mjs",
+    "docs:pdf:downloads": "node build.mjs --downloads",
+    "docs:check": "node layout-check.mjs",
+    "test": "node --test lib/diagram.test.mjs"
+  },
+  "dependencies": {
+    "@fontsource/josefin-sans": "^5.2.0",
+    "@fontsource/manrope": "^5.2.0",
+    "@fontsource/poppins": "^5.2.0",
+    "@napi-rs/canvas": "^1.0.10",
+    "pdfjs-dist": "^6.3.289",
+    "playwright": "^1.63.0"
+  }
+}

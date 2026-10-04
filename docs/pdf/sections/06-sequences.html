@@ -1,0 +1,185 @@
+<section class="sheet portrait">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">Auth and session sequences</h1>
+    <p class="lede">How sign in, sessions, email tokens, Google and account deletion work step by step. Each sequence reads from top to bottom, and each arrow is one call.</p>
+  </header>
+
+  <h2>Tokens and lifetimes</h2>
+  <table class="table">
+    <colgroup><col style="width:21%"><col style="width:41%"><col></colgroup>
+    <thead><tr><th>Token</th><th>Form and storage</th><th>Lifetime and use</th></tr></thead>
+    <tbody>
+      <tr><td>Access token</td><td>JWT in the <code>leafy_at</code> cookie. Never readable by page scripts.</td><td>15 minutes (900 s). Next.js refreshes it when it is missing or within 30 s of expiry.</td></tr>
+      <tr><td>Refresh token</td><td>Opaque random value in <code>leafy_rt</code>. The database keeps only its hash, with a <code>family_id</code>.</td><td>30 days, and the whole family ends after 90 days. It rotates on every use.</td></tr>
+      <tr><td>Verify email token</td><td>Random 256 bit value, stored as sha256 in <code>auth_token</code>.</td><td>24 hours. One use, consumed by a single atomic UPDATE.</td></tr>
+      <tr><td>Reset password token</td><td>The same shape as the verify token, type <code>reset_password</code>.</td><td>1 hour. One use. A reset revokes every refresh family.</td></tr>
+      <tr><td>OAuth cookie</td><td>State, nonce and the PKCE verifier. httpOnly, SameSite=Lax, <code>__Host-</code> prefix.</td><td>10 minutes. Single use, cleared after the callback.</td></tr>
+      <tr><td>Google ID token</td><td>Checked on the server with cached JWKS. Never stored.</td><td>Used once to find or create the user.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>How to read the sequence diagrams</h2>
+  <table class="table key-table">
+    <colgroup><col style="width:22%"><col style="width:20%"><col></colgroup>
+    <thead><tr><th>Mark</th><th>Sample</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Participant box</td><td><svg class="key-glyph" width="104" height="18" viewBox="0 0 104 18" aria-hidden="true"><rect x="22" y="1" width="60" height="16" rx="4" fill="#e4f3e5" stroke="#17542d" stroke-width="1.6"/></svg></td><td>One participant sits at the top. Time runs down the page, and each arrow is one call.</td></tr>
+      <tr><td>Lifeline</td><td><svg class="key-glyph" width="104" height="18" viewBox="0 0 104 18" aria-hidden="true"><line x1="2" y1="9" x2="98" y2="9" stroke="#6b7a70" stroke-width="1.25"/></svg></td><td>The thin solid grey line below a participant. It continues behind notes and frame tabs.</td></tr>
+      <tr><td>Solid arrow</td><td><svg class="key-glyph" width="104" height="18" viewBox="0 0 104 18" aria-hidden="true"><line x1="2" y1="9" x2="86" y2="9" stroke="#23813a" stroke-width="1.7"/><polygon points="98,9 89,13.5 89,4.5" fill="#23813a"/></svg></td><td>A request. The number in the label is the step order.</td></tr>
+      <tr><td>Dashed arrow</td><td><svg class="key-glyph" width="104" height="18" viewBox="0 0 104 18" aria-hidden="true"><line x1="2" y1="9" x2="89" y2="9" stroke="#17542d" stroke-width="2" stroke-dasharray="9 5"/><polygon points="98,9 89,13.5 89,4.5" fill="#17542d"/></svg></td><td>A response, a redirect or a mail.</td></tr>
+      <tr><td>Dotted arrow</td><td><svg class="key-glyph" width="104" height="18" viewBox="0 0 104 18" aria-hidden="true"><line x1="3" y1="9" x2="89" y2="9" stroke="#0e2316" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="0.1 5.5"/><polygon points="98,9 89,13.5 89,4.5" fill="#0e2316"/></svg></td><td>Optional or async work, such as the S3 drain job.</td></tr>
+      <tr><td>Yellow note</td><td><svg class="key-glyph" width="104" height="18" viewBox="0 0 104 18" aria-hidden="true"><rect x="2" y="2" width="96" height="14" rx="3" fill="#fffdf3" stroke="#a86a00" stroke-width="1"/></svg></td><td>A rule or detail for the participants beside it.</td></tr>
+      <tr><td>Frame with alt and else</td><td><svg class="key-glyph" width="104" height="18" viewBox="0 0 104 18" aria-hidden="true"><rect x="2" y="1" width="96" height="16" rx="3" fill="none" stroke="#a9c4ad" stroke-width="1"/><rect x="5" y="3" width="30" height="8" rx="2" fill="#f7faf6" stroke="#a9c4ad" stroke-width="1"/></svg></td><td>Alternatives. Exactly one branch of the frame happens.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet portrait">
+  <h2>Rules the sequences follow</h2>
+  <div class="card-grid cols-2">
+    <div class="card"><span class="tag">Uniform</span><h3>No hints for attackers</h3><p>Wrong credentials, an unknown email and a user without a password all give the same 401. Forgot password always answers 200. Bad email tokens give one 400.</p></div>
+    <div class="card"><span class="tag">Rotation</span><h3>Reuse revokes the family</h3><p>A rotated token used again inside 10 s is a harmless concurrent refresh. After 10 s it counts as theft and the whole family is revoked.</p></div>
+    <div class="card"><span class="tag">Secrets</span><h3>Only the API holds them</h3><p>Next.js and the browser never see <code>GOOGLE_CLIENT_SECRET</code>. Email tokens are stored hashed, and no token or code stays in a URL after the callback.</p></div>
+    <div class="card"><span class="tag">Outbox</span><h3>Delete works without S3</h3><p>Image keys are queued in <code>storage_deletion</code> in the same transaction that deletes the user. A drain job removes the files later.</p></div>
+  </div>
+
+  <h2>Sequences in this section</h2>
+  <table class="table">
+    <colgroup><col style="width:6%"><col style="width:30%"><col style="width:26%"><col></colgroup>
+    <thead><tr><th>No.</th><th>Sequence</th><th>Participants</th><th>What it shows</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Login with cookies</td><td>Browser, Next.js, FastAPI, PostgreSQL</td><td>Where the tokens travel, and why the browser only gets httpOnly cookies.</td></tr>
+      <tr><td>2</td><td>Refresh rotation and reuse detection</td><td>Next.js, FastAPI, PostgreSQL</td><td>The four outcomes of one refresh call, including the 10 s grace window.</td></tr>
+      <tr><td>3</td><td>Google sign in, part 1</td><td>Browser, Next.js, Google</td><td>The redirect legs and the short lived OAuth cookie.</td></tr>
+      <tr><td>4</td><td>Google sign in, part 2</td><td>Browser, Next.js, FastAPI, Google, PostgreSQL</td><td>The code exchange and ID token checks that stay inside FastAPI.</td></tr>
+      <tr><td>5</td><td>Email verification token, in 2 parts</td><td>Browser, Next.js, FastAPI, PostgreSQL, SMTP</td><td>A hashed token, mailed once and consumed atomically.</td></tr>
+      <tr><td>6</td><td>Password reset token, in 2 parts</td><td>Browser, Next.js, FastAPI, PostgreSQL, SMTP</td><td>One uniform reply, and a reset that ends every session.</td></tr>
+      <tr><td>7</td><td>Account delete, S3 outbox, in 2 parts</td><td>Browser, Next.js, FastAPI, PostgreSQL, purge job, S3</td><td>One transaction for the account, and files removed afterwards.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet landscape seq-page">
+  <div class="seq-head">
+    <h2>Sequence: login with cookies</h2>
+    <div class="legend">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Request</span>
+      <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response</span>
+      <span class="legend-item"><span class="ln life" aria-hidden="true"></span>Lifeline</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/seq-login.mjs caption="Tokens travel only between Next.js and FastAPI. The browser only ever receives httpOnly cookies. Login is rate limited to 10 per 15 min per ip and email, and argon2id verifies against a dummy hash when the email is unknown." -->
+</section>
+
+<section class="sheet landscape seq-page">
+  <div class="seq-head">
+    <h2>Sequence: refresh rotation and reuse</h2>
+    <div class="legend">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Request</span>
+      <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response</span>
+      <span class="legend-item"><span class="ln life" aria-hidden="true"></span>Lifeline</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/seq-refresh.mjs caption="The row is locked while it is read. Four outcomes: invalid, rotated, harmless double refresh, and reuse that revokes the family. After a reuse, Next.js clears both cookies and sends the user to /login?reason=session_expired." -->
+</section>
+
+<section class="sheet landscape seq-page">
+  <div class="seq-head">
+    <h2>Sequence: Google sign in, part 1</h2>
+    <div class="legend">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Request</span>
+      <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Redirect or response</span>
+      <span class="legend-item"><span class="ln life" aria-hidden="true"></span>Lifeline</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/seq-google.mjs caption="Next.js starts the flow and keeps state, nonce and the PKCE verifier in a short lived cookie. No secret is involved yet. Continues on the next page with the callback." -->
+</section>
+
+<section class="sheet landscape seq-page">
+  <div class="seq-head">
+    <h2>Sequence: Google sign in, part 2</h2>
+    <div class="legend">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Request</span>
+      <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Redirect or response</span>
+      <span class="legend-item"><span class="ln life" aria-hidden="true"></span>Lifeline</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/seq-google-callback.mjs caption="Continued from the previous page. The code exchange and the ID token checks run in FastAPI, so the client secret never leaves the API." -->
+</section>
+
+<section class="sheet landscape seq-page">
+  <div class="seq-head">
+    <h2>Sequence: email verification token, part 1</h2>
+    <div class="legend">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Request</span><span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response or mail</span>
+      <span class="legend-item"><span class="ln life" aria-hidden="true"></span>Lifeline</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/seq-verify.mjs caption="Only the hash of the token is stored. The mail carries the token, the database never does. Continues on the next page." -->
+</section>
+
+<section class="sheet landscape seq-page">
+  <div class="seq-head">
+    <h2>Sequence: email verification token, part 2</h2>
+    <div class="legend">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Request</span><span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response</span>
+      <span class="legend-item"><span class="ln life" aria-hidden="true"></span>Lifeline</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/seq-verify-use.mjs caption="Continued from the previous page. The token can be used once. A bad, used or expired token always gives the same 400." -->
+</section>
+
+<section class="sheet landscape seq-page">
+  <div class="seq-head">
+    <h2>Sequence: password reset token, part 1</h2>
+    <div class="legend">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Request</span><span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response</span><span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional</span>
+      <span class="legend-item"><span class="ln life" aria-hidden="true"></span>Lifeline</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/seq-reset.mjs caption="The reply is the same whether or not the account exists. Continues on the next page." -->
+</section>
+
+<section class="sheet landscape seq-page">
+  <div class="seq-head">
+    <h2>Sequence: password reset token, part 2</h2>
+    <div class="legend">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Request</span><span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response</span>
+      <span class="legend-item"><span class="ln life" aria-hidden="true"></span>Lifeline</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/seq-reset-use.mjs caption="Continued from the previous page. A reset ends every session, and a notice is mailed to the account." -->
+</section>
+
+<section class="sheet landscape seq-page">
+  <div class="seq-head">
+    <h2>Sequence: account delete, part 1</h2>
+    <div class="legend">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Request</span><span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response</span>
+      <span class="legend-item"><span class="ln life" aria-hidden="true"></span>Lifeline</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/seq-delete.mjs caption="The account is deleted in one transaction, together with the queue entries for its files. Continues on the next page." -->
+</section>
+
+<section class="sheet landscape seq-page">
+  <div class="seq-head">
+    <h2>Sequence: account delete, part 2</h2>
+    <div class="legend">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Request</span><span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Async</span>
+      <span class="legend-item"><span class="ln life" aria-hidden="true"></span>Lifeline</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/seq-delete-purge.mjs caption="Continued from the previous page. Files are removed afterwards, so S3 being down never blocks the delete." -->
+</section>

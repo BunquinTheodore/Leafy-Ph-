@@ -1,0 +1,102 @@
+<section class="sheet portrait">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">Build phases and workflow</h1>
+    <p class="lede">Work followed phases 0 to 15, plus 12b, in order of dependency. Tests came first, independent work ran in parallel with disjoint folders, and no wave started before the previous gate was green. Everything is built except the real ML model and the items that need a host.</p>
+  </header>
+
+  <h2>Timeline in four waves</h2>
+  <div class="timeline">
+    <figure class="frame"><div class="frame-visual"><span><strong>Waves 0 and 1</strong><br>Contracts, then three parallel streams</span></div><figcaption>BUILT. Scaffold, seed data, API core and account, web foundation, hero and brand.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><span><strong>Wave 2</strong><br>Scans end to end</span></div><figcaption>BUILT. Storage, ML stub, async scans, then the scan, history, dashboard and account screens.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><span><strong>Wave 3</strong><br>Polish and proof</span></div><figcaption>BUILT: Playwright journeys, layout checks, README. OPEN: Lighthouse and PageSpeed runs.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><span><strong>Final gate</strong><br>Hand over</span></div><figcaption>OPEN. Waits for the teammate’s model and for a host.</figcaption></figure>
+  </div>
+
+  <h2>Operating rules and safety</h2>
+  <table class="table keep-code">
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>Rule</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td>Dependency first</td><td>Phases run in order of dependency. Independent work runs in parallel with subagents, each owning disjoint folders. No phase starts before the previous gate is green.</td></tr>
+      <tr><td>TDD by default</td><td>Tests first for the API and Next logic. UI visuals are verified in a real browser.</td></tr>
+      <tr><td>Small conventional commits</td><td>One commit per green phase (<code>feat:</code>, <code>fix:</code>, <code>test:</code>, <code>chore:</code>), so any phase can be reverted alone. No push until the team says so, no <code>--no-verify</code>, no force operations.</td></tr>
+      <tr><td>Preflight</td><td>Tools, free ports and inputs are checked first. With no Docker, development uses native services.</td></tr>
+      <tr><td>Protected input</td><td>The DAHON folder is never modified, and destructive commands are not used without asking.</td></tr>
+    </tbody>
+  </table>
+
+</section>
+
+<section class="sheet portrait">
+  <h2>Phases</h2>
+  <table class="table keep-code">
+    <colgroup><col style="width:8%"><col style="width:58%"><col style="width:12%"><col style="width:22%"></colgroup>
+    <thead><tr><th>No.</th><th>Work</th><th>Wave</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>0</td><td><code>git init</code> in <code>C:Leafy</code>, <code>.gitignore</code>, origin set to the Leafy GitHub repository. The first push waits for the go ahead.</td><td>0</td><td>Built (no push)</td></tr>
+      <tr><td>1</td><td>Scaffold monorepo, compose, <code>.env.example</code>, lint and CI skeleton.</td><td>0</td><td>Built</td></tr>
+      <tr><td>2</td><td>Seed extraction tool and committed data: 13 plants, 27 diseases, <code>labels.json</code>, cleaning report.</td><td>1 (B)</td><td>Built</td></tr>
+      <tr><td>3</td><td>Core and database: config, errors, envelope, models, migrations, unit of work, constraint tests.</td><td>1 (A)</td><td>Built</td></tr>
+      <tr><td>4</td><td>Seed loader: idempotent, <code>--check</code>.</td><td>1 (A, B)</td><td>Built</td></tr>
+      <tr><td>5</td><td>Catalog read API.</td><td>1 (A)</td><td>Built</td></tr>
+      <tr><td>6</td><td>Auth core: register, login, token service, rotation, reuse detection with a concurrent rotate test.</td><td>1 (A)</td><td>Built</td></tr>
+      <tr><td>7</td><td>Email token flows (verify, resend, forgot, reset), then Google sign in: API verifier, <code>oauth_identity</code> migration, mock Google, Next handlers, Google button.</td><td>1 (A)</td><td>Built (mock Google)</td></tr>
+      <tr><td>8</td><td>Account: profile, change password, delete account and outbox purge.</td><td>1 (A)</td><td>Built</td></tr>
+      <tr><td>9</td><td>Storage, image validator, ML abstract class and stub, prediction resolver with table driven tests, dev only fake model.</td><td>2 (D)</td><td>Built</td></tr>
+      <tr><td>10</td><td>Scans API: async 202 flow, stages, retry, stuck scan janitor, ownership, keyset paging, stats, feedback and its CSV export.</td><td>2 (D)</td><td>Built</td></tr>
+      <tr><td>11</td><td>Next foundation: env, <code>apiFetch</code>, cookies, single flight refresh, middleware, auth handlers, CSRF, Vitest.</td><td>1 (C)</td><td>Built</td></tr>
+      <tr><td>12</td><td>Design system: tokens, fonts, <code>prose</code>, <code>SlidePanels</code>, cursor, interaction primitives, SFX, splash, three.js module, landing, handbook and auth pages.</td><td>1 (C)</td><td>Built</td></tr>
+      <tr><td>12b</td><td>Public extras: About, Privacy, Terms, footer, SEO, PWA manifest, no flash theme script, branded emails. The install prompt is not built.</td><td>2 to 3</td><td>Built (one item open)</td></tr>
+      <tr><td>13</td><td>Scan, history, dashboard and account screens with result feedback, 3D scenes, reusable progress UI.</td><td>2 (E)</td><td>Built</td></tr>
+      <tr><td>14</td><td>Performance pass: Lighthouse CI on mobile and desktop, bundle budgets, PageSpeed Insights after deploy.</td><td>3</td><td>Open: needs hosting</td></tr>
+      <tr><td>15</td><td>Playwright E2E and layout assertions, README, final review. Dockerfiles are not written yet.</td><td>3</td><td>Built (Dockerfiles open)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet portrait">
+  <h2>Execution workflow</h2>
+  <!-- @diagram diagrams/workflow-execution.mjs caption="Waves, agents and gates. Arrows show the order of work. BUILT and OPEN show where it stands." -->
+  <div class="legend phase-key">
+    <span class="legend-title">Boxes</span>
+    <span class="legend-item"><i class="sw built"></i>Built: green fill, thick border, check badge</span>
+    <span class="legend-item"><i class="sw next"></i>Open: thick dark border, white</span>
+    <span class="legend-item"><i class="sw"></i>Gate: thin green border, white</span>
+    <span class="legend-item"><i class="sw final"></i>Final gate: grey, dashed</span>
+  </div>
+</section>
+
+<section class="sheet portrait">
+  <h2>Gates</h2>
+  <div class="gate-strip">
+    <div class="gate-card"><strong>Gate 1</strong><span>After wave 1. Tests, coverage, migrations, seeds and five reviewers.</span></div>
+    <div class="gate-arrow"></div>
+    <div class="gate-card"><strong>Gate 2</strong><span>After wave 2. Full stack, browser pass and security review.</span></div>
+    <div class="gate-arrow"></div>
+    <div class="gate-card last"><strong>Final gate</strong><span>After wave 3. All suites green, scores met, last review.</span></div>
+  </div>
+  <table class="table keep-code">
+    <colgroup><col style="width:16%"><col style="width:84%"></colgroup>
+    <thead><tr><th>Gate</th><th>What must be true</th></tr></thead>
+    <tbody>
+      <tr><td>Gate 1</td><td><ul class="cell-list"><li><code>pytest</code> green, 80 percent or more coverage on the backend work.</li><li><code>pnpm test</code> and <code>pnpm build</code> green.</li><li>Migrations apply on an empty database.</li><li>Seeds <code>--check</code> passes.</li><li>Five reviewers (code, FastAPI, security, React, TypeScript) run in parallel. Every <span class="sev">CRITICAL</span> and <span class="sev">HIGH</span> finding is fixed.</li></ul></td></tr>
+      <tr><td>Gate 2</td><td>Full compose stack up. Manual browser pass: register, verify via Mailpit, upload with a fake ML service, progress UI, result panels, history, delete, forgot and reset, delete account. Ownership and refresh tests. Security review of upload and S3 paths.</td></tr>
+      <tr><td>Final gate</td><td>All suites green, Lighthouse thresholds met, a last code and security review of the whole diff, and a short report of what was and was not verified.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Stop and ask</h2>
+  <p class="balance-text">Even in auto mode the work stops and asks before these steps. A step that fails twice for the same cause stops and reports.</p>
+  <table class="table keep-code">
+    <colgroup><col style="width:40%"><col style="width:60%"></colgroup>
+    <thead><tr><th>Trigger</th><th>Until then</th></tr></thead>
+    <tbody>
+      <tr><td>Pushing to GitHub or opening a pull request</td><td>Work stays local on a feature branch.</td></tr>
+      <tr><td>Real credentials (Google OAuth, SMTP, production S3, deploy)</td><td>Everything runs against the Google mock, Mailpit and MinIO.</td></tr>
+      <tr><td>Licensing of DAHON sample images</td><td>Not deployed publicly.</td></tr>
+      <tr><td>A change that conflicts with a confirmed decision</td><td>The decision stands.</td></tr>
+      <tr><td>The teammate's <code>predict()</code> implementation</td><td>Only the abstract class, stub and contract ship.</td></tr>
+    </tbody>
+  </table>
+</section>

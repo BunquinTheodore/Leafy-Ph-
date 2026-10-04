@@ -1,0 +1,89 @@
+<section class="sheet portrait">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">Scan states and progress</h1>
+    <p class="lede">A scan is analyzed in the background, so the user can always see where it stands. The API and the UI share one state machine.</p>
+  </header>
+
+  <h2>States and stages</h2>
+  <table class="table">
+    <colgroup><col style="width:20%"><col style="width:30%"><col></colgroup>
+    <thead><tr><th>State</th><th>Stored as</th><th>What happens and what the user sees</th></tr></thead>
+    <tbody>
+      <tr><td>uploading</td><td>client only</td><td>The browser sends the photo. A real percentage and a Cancel button.</td></tr>
+      <tr><td>processing, validating</td><td><code>status=processing</code> <code>stage=validating</code></td><td><code>POST /scans</code> checked and stored the image and answered 202. The screen says Checking image. Long edge capped at 2048 px and re-encoded as JPEG; the model receives this sanitized JPEG.</td></tr>
+      <tr><td>processing, analyzing</td><td><code>stage=analyzing</code></td><td>A background worker runs <code>predict()</code> in a threadpool with a timeout. Scanning beam, eased bar, elapsed time.</td></tr>
+      <tr><td>processing, saving</td><td><code>stage=saving</code></td><td>The prediction is resolved to a plant and disease and written. The screen says Saving result.</td></tr>
+      <tr><td>completed</td><td><code>status=completed</code> with a <code>verdict</code></td><td>The result panels open. The verdict is disease, healthy or unknown.</td></tr>
+      <tr><td>failed</td><td><code>status=failed</code> with a <code>failure_code</code></td><td>A reason in plain words and a Retry button that reuses the stored image.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Transitions</h2>
+  <table class="table">
+    <colgroup><col style="width:36%"><col style="width:64%"></colgroup>
+    <thead><tr><th>Move</th><th>Trigger</th></tr></thead>
+    <tbody>
+      <tr><td>uploading to validating</td><td><code>POST /scans</code> accepted. Answer 202 with <code>{id, status, stage}</code>.</td></tr>
+      <tr><td>validating to analyzing</td><td>The worker starts and sets <code>stage=analyzing</code>.</td></tr>
+      <tr><td>analyzing to saving</td><td><code>predict()</code> returned and the resolver matched the slugs.</td></tr>
+      <tr><td>saving to completed</td><td>The verdict is written together with the raw prediction (jsonb).</td></tr>
+      <tr><td>any processing stage to failed</td><td><code>NotImplementedError</code> gives <code>ml_unavailable</code>. Any other error or a timeout gives <code>prediction_failed</code>. A janitor also fails scans stuck in processing too long.</td></tr>
+      <tr><td>failed to analyzing</td><td><code>POST /scans/{id}/retry</code> on the stored image. A scan that is not failed answers 409 <code>scan_not_failed</code>.</td></tr>
+      <tr><td>completed or failed to deleted</td><td><code>DELETE /scans/{id}</code>. Deleting also cancels a processing scan.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet landscape scan-state">
+  <h2>Scan state machine</h2>
+  <!-- @diagram diagrams/scan-state.mjs caption="One shared state machine. Retry returns to analyzing on the stored image. Delete is allowed from completed and failed, and cancels processing." -->
+  <div class="legend">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>Transition</span>
+    <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>User triggered retry</span>
+  </div>
+</section>
+
+<section class="sheet landscape scan-state">
+  <h2>Progress stepper, frame by frame</h2>
+  <!-- @diagram diagrams/scan-stepper.mjs caption="A PDF cannot animate, so the stepper is shown as numbered frames. The bar never claims completion early." -->
+  <div class="legend">
+    <span class="legend-title">Stepper marks</span>
+    <span class="legend-item">Check mark: step finished</span>
+    <span class="legend-item">Ring with a dot: current step</span>
+    <span class="legend-item">Empty ring: step still to come</span>
+  </div>
+</section>
+
+<section class="sheet portrait scan-state">
+  <h2>Honest progress</h2>
+  <table class="table">
+    <colgroup><col style="width:20%"><col style="width:36%"><col></colgroup>
+    <thead><tr><th>Stage</th><th>Where the number comes from</th><th>What the bar does</th></tr></thead>
+    <tbody>
+      <tr><td>Uploading</td><td>The real upload, from <code>XHR upload.onprogress</code></td><td>Fills with the true percentage.</td></tr>
+      <tr><td>Checking image</td><td>The stage the API reports: <code>validating</code></td><td>Moves a short, fixed step.</td></tr>
+      <tr><td>Analyzing leaf</td><td>The stage <code>analyzing</code>. One <code>predict()</code> call has no true percentage.</td><td>Eased from open ended to a number, slowing toward 90%. It only reaches 100% when the result arrives.</td></tr>
+      <tr><td>Saving result, then Done</td><td>The stage <code>saving</code>, then the status <code>completed</code></td><td>Stays below 100% until the result is stored, then reaches 100% and the result opens.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Prediction resolver</h2>
+  <table class="table">
+    <colgroup><col style="width:36%"><col style="width:64%"></colgroup>
+    <thead><tr><th>Input from <code>predict()</code>, slugs normalized with aliases first</th><th>Result (the raw prediction is always kept as <code>jsonb</code>)</th></tr></thead>
+    <tbody>
+      <tr><td>Unknown plant, or a disease that matches nothing</td><td>Verdict <code>unknown</code>. The plant is kept when it is known. A disease of <code>healthy</code> gives verdict <code>healthy</code>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Behaviors that keep users informed</h2>
+  <div class="card-grid cols-2">
+    <div class="card"><span class="tag">Polling</span><h3>Ask, do not guess</h3><p>The page polls <code>GET /scans/{id}</code> through the Next proxy every second, backing off to two seconds, until the scan is completed or failed. The screen never invents a state.</p></div>
+    <div class="card"><span class="tag">Waiting</span><h3>Reassurance, then a way out</h3><p>After about 8 s the screen adds Still analyzing, larger photos take a bit longer. After the timeout it shows a clear failure with Retry on the already uploaded image.</p></div>
+    <div class="card accent"><span class="tag">Leaving</span><h3>Navigating away is safe</h3><p>The scan keeps processing. It appears in History with a live Analyzing badge and progress, and opening it resumes the progress or shows the result. Cancel is available during upload.</p></div>
+    <div class="card info"><span class="tag">Access</span><h3>Works for everyone</h3><p>Screen readers get a live progress value and every change is announced. Reduced motion drops the 3D effects. The same bar serves account deletion.</p></div>
+  </div>
+  <div class="callout note"><span class="callout-title">Rejected before a scan exists</span><p>A bad image, a missing email check, storage trouble or a rate limit answers the upload itself. No scan row is created.</p></div>
+</section>

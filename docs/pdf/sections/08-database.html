@@ -1,0 +1,328 @@
+<section class="sheet portrait db">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">Database</h1>
+    <p class="lede">PostgreSQL 16 with the <code>citext</code> and <code>pg_trgm</code> extensions. Twelve tables: four for accounts and tokens, five for the catalog, two for scans and one outbox. The diagram on the next page shows how they connect.</p>
+  </header>
+
+  <h2>Table map</h2>
+  <table class="table">
+    <colgroup><col style="width:30%"><col style="width:18%"><col style="width:52%"></colgroup>
+    <thead><tr><th>Table</th><th>Group</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>users</code></td><td>Accounts</td><td>One row per person: email, optional password hash.</td></tr>
+      <tr><td><code>oauth_<wbr>identity</code></td><td>Accounts</td><td>Links a user to a Google identity by its stable <code>sub</code>.</td></tr>
+      <tr><td><code>refresh_token</code></td><td>Tokens</td><td>Rotating refresh tokens grouped in families, stored hashed.</td></tr>
+      <tr><td><code>auth_token</code></td><td>Tokens</td><td>Single use verify and reset tokens, stored hashed.</td></tr>
+      <tr><td><code>plant</code></td><td>Catalog</td><td>13 plants with growth conditions and an image.</td></tr>
+      <tr><td><code>disease</code></td><td>Catalog</td><td>27 diseases, each belonging to one plant.</td></tr>
+      <tr><td><code>disease_entry</code></td><td>Catalog</td><td>Ordered symptom, treatment and prevention text.</td></tr>
+      <tr><td><code>disease_<wbr>affected_<wbr>species</code></td><td>Catalog</td><td>Species a disease affects.</td></tr>
+      <tr><td><code>disease_image</code></td><td>Catalog</td><td>Reference photos kept in natural color.</td></tr>
+      <tr><td><code>scan</code></td><td>Scans</td><td>One uploaded leaf photo, its progress state and its verdict.</td></tr>
+      <tr><td><code>scan_feedback</code></td><td>Scans</td><td>The user's answer to "Was this result correct?".</td></tr>
+      <tr><td><code>storage_<wbr>deletion</code></td><td>Outbox</td><td>Image keys waiting to be deleted from S3.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Deletion rules</h2>
+  <table class="table">
+    <colgroup><col style="width:16%"><col style="width:84%"></colgroup>
+    <thead><tr><th>Rule</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>Cascade</td><td>Deleting a user removes scans, feedback, identities and tokens, and queues the S3 keys in <code>storage_deletion</code>.</td></tr>
+      <tr><td>Restrict</td><td>A plant or disease that a scan uses cannot be deleted.</td></tr>
+      <tr><td>Pairing</td><td>Composite key <code>(disease_id, plant_id)</code> stops a disease pairing with the wrong plant.</td></tr>
+      <tr><td>Quota</td><td>Over the per user cap (default 500, <code>SCAN_QUOTA</code>) the API returns <code>scan_quota_exceeded</code>.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet landscape er-page">
+  <h2>Entity relationship diagram</h2>
+  <div class="er-figure">
+    <!-- @diagram diagrams/er-database.mjs caption="Arrows point from the child table to the table it references. Extensions: citext and pg_trgm." -->
+    <div class="legend er-legend">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span><span>Solid: ON DELETE CASCADE</span></span>
+      <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span><span>Dotted: <strong>restrict</strong> or <strong>composite</strong></span></span>
+      <span class="legend-title">Boxes</span>
+      <span class="legend-item"><span aria-hidden="true" style="display:inline-block;width:5mm;height:3.4mm;flex:none;background:#fbf7ec;border:0.4mm solid #a86a00;border-radius:0.8mm"></span><span>Outbox, no foreign key</span></span>
+    </div>
+    <p class="er-keynote"><strong>restrict</strong> = ON DELETE RESTRICT. <strong>composite</strong> = key on <code>(disease_id, plant_id)</code>.</p>
+  </div>
+</section>
+
+<section class="sheet portrait db">
+  <h2>Catalog</h2>
+  <p>The catalog holds 13 plants and 27 diseases from the DAHON seed. Blueberry and Soybean exist as plants with zero diseases.</p>
+
+  <h3>Seed extraction</h3>
+  <p>The one off tool <code>tools/extract_dahon.py</code> turns the DAHON MySQL dump into the committed seed files. These rules decide what ends up in the catalog.</p>
+  <table class="table">
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>Rule</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>Plant prefix split</td><td>The DAHON <code>disease</code> table has no plant foreign key. The name <code>Plant: Disease</code> is split on the first <code>: </code> and the prefix is mapped to a plant. An unmapped prefix is a hard failure.</td></tr>
+      <tr><td>Alias map</td><td><code>Pepper Bell</code> becomes Bell Pepper, <code>Corn (Maize)</code> becomes Corn and <code>Cherry (including sour)</code> becomes Cherry.</td></tr>
+      <tr><td>Pseudo entries dropped</td><td>The diseases <code>Healthy</code> and <code>Unknown</code> and the <code>Unknown</code> plant are removed. That leaves 13 plants and 27 diseases.</td></tr>
+      <tr><td>Typo fix</td><td><code>Haunglongbing</code> is corrected.</td></tr>
+      <tr><td>Raspberry not seeded</td><td>A <code>raspberry</code> prediction resolves to <code>unknown</code>. Blueberry and Soybean are seeded as plants with zero diseases.</td></tr>
+      <tr><td>Sample images</td><td>Healthy and unknown sample images go to the Next app for the verdict screens. Catalog images are resized to 1280 px and deduped by hash.</td></tr>
+      <tr><td>Duplicated text</td><td>Treatment text that is repeated under prevention is reported for manual review, not deleted.</td></tr>
+      <tr><td>Outputs</td><td><code>labels.json</code> (the contract <code>predict()</code> must honor), <code>slug_overrides.yaml</code> and <code>cleaning_report.md</code>.</td></tr>
+      <tr><td>Loader</td><td><code>python -m app.seeds</code> runs as one transaction, is idempotent and never deletes. <code>--check</code> asserts 13 plants and 27 diseases.</td></tr>
+    </tbody>
+  </table>
+  <div class="keep">
+    <h3>plant</h3>
+    <table class="table">
+      <colgroup><col style="width:28%"><col style="width:20%"><col style="width:52%"></colgroup>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints and notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>integer</td><td>Primary key, auto increment.</td></tr>
+        <tr><td><code>slug</code></td><td>varchar(80)</td><td>Not null, unique.</td></tr>
+        <tr><td><code>common_name</code></td><td>varchar(100)</td><td>Not null.</td></tr>
+        <tr><td><code>scientific_<wbr>name</code></td><td>text</td><td>Nullable.</td></tr>
+        <tr><td><code>family</code>, <code>plant_type</code></td><td>varchar(100), varchar(60)</td><td>Nullable.</td></tr>
+        <tr><td><code>soil_type</code>, <code>light</code>, <code>water_needs</code>, <code>temperature</code></td><td>text</td><td>Nullable. Growth fields merged 1:1 into the plant.</td></tr>
+        <tr><td><code>image_key</code>, <code>image_alt</code></td><td>text</td><td>Nullable. Public bucket key and alt text.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="keep">
+    <h3>disease</h3>
+    <table class="table">
+      <colgroup><col style="width:28%"><col style="width:20%"><col style="width:52%"></colgroup>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints and notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>integer</td><td>Primary key, auto increment.</td></tr>
+        <tr><td><code>plant_id</code></td><td>integer</td><td>Not null, FK to <code>plant.id</code>, ON DELETE RESTRICT, indexed.</td></tr>
+        <tr><td><code>slug</code></td><td>varchar(120)</td><td>Not null. Unique per plant: <code>(plant_id, slug)</code>.</td></tr>
+        <tr><td><code>name</code></td><td>text</td><td>Not null. Full name for the two line detail title.</td></tr>
+        <tr><td><code>display_name</code></td><td>varchar(60)</td><td>Nullable. Short name for single line cards.</td></tr>
+        <tr><td><code>cause</code></td><td>text</td><td>Nullable.</td></tr>
+        <tr><td><code>pathogen_type</code></td><td>enum</td><td>Nullable. Parsed from the cause text.</td></tr>
+        <tr><td><code>pathogen_name</code>, <code>severity</code></td><td>text</td><td>Nullable.</td></tr>
+      </tbody>
+    </table>
+    <p class="table-note">Unique <code>(id, plant_id)</code>, the target of the composite foreign key from <code>scan</code>.</p>
+  </div>
+</section>
+
+<section class="sheet portrait db">
+  <h2>Catalog tables, continued</h2>
+  <div class="keep">
+    <h3>disease_entry</h3>
+    <table class="table">
+      <colgroup><col style="width:28%"><col style="width:20%"><col style="width:52%"></colgroup>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints and notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>integer</td><td>Primary key.</td></tr>
+        <tr><td><code>disease_id</code></td><td>integer</td><td>Not null, FK to <code>disease.id</code>, cascade, indexed.</td></tr>
+        <tr><td><code>kind</code></td><td>enum</td><td>Not null. <code>symptom</code>, <code>treatment</code> or <code>prevention</code>.</td></tr>
+        <tr><td><code>position</code></td><td>smallint</td><td>Not null, CHECK position at least 0. Unique <code>(disease_id, kind, position)</code>.</td></tr>
+        <tr><td><code>text</code></td><td>text</td><td>Not null. NFC normalized, deduped per kind.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="keep">
+    <h3>disease_affected_species</h3>
+    <table class="table">
+      <colgroup><col style="width:28%"><col style="width:20%"><col style="width:52%"></colgroup>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints and notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>integer</td><td>Primary key.</td></tr>
+        <tr><td><code>disease_id</code></td><td>integer</td><td>Not null, FK to <code>disease.id</code>, cascade, indexed.</td></tr>
+        <tr><td><code>species</code></td><td>varchar(150)</td><td>Not null. Unique <code>(disease_id, species)</code>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="keep">
+    <h3>disease_image</h3>
+    <table class="table">
+      <colgroup><col style="width:28%"><col style="width:20%"><col style="width:52%"></colgroup>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints and notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>integer</td><td>Primary key.</td></tr>
+        <tr><td><code>disease_id</code></td><td>integer</td><td>Not null, FK to <code>disease.id</code>, cascade, indexed.</td></tr>
+        <tr><td><code>storage_key</code></td><td>text</td><td>Not null. Key in the public <code>leafy-catalog</code> bucket.</td></tr>
+        <tr><td><code>sha256</code></td><td>varchar(64)</td><td>Not null. Unique <code>(disease_id, sha256)</code> to dedupe.</td></tr>
+        <tr><td><code>alt_text</code></td><td>text</td><td>Nullable.</td></tr>
+        <tr><td><code>position</code></td><td>smallint</td><td>Not null, default 0.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout note"><span class="callout-title">How the catalog fits together</span><p>Every disease belongs to exactly one plant. Entries, affected species and images belong to one disease, so deleting a disease removes them. A plant or disease that a scan points to is protected by RESTRICT.</p></div>
+</section>
+
+<section class="sheet portrait db">
+  <h2>Accounts and tokens</h2>
+  <div class="keep">
+    <h3>users</h3>
+    <table class="table">
+      <colgroup><col style="width:28%"><col style="width:20%"><col style="width:52%"></colgroup>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints and notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>uuid</td><td>Primary key, generated by the app.</td></tr>
+        <tr><td><code>email</code></td><td>citext</td><td>Not null, unique, case insensitive.</td></tr>
+        <tr><td><code>password_hash</code></td><td>text</td><td>Nullable. argon2id hash. Null for Google only users.</td></tr>
+        <tr><td><code>first_name</code>, <code>last_name</code></td><td>varchar(100)</td><td>Not null, default empty.</td></tr>
+        <tr><td><code>email_<wbr>verified_<wbr>at</code></td><td>timestamptz</td><td>Nullable. Set when the email is verified or Google verified it.</td></tr>
+        <tr><td><code>password_<wbr>changed_<wbr>at</code></td><td>timestamptz</td><td>Nullable.</td></tr>
+        <tr><td><code>created_at</code>, <code>updated_at</code></td><td>timestamptz</td><td>Not null, default now.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="keep">
+    <h3>oauth_identity</h3>
+    <table class="table">
+      <colgroup><col style="width:28%"><col style="width:20%"><col style="width:52%"></colgroup>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints and notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>uuid</td><td>Primary key.</td></tr>
+        <tr><td><code>user_id</code></td><td>uuid</td><td>Not null, FK to <code>users.id</code>, cascade, indexed.</td></tr>
+        <tr><td><code>provider</code></td><td>enum</td><td>Not null. Value <code>google</code>.</td></tr>
+        <tr><td><code>provider_sub</code></td><td>varchar(255)</td><td>Not null. Google's stable <code>sub</code>, the identity key.</td></tr>
+        <tr><td><code>email</code></td><td>citext</td><td>Not null.</td></tr>
+        <tr><td><code>created_at</code></td><td>timestamptz</td><td>Not null, default now.</td></tr>
+      </tbody>
+    </table>
+    <p class="table-note">Unique <code>(provider, provider_sub)</code>. A user must keep a password or an identity, enforced in the service layer.</p>
+  </div>
+  <div class="keep">
+    <h3>auth_token</h3>
+    <table class="table">
+      <colgroup><col style="width:28%"><col style="width:20%"><col style="width:52%"></colgroup>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints and notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>uuid</td><td>Primary key.</td></tr>
+        <tr><td><code>user_id</code></td><td>uuid</td><td>Not null, FK to <code>users.id</code>, cascade, indexed.</td></tr>
+        <tr><td><code>type</code></td><td>enum</td><td>Not null. <code>verify_email</code> or <code>reset_password</code>.</td></tr>
+        <tr><td><code>token_hash</code></td><td>varchar(64)</td><td>Not null, unique. sha256 of a random 256 bit token.</td></tr>
+        <tr><td><code>created_at</code></td><td>timestamptz</td><td>Not null, default now.</td></tr>
+        <tr><td><code>expires_at</code></td><td>timestamptz</td><td>Not null. Verify 24 h, reset 1 h.</td></tr>
+        <tr><td><code>used_at</code></td><td>timestamptz</td><td>Nullable. Single use, consumed atomically.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="sheet portrait db">
+  <h2>Refresh tokens and outbox</h2>
+  <div class="keep">
+    <h3>refresh_token</h3>
+    <table class="table">
+      <colgroup><col style="width:28%"><col style="width:20%"><col style="width:52%"></colgroup>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints and notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>uuid</td><td>Primary key.</td></tr>
+        <tr><td><code>user_id</code></td><td>uuid</td><td>Not null, FK to <code>users.id</code>, cascade, indexed.</td></tr>
+        <tr><td><code>family_id</code></td><td>uuid</td><td>Not null, indexed. One family per sign in.</td></tr>
+        <tr><td><code>token_hash</code></td><td>varchar(64)</td><td>Not null, unique. sha256 of the opaque token.</td></tr>
+        <tr><td><code>created_at</code>, <code>expires_at</code></td><td>timestamptz</td><td>Not null. Expiry is the lesser of 30 days and the family cap.</td></tr>
+        <tr><td><code>family_<wbr>expires_<wbr>at</code></td><td>timestamptz</td><td>Not null. The 90 day family cap.</td></tr>
+        <tr><td><code>rotated_at</code></td><td>timestamptz</td><td>Nullable. Starts the 10 s grace window.</td></tr>
+        <tr><td><code>replaced_by</code></td><td>uuid</td><td>Nullable, self FK to <code>refresh_token.id</code>, SET NULL.</td></tr>
+        <tr><td><code>revoked_at</code></td><td>timestamptz</td><td>Nullable.</td></tr>
+        <tr><td><code>revoked_reason</code></td><td>varchar(40)</td><td>Nullable.</td></tr>
+        <tr><td><code>ip</code></td><td>varchar(64)</td><td>Nullable.</td></tr>
+        <tr><td><code>user_agent</code></td><td>varchar(300)</td><td>Nullable.</td></tr>
+      </tbody>
+    </table>
+    <p class="table-note">Only the sha256 hash of a refresh, verify or reset token is stored, so a database leak does not hand out working tokens.</p>
+  </div>
+
+
+  <div class="keep">
+    <h3>storage_deletion</h3>
+    <table class="table">
+      <colgroup><col style="width:28%"><col style="width:20%"><col style="width:52%"></colgroup>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints and notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>integer</td><td>Primary key, auto increment.</td></tr>
+        <tr><td><code>bucket</code></td><td>varchar(100)</td><td>Not null.</td></tr>
+        <tr><td><code>object_key</code></td><td>text</td><td>Not null. No foreign key, so rows outlive the deleted user.</td></tr>
+        <tr><td><code>attempts</code></td><td>integer</td><td>Not null, default 0.</td></tr>
+        <tr><td><code>last_error</code></td><td>varchar(300)</td><td>Nullable.</td></tr>
+        <tr><td><code>created_at</code></td><td>timestamptz</td><td>Not null.</td></tr>
+        <tr><td><code>next_attempt_at</code></td><td>timestamptz</td><td>Not null. Index <code>(next_attempt_at, id)</code>.</td></tr>
+      </tbody>
+    </table>
+    <p class="table-note">A drain job, also run after commit, deletes objects in chunks and retries failures, so deletion survives an S3 outage.</p>
+  </div>
+
+  <h2>Scans and feedback</h2>
+  <div class="keep">
+    <h3>scan</h3>
+    <table class="table">
+      <colgroup><col style="width:28%"><col style="width:20%"><col style="width:52%"></colgroup>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints and notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>uuid</td><td>Primary key, generated by the app.</td></tr>
+        <tr><td><code>user_id</code></td><td>uuid</td><td>Not null, FK to <code>users.id</code>, ON DELETE CASCADE.</td></tr>
+        <tr><td><code>image_key</code></td><td>text</td><td>Not null, unique. Server generated <code>{user}/{scan}.jpg</code>.</td></tr>
+        <tr><td><code>status</code></td><td>enum</td><td>Not null. <code>processing</code>, <code>completed</code> or <code>failed</code>.</td></tr>
+        <tr><td><code>stage</code></td><td>enum</td><td>Nullable. <code>validating</code>, <code>analyzing</code> or <code>saving</code>.</td></tr>
+        <tr><td><code>failure_code</code></td><td>varchar(40)</td><td>Nullable. For example <code>prediction_failed</code> or <code>ml_unavailable</code>.</td></tr>
+        <tr><td><code>verdict</code></td><td>enum</td><td>Nullable until completed. <code>disease</code>, <code>healthy</code> or <code>unknown</code>.</td></tr>
+        <tr><td><code>plant_id</code></td><td>integer</td><td>Nullable. FK to <code>plant.id</code>, ON DELETE RESTRICT.</td></tr>
+        <tr><td><code>disease_id</code></td><td>integer</td><td>Nullable. Composite FK <code>(disease_id, plant_id)</code> to <code>disease(id, plant_id)</code>, RESTRICT.</td></tr>
+        <tr><td><code>confidence</code></td><td>varchar(20)</td><td>Nullable. Text such as "0.93".</td></tr>
+        <tr><td><code>raw_<wbr>prediction</code></td><td>jsonb</td><td>Nullable. The prediction as returned.</td></tr>
+        <tr><td><code>attempt</code></td><td>integer</td><td>Not null, default 0. Added in migration 0003. Bumped on every retry so a stale worker cannot touch a newer run.</td></tr>
+        <tr><td><code>created_at</code>, <code>updated_at</code></td><td>timestamptz</td><td>Not null. <code>updated_at</code> feeds the stuck scan janitor.</td></tr>
+      </tbody>
+    </table>
+    <p class="table-note">CHECK constraints keep status, stage and verdict consistent (<code>state_consistent</code>, <code>verdict_consistent</code>) and require a plant when a disease is set (<code>disease_needs_plant</code>). Indexes: keyset <code>(user_id, created_at DESC, id DESC)</code> and <code>(status, updated_at)</code>.</p>
+  </div>
+  <div class="keep">
+    <h3>scan_feedback</h3>
+    <table class="table">
+      <colgroup><col style="width:28%"><col style="width:20%"><col style="width:52%"></colgroup>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints and notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>scan_id</code></td><td>uuid</td><td>Primary key and FK to <code>scan.id</code>, ON DELETE CASCADE.</td></tr>
+        <tr><td><code>is_correct</code></td><td>boolean</td><td>Not null.</td></tr>
+        <tr><td><code>correct_<wbr>plant_<wbr>slug</code></td><td>varchar(80)</td><td>Nullable. Validated against the catalog.</td></tr>
+        <tr><td><code>correct_<wbr>disease_<wbr>slug</code></td><td>varchar(120)</td><td>Nullable. Validated against the catalog.</td></tr>
+        <tr><td><code>comment</code></td><td>varchar(300)</td><td>Nullable. CHECK length at most 300.</td></tr>
+        <tr><td><code>created_at</code>, <code>updated_at</code></td><td>timestamptz</td><td>Not null.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Foreign keys at a glance</h2>
+  <table class="table">
+    <colgroup><col style="width:44%"><col style="width:34%"><col style="width:22%"></colgroup>
+    <thead><tr><th>Child column</th><th>References</th><th>On delete</th></tr></thead>
+    <tbody>
+      <tr><td><code>oauth_<wbr>identity.user_<wbr>id</code></td><td><code>users.id</code></td><td>Cascade</td></tr>
+      <tr><td><code>refresh_<wbr>token.user_<wbr>id</code></td><td><code>users.id</code></td><td>Cascade</td></tr>
+      <tr><td><code>refresh_<wbr>token.replaced_<wbr>by</code></td><td><code>refresh_token.id</code></td><td>Set null</td></tr>
+      <tr><td><code>auth_<wbr>token.user_<wbr>id</code></td><td><code>users.id</code></td><td>Cascade</td></tr>
+      <tr><td><code>scan.user_id</code></td><td><code>users.id</code></td><td>Cascade</td></tr>
+      <tr><td><code>scan_<wbr>feedback.scan_<wbr>id</code></td><td><code>scan.id</code></td><td>Cascade</td></tr>
+      <tr><td><code>scan.plant_id</code></td><td><code>plant.id</code></td><td>Restrict</td></tr>
+      <tr><td><code>scan (disease_<wbr>id, plant_<wbr>id)</code></td><td><code>disease (id, plant_id)</code></td><td>Restrict</td></tr>
+      <tr><td><code>disease.plant_<wbr>id</code></td><td><code>plant.id</code></td><td>Restrict</td></tr>
+      <tr><td><code>disease_<wbr>entry.disease_<wbr>id</code></td><td><code>disease.id</code></td><td>Cascade</td></tr>
+      <tr><td><code>disease_<wbr>affected_<wbr>species.disease_<wbr>id</code></td><td><code>disease.id</code></td><td>Cascade</td></tr>
+      <tr><td><code>disease_<wbr>image.disease_<wbr>id</code></td><td><code>disease.id</code></td><td>Cascade</td></tr>
+    </tbody>
+  </table>
+
+
+  <h2>Migrations</h2>
+  <table class="table">
+    <colgroup><col style="width:14%"><col style="width:86%"></colgroup>
+    <thead><tr><th>Revision</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>0001</code></td><td>Initial schema: extensions, catalog, accounts, tokens, scans, feedback and the deletion outbox.</td></tr>
+      <tr><td><code>0002</code></td><td>Index on <code>storage_deletion (next_attempt_at, id)</code>, so the drain job does not scan the table.</td></tr>
+      <tr><td><code>0003</code></td><td>Adds <code>scan.attempt</code> (integer, default 0) for safe retries.</td></tr>
+    </tbody>
+  </table>
+</section>

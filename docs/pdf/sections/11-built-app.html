@@ -1,0 +1,126 @@
+<!-- Section: the finished app. Real screenshots from docs/screens, converted to small JPEG files by prep-screens.mjs (assets/app/).
+     The style block adds classes prefixed ap- for screenshot pages only. -->
+<style>
+  .ap-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap); width: 160mm; margin: 0 0 var(--gap); }
+  .ap-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); margin: 0 0 var(--gap); align-items: start; }
+  .ap-phones { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap-sm) var(--gap); margin: 0 0 var(--gap); align-items: start; }
+  .ap-shot { display: flex; flex-direction: column; margin: 0 0 var(--gap); background: var(--paper); border: var(--hair) solid var(--rule); border-radius: var(--radius); overflow: hidden; break-inside: avoid; min-width: 0; }
+  .ap-stack .ap-shot, .ap-grid .ap-shot, .ap-phones .ap-shot { margin: 0; }
+  .ap-shot img { display: block; width: 100%; height: auto; }
+  .ap-shot.desk img { aspect-ratio: 1440 / 900; }
+  .ap-shot.phone img { aspect-ratio: 390 / 844; }
+  .ap-shot figcaption { padding: var(--gap-sm); font-size: 9pt; line-height: 1.4; border-top: var(--hair) solid var(--rule); text-wrap: pretty; }
+  .ap-shot figcaption strong { display: block; font-family: var(--font-head); font-weight: 600; color: var(--brand-deep); }
+  .ap-phones .ap-shot figcaption { font-size: 8.5pt; padding: var(--gap-xs) var(--gap-sm); }
+  .ap-grid .callout { margin: 0; }
+</style>
+
+<section class="sheet portrait ap-sheet">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">The finished app</h1>
+    <p class="lede">Real screenshots of the built app, taken in a browser at 1440 by 900 and 390 by 844 pixels, in dark and light. Every page shown here is built and tested. Scan results come from the dev only fake model, so the plant and disease shown with each photo are demonstration data.</p>
+  </header>
+  <figure class="ap-shot desk"><img src="../assets/app/landing-hero-dark.jpg" alt="Leafy landing hero in dark mode with the headline Know your leaf, two buttons and a green 3D leaf"><figcaption><strong>Landing, hero (dark)</strong>The first panel: the one line headline, one supporting line, and two buttons. The 3D leaf drifts and leans toward the cursor. The page moves sideways in panels.</figcaption></figure>
+  <table class="table">
+    <colgroup><col style="width:26%"><col></colgroup>
+    <thead><tr><th>Pages that follow</th><th>What they show</th></tr></thead>
+    <tbody>
+      <tr><td>Landing and handbook</td><td>Landing panels, the plants carousel, a plant page, disease pages and their panels.</td></tr>
+      <tr><td>Auth and dashboard</td><td>Sign in, create account, the member dashboard.</td></tr>
+      <tr><td>Scan journey</td><td>Upload, preview, progress, result, outcomes, history and account. Phone views close the group.</td></tr>
+    </tbody>
+  </table>
+</section>
+<section class="sheet portrait ap-sheet">
+  <h2>Landing and handbook</h2>
+  <div class="ap-stack">
+    <figure class="ap-shot desk"><img src="../assets/app/landing-why-light.jpg" alt="Leafy landing page in light mode with four cards under the heading Clear answers you can act on"><figcaption><strong>Landing, why Leafy (light)</strong>Four short reasons in glass cards. The same page in light mode, with the theme toggle in the header.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/handbook-index-dark.jpg" alt="Plant handbook page in dark mode with a row of four plant cards: apple, bell pepper, blueberry and cherry"><figcaption><strong>Handbook, plants (dark)</strong>A public carousel of plants with search across plants and diseases. Photos share one green treatment so the set looks consistent.</figcaption></figure>
+  </div>
+</section>
+<section class="sheet portrait ap-sheet">
+  <h2>Plant and disease pages</h2>
+  <div class="ap-stack">
+    <figure class="ap-shot desk"><img src="../assets/app/plant-tomato-light.jpg" alt="Tomato plant page in light mode with growth conditions for soil, light, water and temperature"><figcaption><strong>Plant page, tomato (light)</strong>Growth conditions beside the plant photo, and a second panel with its diseases.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/disease-overview-dark.jpg" alt="Tomato yellow leaf curl virus overview panel in dark mode with a severity badge and a red leaf illustration"><figcaption><strong>Disease page, overview (dark)</strong>A short display name in a two line title, a severity badge, and the facts in the first panel. Six panels follow sideways.</figcaption></figure>
+  </div>
+</section>
+<section class="sheet portrait ap-sheet">
+  <h2>Disease panels</h2>
+  <div class="ap-grid">
+    <figure class="ap-shot desk"><img src="../assets/app/disease-causes-dark.jpg" alt="Causes panel for tomato yellow leaf curl virus in dark mode"><figcaption><strong>Causes</strong>What causes it, and the other plants it affects.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/disease-symptoms-light.jpg" alt="Symptoms panel in light mode with a numbered list"><figcaption><strong>Symptoms</strong>A short numbered list, never more than six items.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/disease-treatment-light.jpg" alt="Treatment panel for early blight in light mode"><figcaption><strong>Treatment</strong>Early blight treatment steps and a calm advice note.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/disease-prevention-dark.jpg" alt="Prevention panel in dark mode"><figcaption><strong>Prevention</strong>Steps that lower the risk. Every panel ends with a link to scan a leaf.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/disease-images-light.jpg" alt="Images panel in light mode saying reference photos are coming soon"><figcaption><strong>Images, not yet available</strong>The panel says Reference photos coming soon. The DAHON sample images are corrupt, so no clean set exists yet.</figcaption></figure>
+    <div class="callout warn"><span class="callout-title">Open item</span><p>Disease reference photos wait for a clean image set. Everything else on these pages is real handbook text from the seed data.</p></div>
+  </div>
+</section>
+<section class="sheet portrait ap-sheet">
+  <h2>Sign in and create account</h2>
+  <div class="ap-stack">
+    <figure class="ap-shot desk"><img src="../assets/app/login-dark.jpg" alt="Sign in page in dark mode with a Continue with Google button and email and password fields"><figcaption><strong>Sign in (dark)</strong>Continue with Google, or email and password. Wrong credentials give one uniform message, and a rate limit shows a countdown.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/register-light.jpg" alt="Create account page in light mode with Google button and name, email and password fields"><figcaption><strong>Create account (light)</strong>Name, email and a password with a strength hint. Links to the Terms and Privacy Policy sit under the button.</figcaption></figure>
+  </div>
+</section>
+<section class="sheet portrait ap-sheet">
+  <h2>Dashboard</h2>
+  <div class="ap-stack">
+    <figure class="ap-shot desk"><img src="../assets/app/dashboard-dark.jpg" alt="Dashboard in dark mode with scan totals, a donut chart, common diseases and recent scans"><figcaption><strong>Dashboard (dark)</strong>Total scans, the last 30 days, the healthy, diseased and unclear split, the most common diseases, and a rail of recent scans.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/dashboard-light.jpg" alt="Dashboard in light mode"><figcaption><strong>Dashboard (light)</strong>The same page in light mode, with the primary Scan a leaf button at the top right.</figcaption></figure>
+  </div>
+</section>
+<section class="sheet portrait ap-sheet">
+  <h2>Scan: upload and preview</h2>
+  <div class="ap-stack">
+    <figure class="ap-shot desk"><img src="../assets/app/scan-idle-dark.jpg" alt="Scan page in dark mode with a tip card and a drop zone to add a photo of your leaf"><figcaption><strong>Scan, ready (dark)</strong>A tip card for a good photo, and a large drop zone. Phones also get a Take photo button for the camera.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/scan-preview-light.jpg" alt="Scan page in light mode showing a photo preview with Retake and Analyze leaf buttons"><figcaption><strong>Scan, preview (light)</strong>The chosen photo with Retake and Analyze leaf. Type, size and dimensions are checked before anything is sent.</figcaption></figure>
+  </div>
+</section>
+<section class="sheet portrait ap-sheet">
+  <h2>Scan: progress and result</h2>
+  <div class="ap-stack">
+    <figure class="ap-shot desk"><img src="../assets/app/scan-progress-dark.jpg" alt="Analyzing screen in dark mode with a scanning beam over an apple photo and a progress bar at 47 percent"><figcaption><strong>Progress (dark)</strong>The scanning beam runs over the photo while the stepper shows Uploading, Checking image, Analyzing leaf, Saving result and Done, with percent and elapsed time.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/result-dark.jpg" alt="Scan result in dark mode: disease found, tomato yellow leaf curl virus, with the photo and a feedback question"><figcaption><strong>Result (dark)</strong>The verdict first, then plant, disease, severity and confidence, an orbitable photo with a hotspot, and the Was this result correct question.</figcaption></figure>
+  </div>
+</section>
+<section class="sheet portrait ap-sheet">
+  <h2>History and account</h2>
+  <div class="ap-stack">
+    <figure class="ap-shot desk"><img src="../assets/app/history-rail-dark.jpg" alt="Your scans page in dark mode with filters and a rail of scan cards"><figcaption><strong>History, rail (dark)</strong>Scans as a card rail with filters by plant and result, and a grid toggle. A processing scan shows a live badge.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/account-profile-light.jpg" alt="Account page in light mode with the Profile panel"><figcaption><strong>Account, profile (light)</strong>Profile, Password and Danger zone panels. It shows how you sign in, with password, Google or both.</figcaption></figure>
+  </div>
+</section>
+<section class="sheet portrait ap-sheet">
+  <h2>Other scan outcomes</h2>
+  <div class="ap-grid">
+    <figure class="ap-shot desk"><img src="../assets/app/outcome-healthy-dark.jpg" alt="Healthy leaf result in dark mode with care tips"><figcaption><strong>Healthy</strong>Reassuring care tips for the plant.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/outcome-unknown-light.jpg" alt="Unknown result in light mode with a Try a new photo guide"><figcaption><strong>Unknown</strong>A calm explanation and a retake guide instead of a dead end.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/outcome-failed-dark.jpg" alt="Failed scan in dark mode with Retry with this photo and Try another photo buttons"><figcaption><strong>Failed</strong>The reason in plain words. Retry reuses the stored photo, so nothing is uploaded again.</figcaption></figure>
+    <figure class="ap-shot desk"><img src="../assets/app/outcome-unverified-light.jpg" alt="Scan page in light mode with a banner and a Verify your email to scan card"><figcaption><strong>Email not verified</strong>Unverified members can browse but are asked to verify before they scan, with a Resend action.</figcaption></figure>
+  </div>
+  <table class="table">
+    <colgroup><col style="width:24%"><col></colgroup>
+    <thead><tr><th>Outcome</th><th>What the member can do next</th></tr></thead>
+    <tbody>
+      <tr><td>Disease found</td><td>Read causes, symptoms, treatment, prevention and photos, mark the result right or wrong, scan another leaf, or open the handbook page.</td></tr>
+      <tr><td>Healthy or unknown</td><td>Follow care tips, or retake the photo with the guide.</td></tr>
+      <tr><td>Failed</td><td>Retry on the stored image or try another photo. With the model stub, every scan ends here with Analysis isn’t available right now.</td></tr>
+    </tbody>
+  </table>
+</section>
+<section class="sheet portrait ap-sheet">
+  <h2>On a phone</h2>
+  <div class="ap-phones">
+    <figure class="ap-shot phone"><img src="../assets/app/phone-landing-dark.jpg" alt="Landing page on a phone in dark mode"><figcaption><strong>Landing</strong>Dark. Buttons stack and the nav is one row.</figcaption></figure>
+    <figure class="ap-shot phone"><img src="../assets/app/phone-handbook-dark.jpg" alt="Handbook on a phone in dark mode"><figcaption><strong>Handbook</strong>Dark. Two column plant cards.</figcaption></figure>
+    <figure class="ap-shot phone"><img src="../assets/app/phone-progress-dark.jpg" alt="Scan progress on a phone in dark mode"><figcaption><strong>Progress</strong>Dark. The stepper and bar fit one screen.</figcaption></figure>
+    <figure class="ap-shot phone"><img src="../assets/app/phone-result-dark.jpg" alt="Scan result on a phone in dark mode"><figcaption><strong>Result</strong>Dark. Verdict, photo and feedback.</figcaption></figure>
+    <figure class="ap-shot phone"><img src="../assets/app/phone-scan-light.jpg" alt="Scan page on a phone in light mode"><figcaption><strong>Scan</strong>Light. The bottom nav keeps Scan in the center.</figcaption></figure>
+    <figure class="ap-shot phone"><img src="../assets/app/phone-healthy-light.jpg" alt="Healthy result on a phone in light mode"><figcaption><strong>Healthy</strong>Light. Care tips for the plant.</figcaption></figure>
+    <figure class="ap-shot phone"><img src="../assets/app/phone-dashboard-light.jpg" alt="Dashboard on a phone in light mode"><figcaption><strong>Dashboard</strong>Light. Stat tiles stack.</figcaption></figure>
+    <figure class="ap-shot phone"><img src="../assets/app/phone-account-light.jpg" alt="Account page on a phone in light mode"><figcaption><strong>Account</strong>Light. One panel at a time.</figcaption></figure>
+  </div>
+  <p class="muted small">Phone screens use a bottom navigation with Dashboard, History, Scan, Handbook and Account, edge to edge cards and safe area insets. Each page fits one screen, and longer content moves sideways in panels.</p>
+</section>

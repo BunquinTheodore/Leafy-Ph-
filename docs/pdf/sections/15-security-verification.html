@@ -1,0 +1,241 @@
+<section class="sheet portrait">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">Security and verification</h1>
+    <p class="lede">What protects accounts and uploads, the speed targets the site must meet, how the work is proven, and what is still open.</p>
+  </header>
+
+  <h2>Security checklist</h2>
+  <table class="table">
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>Area</th><th>Control</th></tr></thead>
+    <tbody>
+      <tr><td>Cookies</td><td>httpOnly, Secure in production with the <code>__Host-</code> prefix, SameSite=Lax (Strict would drop the session from email links), Path <code>/</code>. <code>leafy_at</code> lasts 900 s, <code>leafy_rt</code> 30 days.</td></tr>
+      <tr><td>Request origin</td><td>Origin check (<code>assertSameOrigin</code>) on every state changing Next handler. <code>sanitizeNext</code> accepts only paths that start with <code>/</code> and not <code>//</code>.</td></tr>
+      <tr><td>Network exposure</td><td>FastAPI is not published in production. It trusts <code>X-Forwarded-For</code> only from the compose network.</td></tr>
+      <tr><td>Passwords</td><td>argon2id, with a dummy hash check on unknown email so timing does not reveal accounts. Length 10 to 128, not the email, not in a common list.</td></tr>
+      <tr><td>Tokens</td><td>Refresh and email tokens are stored hashed (sha256). Refresh rotation with reuse detection revokes the whole family. Email tokens are single use with atomic consume.</td></tr>
+      <tr><td>Uniform errors</td><td>One message for wrong credentials, one for bad email links, and forgot password is safe against enumeration (always 200).</td></tr>
+      <tr><td>Uploads</td><td>8 MiB cap enforced at Next, in ASGI middleware and in the streaming read. Magic byte sniff, Pillow decode, 40M pixel cap, EXIF and GPS stripped by re-encoding, server generated keys. Long edge capped at 2048 px and re-encoded as JPEG; the model receives this sanitized JPEG.</td></tr>
+      <tr><td>Rate limits</td><td>Per ip, email and user limits (slowapi in memory for v1).</td></tr>
+      <tr><td>Storage</td><td>Presigned URLs signed against <code>S3_PUBLIC_ENDPOINT</code>. Private scan bucket links last 10 minutes.</td></tr>
+      <tr><td>Browser headers</td><td>CSP with nonce, HSTS, <code>frame-ancestors 'none'</code>, nosniff. Token pages send <code>Referrer-Policy: no-referrer</code>.</td></tr>
+      <tr><td>Google sign in</td><td>PKCE, state and nonce. Exact redirect URI allowlist. ID token checked server side (signature via cached JWKS, <code>iss</code>, <code>aud</code>, <code>exp</code>, <code>nonce</code>, <code>email_verified</code>). Secret only on the API. OAuth cookie single use and 10 minutes long.</td></tr>
+      <tr><td>Data access</td><td>Every scan query is scoped by <code>user_id</code>. Another user's scan answers 404.</td></tr>
+      <tr><td>Logging</td><td>No secrets or tokens in logs. Static error messages, never <code>str(exc)</code>. Audit log line for Google link and create events.</td></tr>
+      <tr><td>Supply chain</td><td><code>pip-audit</code>, <code>pnpm audit</code> and a gitleaks secrets scan in CI. No third party analytics or trackers.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet portrait">
+  <h2>Performance targets</h2>
+  <p>Measured on mobile with throttling on the four main routes.</p>
+  <table class="table">
+    <colgroup><col style="width:38%"><col style="width:32%"><col style="width:30%"></colgroup>
+    <thead><tr><th>Metric</th><th>Target</th><th>Tool</th></tr></thead>
+    <tbody>
+      <tr><td>Lighthouse Performance, Accessibility, Best Practices, SEO</td><td>90 or more (aim 95 or more)</td><td>Lighthouse CI</td></tr>
+      <tr><td>Largest Contentful Paint (LCP)</td><td>2.5 s or less</td><td>Lighthouse CI, PageSpeed Insights</td></tr>
+      <tr><td>Interaction to Next Paint (INP)</td><td>200 ms or less</td><td>Lighthouse CI, field data</td></tr>
+      <tr><td>Cumulative Layout Shift (CLS)</td><td>0.1 or less</td><td>Lighthouse CI</td></tr>
+      <tr><td>Total Blocking Time (TBT)</td><td>200 ms or less</td><td>Lighthouse CI</td></tr>
+      <tr><td>JavaScript per route</td><td>Under about 170 KB gzipped before the lazy 3D chunk</td><td>Bundle budget file</td></tr>
+      <tr><td>3D models</td><td>Under 300 KB, Draco or meshopt, mobile budget 100k triangles</td><td>gltf-transform pipeline</td></tr>
+      <tr><td>Splash screen</td><td>Shown 0.9 s to 2.2 s, no effect on LCP or CLS</td><td>Playwright</td></tr>
+    </tbody>
+  </table>
+
+  <h3>How we get there</h3>
+  <table class="table">
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>Area</th><th>Approach</th></tr></thead>
+    <tbody>
+      <tr><td>Rendering</td><td>Server components and ISR for the public handbook and landing. Route level code splitting. No heavy libraries on public pages (tree shaken drei imports, framer-motion <code>LazyMotion</code>).</td></tr>
+      <tr><td>Fonts</td><td><code>next/font</code> self hosted and preloaded: 3 families, limited weights, <code>display: swap</code>, <code>adjustFontFallback</code>.</td></tr>
+      <tr><td>Images</td><td><code>next/image</code> for static imagery (AVIF and WebP, sized, <code>priority</code> only on the LCP image). Catalog images pre-resized at seed time.</td></tr>
+      <tr><td>3D</td><td>Three.js loads after idle by dynamic import, with a static poster as the LCP candidate. One canvas per page, <code>frameloop="demand"</code>, DPR cap. Models are Draco or meshopt compressed under 300 KB.</td></tr>
+      <tr><td>Caching and network</td><td>Brotli or gzip. <code>Cache-Control</code> immutable for hashed assets and 3D models. <code>preconnect</code> to the S3 public host.</td></tr>
+      <tr><td>Layout stability</td><td>Explicit sizes, reserved panel heights, and <code>content-visibility: auto</code> for offscreen panels.</td></tr>
+      <tr><td>Third party scripts</td><td>None.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>API speed</h3>
+  <table class="table">
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>Measure</th><th>Approach</th></tr></thead>
+    <tbody>
+      <tr><td>Queries</td><td>Indexed keyset queries. Async I/O everywhere. Thin JSON payloads.</td></tr>
+      <tr><td>Disease detail</td><td>A single query with eager loading, so there is no N+1. This fixes DAHON's one request per disease pattern.</td></tr>
+      <tr><td>Catalog endpoints</td><td>Public catalog endpoints cached with <code>ETag</code> and <code>Cache-Control</code>, plus Next ISR.</td></tr>
+      <tr><td>Images</td><td>Presigned URLs instead of proxying image bytes through the API.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>How we measure</h3>
+  <table class="table">
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>Tool</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td><code>lighthouserc.json</code></td><td>Lighthouse CI assertions on the targets above, mobile and desktop, against a production build (<code>next build &amp;&amp; next start</code>) in CI and locally.</td></tr>
+      <tr><td>PageSpeed Insights</td><td>Lab data plus real user CrUX field data on the public staging or production URL. It needs a public URL, so locally Lighthouse CI is used.</td></tr>
+      <tr><td>Bundle budget file</td><td>Bundle analyzer with size limits, plus <code>useReportWebVitals</code> logging in development.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Verification plan</h2>
+  <table class="table">
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>Check</th><th>Pass condition</th></tr></thead>
+    <tbody>
+      <tr><td>Documentation PDF</td><td>Passes the overlap and clipping checks and the page by page visual review. Bookmarks, links and embedded fonts work. Matches the plan section by section.</td></tr>
+      <tr><td>Compose stack</td><td><code>docker compose up</code>: postgres, minio and mailpit healthy. Migrations and <code>python -m app.seeds --check</code> pass (13 plants, 27 diseases).</td></tr>
+      <tr><td>API tests</td><td><code>pytest</code> green with 80 percent or more coverage, including ownership (user B gets 404), refresh rotation and reuse, and account deletion while S3 is down.</td></tr>
+      <tr><td class="ws-fix">ML contract</td><td>With a fake ML service, <code>POST /scans</code> stores the image in MinIO and returns disease details. The stub returns 503.</td></tr>
+      <tr><td>Browser flow</td><td>Register, verify via Mailpit, upload, result panels, history, delete, logout. A signed out <code>/dashboard</code> redirects to <code>/login</code>.</td></tr>
+      <tr><td>E2E, layout and speed</td><td>Playwright passes at 360, 768 and 1440 widths. The splash shows on a hard refresh, disappears within 2.2 s, and does not show on client navigation or in Lighthouse runs. Speed: Lighthouse CI meets the thresholds on the four main routes, and PageSpeed Insights on the deployed URL confirms (both wait for hosting).</td></tr>
+      <tr><td>Google tests</td><td>Run against a fake Google (<code>GOOGLE_MOCK=1</code>, ID tokens signed with a test key): new user, existing user link, unverified email rejected, wrong <code>aud</code>, <code>iss</code> or <code>nonce</code>, expired token, replayed code, state mismatch, Google only user password login fails uniformly, set password for a Google only user, delete account without a password.</td></tr>
+
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet portrait">
+  <h2>Public extras and engineering basics</h2>
+  <p>Additions from the completeness review. All are built except three items: the install prompt, a Lighthouse job in CI, and the Dockerfiles.</p>
+
+  <h3>SEO on public pages</h3>
+  <table class="table">
+    <colgroup><col style="width:26%"><col></colgroup>
+    <thead><tr><th>Item</th><th>Plan</th></tr></thead>
+    <tbody>
+      <tr><td>Metadata</td><td>Per page <code>generateMetadata</code>: title, description, canonical, Open Graph and Twitter cards using the OG image.</td></tr>
+      <tr><td><code>sitemap.xml</code></td><td>Generated from the catalog.</td></tr>
+      <tr><td><code>robots.txt</code></td><td>Disallows private routes, <code>/brand</code> and the API.</td></tr>
+      <tr><td>JSON-LD</td><td><code>WebSite</code>, plus <code>Article</code> or <code>FAQPage</code> where it fits.</td></tr>
+      <tr><td>Structure</td><td>One h1 per page, descriptive alt text on every plant and disease image, readable slugs. Supports the Lighthouse SEO target.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Installable PWA (no offline)</h3>
+  <table class="table">
+    <colgroup><col style="width:26%"><col></colgroup>
+    <thead><tr><th>Item</th><th>Plan</th></tr></thead>
+    <tbody>
+      <tr><td>Manifest</td><td><code>manifest.webmanifest</code> named Leafy, theme and background colours from the tokens, standalone display.</td></tr>
+      <tr><td>Icons</td><td>Maskable 192 and 512 icons.</td></tr>
+      <tr><td>Shortcuts</td><td>&ldquo;Scan a leaf&rdquo; and &ldquo;Handbook&rdquo;.</td></tr>
+      <tr><td>Meta tags</td><td>Correct <code>theme-color</code> per scheme and iOS meta tags.</td></tr>
+      <tr><td>Install prompt</td><td>An unobtrusive &ldquo;Install Leafy&rdquo; prompt only after a successful scan. Not built yet.</td></tr>
+      <tr><td>Service worker</td><td>None that caches user data.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Theme flash and share image</h3>
+  <table class="table">
+    <colgroup><col style="width:26%"><col></colgroup>
+    <thead><tr><th>Item</th><th>Plan</th></tr></thead>
+    <tbody>
+      <tr><td>No flash of wrong theme</td><td>A tiny inline script in <code>&lt;head&gt;</code> sets <code>data-theme</code> from the saved choice or the system preference before first paint. The toggle persists in <code>localStorage</code> and a cookie, so the server can render the right theme.</td></tr>
+      <tr><td>OG and Twitter image</td><td>1200 by 630, dark hero with the mark, in <code>app/public/og/</code>.</td></tr>
+    </tbody>
+  </table>
+
+</section>
+
+<section class="sheet portrait">
+  <h3>Browser and device support</h3>
+  <table class="table">
+    <colgroup><col style="width:26%"><col></colgroup>
+    <thead><tr><th>Item</th><th>Plan</th></tr></thead>
+    <tbody>
+      <tr><td>Browsers</td><td>Evergreen, last 2 versions of Chrome, Edge, Firefox and Safari, including iOS Safari 16 and later.</td></tr>
+      <tr><td>Fallbacks</td><td><code>text-wrap: pretty</code> is progressive and works without. The SVG cursor falls back to the native cursor. No WebGL or low power gives the static poster. <code>dvh</code> falls back to <code>vh</code>.</td></tr>
+      <tr><td>Breakpoints</td><td>360, 480, 768, 1024, 1440 and 1920. The design is checked at 360, 768 and 1440.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Testing 3D</h3>
+  <table class="table">
+    <colgroup><col style="width:26%"><col></colgroup>
+    <thead><tr><th>Item</th><th>Plan</th></tr></thead>
+    <tbody>
+      <tr><td>WebGL in CI</td><td>Runs with software rendering (SwiftShader).</td></tr>
+      <tr><td>Component tests</td><td>Mock React Three Fiber.</td></tr>
+      <tr><td>Playwright</td><td>Asserts the fallback path (<code>?nowebgl</code>) and one real canvas render per scene.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Engineering basics</h3>
+  <table class="table">
+    <colgroup><col style="width:26%"><col></colgroup>
+    <thead><tr><th>Item</th><th>Plan</th></tr></thead>
+    <tbody>
+      <tr><td>CI</td><td><code>.github/workflows/ci.yml</code> runs ruff, pytest (with a Postgres service), <code>pnpm lint</code>, <code>typecheck</code>, <code>test</code> and <code>build</code>, and a gitleaks secrets scan. Lighthouse CI is configured in <code>app/lighthouserc.json</code> but is not a CI job yet.</td></tr>
+      <tr><td>Local hooks and docs</td><td><code>pre-commit</code> hooks, <code>CONTRIBUTING.md</code>, and a README with a 5 command quickstart, env table, folder map, Google setup steps and the ML integration pointer.</td></tr>
+      <tr><td>Logging and health</td><td>Structured JSON logs with request ids. <code>/healthz</code> and <code>/readyz</code>.</td></tr>
+      <tr><td>Analytics and errors</td><td>No third party analytics or trackers by default. Error reporting hook point (Sentry or similar) is an optional env flag, off by default.</td></tr>
+      <tr><td>Content upkeep</td><td>Handbook text lives in the committed seed JSON, reviewed by the team. Editing it means changing the JSON and re-running the idempotent seed. Image alt text and short display names for long disease titles are seed fields, so the title rule is enforced at the source.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet portrait">
+  <h2>Risks</h2>
+  <table class="table">
+    <colgroup><col style="width:36%"><col style="width:64%"></colgroup>
+    <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+    <tbody>
+      <tr><td>Slug contract drift between the model and the catalog</td><td><code>labels.json</code> is the contract, and the resolver degrades to <code>unknown</code>.</td></tr>
+      <tr><td>Refresh races across several instances</td><td>10 s grace window on the API plus single flight refresh in Next.</td></tr>
+      <tr><td>Next 16 renames <code>middleware.ts</code> to <code>proxy.ts</code></td><td>Pin Next.js 15 and keep the logic in <code>lib/auth</code>.</td></tr>
+      <tr><td>Presigned host mismatch</td><td>A separate presign client signed against <code>S3_PUBLIC_ENDPOINT</code>.</td></tr>
+      <tr><td>In memory rate limits reset on restart</td><td>Accepted for v1. Redis is the upgrade path.</td></tr>
+      <tr><td>Heavy 3D on low end devices</td><td>Static poster fallback, triangle budgets, one canvas per page.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Open items</h2>
+  <table class="table">
+    <colgroup><col style="width:36%"><col style="width:64%"></colgroup>
+    <thead><tr><th>Item</th><th>Owner and next step</th></tr></thead>
+    <tbody>
+      <tr><td>Real <code>predict()</code> implementation</td><td>Teammate. The only missing piece of the app. Plug in with <code>ML_SERVICE=pkg.mod:Class</code> using <code>docs/ML_INTEGRATION.md</code> (see the ML integration section).</td></tr>
+      <tr><td>Google OAuth client id and secret</td><td>Team creates the client in Google Cloud Console. Until then the Google mock is used.</td></tr>
+      <tr><td>Sample image licensing and corrupted blobs in the DAHON dump</td><td>Team reviews before a public deploy. Unreadable blobs are skipped by the extraction tool.</td></tr>
+      <tr><td>Privacy Policy and Terms drafts</td><td>Team and a legal check. Drafts are not legal advice.</td></tr>
+      <tr><td>Tagline choice</td><td>Pick one at the brand review: &ldquo;Know your leaf.&rdquo;, &ldquo;Read the leaf. Save the plant.&rdquo; or &ldquo;Plant health, understood.&rdquo;</td></tr>
+      <tr><td>Feedback export and training use</td><td>Only on completed scans. Export for the ML teammate with <code>python -m app.tools.export_feedback</code> (CSV). Scan images are not used for training unless the team decides so and updates the Privacy Policy.</td></tr>
+      <tr><td>Review <code>labels.json</code> and <code>slug_overrides.yaml</code></td><td>Teammate, before writing <code>predict()</code>. Slugs are per plant. Raspberry is not seeded, so a raspberry prediction resolves to <code>unknown</code>.</td></tr>
+      <tr><td>Joel's dataset and first push</td><td>Swap the dataset into the seed format when ready. The first push to GitHub waits for the team's go ahead.</td></tr>
+      <tr><td>Hosting, Dockerfiles, placeholders</td><td>Hosting is undecided. Dockerfiles for <code>api</code> and <code>app</code> follow it, then PageSpeed Insights runs. The legal email and team names in <code>site-config.ts</code> show as TODO markers until replaced.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet portrait">
+  <h2>Glossary</h2>
+  <table class="table glossary">
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Access token</td><td>Short lived (15 min) JWT sent as a bearer token to the API.</td></tr>
+      <tr><td>Refresh token</td><td>Opaque token valid 30 days that is replaced on every use. A family lasts at most 90 days.</td></tr>
+      <tr><td>Reuse detection</td><td>Replaying an already rotated refresh token after the grace window revokes the whole family.</td></tr>
+      <tr><td>PKCE</td><td>Proof key for code exchange. A secret created per sign in that stops a stolen authorization code from being used.</td></tr>
+      <tr><td>Nonce</td><td>A one time value tied to the Google ID token so it cannot be replayed.</td></tr>
+      <tr><td>Envelope</td><td>The fixed JSON shape <code>{success, data, error}</code> of every API response.</td></tr>
+      <tr><td>Slug</td><td>A lowercase URL name for a plant or disease, such as <code>early-blight</code>.</td></tr>
+      <tr><td>Verdict</td><td>The scan outcome: <code>disease</code>, <code>healthy</code> or <code>unknown</code>.</td></tr>
+      <tr><td>Stage</td><td>The step of a processing scan: <code>validating</code>, <code>analyzing</code> or <code>saving</code>.</td></tr>
+      <tr><td>Keyset cursor</td><td>Paging by the last seen <code>(created_at, id)</code> instead of an offset, so deep pages stay fast.</td></tr>
+      <tr><td>Presigned URL</td><td>A temporary signed link that lets the browser read one stored image directly.</td></tr>
+      <tr><td>Outbox</td><td>The <code>storage_deletion</code> table that records image keys to delete, so deletes survive an S3 outage.</td></tr>
+      <tr><td>ISR</td><td>Incremental static regeneration: pages built ahead and refreshed on a timer (1 hour for the handbook).</td></tr>
+      <tr><td>Wave and gate</td><td>A wave is a batch of parallel work. A gate is the set of checks that must pass before the next wave.</td></tr>
+      <tr><td>LCP, INP, CLS</td><td>Web vitals for load speed, responsiveness and layout stability.</td></tr>
+      <tr><td>DAHON</td><td>The original prototype. The word means leaf in Filipino. It is credited as the origin, not used as the brand.</td></tr>
+    </tbody>
+  </table>
+</section>

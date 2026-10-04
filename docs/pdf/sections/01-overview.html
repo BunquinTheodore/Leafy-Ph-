@@ -1,0 +1,89 @@
+<section class="sheet portrait overview">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">Overview</h1>
+    <p class="lede">Leafy is a plant doctor in your pocket. Snap a leaf, understand the disease, know what to do next. It is a clean rebuild of the DAHON prototype as a monorepo: Next.js talks to FastAPI over REST, and the browser only ever talks to Next.js.</p>
+  </header>
+
+  <h2>Goals</h2>
+  <div class="card-grid cols-2">
+    <div class="card"><span class="tag">Product</span><h3>Read the leaf, act on it</h3><p>A member uploads one leaf photo and gets the plant, the disease, causes, symptoms, treatment and prevention in short panels.</p></div>
+    <div class="card"><span class="tag">Trust</span><h3>Real accounts, private scans</h3><p>Real sign in replaces DAHON's client supplied id and plaintext passwords. Scans, history and account data are private.</p></div>
+    <div class="card"><span class="tag">Knowledge</span><h3>A public handbook</h3><p>13 plants and 27 diseases with causes and treatments, readable without an account and indexed for search.</p></div>
+    <div class="card"><span class="tag">Quality</span><h3>Fast, calm, accessible</h3><p>Lighthouse scores of 90 or more, WCAG 2.2 AA, a calm scientific voice, and a documented design system.</p></div>
+  </div>
+
+  <h2>Stack at a glance</h2>
+  <table class="table">
+    <colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+    <thead><tr><th>Layer</th><th>Technology</th></tr></thead>
+    <tbody>
+      <tr><td>Web</td><td>Next.js 15 App Router, TypeScript strict, Tailwind, React Three Fiber for 3D scenes.</td></tr>
+      <tr><td>API</td><td>FastAPI on Python 3.12, SQLAlchemy 2 async with asyncpg, Alembic migrations, layered routers, controllers, services and repositories.</td></tr>
+      <tr><td>Data and services</td><td>PostgreSQL 16 (citext, pg_trgm), S3 compatible storage (MinIO in development), SMTP email (Mailpit in development).</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn"><span class="callout-title">Known issue: sample images</span><p>Some images in the DAHON dump are corrupted or mislabelled, so the extractor could not produce disease reference photos. Disease pages say "Reference photos coming soon" until a clean image set exists. Provenance and licensing must be checked before any public deploy.</p></div>
+  <p class="overview-summary"><strong>In short:</strong> the app is built end to end. Only the real ML model (the teammate’s) is missing.</p>
+</section>
+
+<section class="sheet portrait overview">
+  <h2>Where the project stands</h2>
+  <div class="card-grid cols-2">
+    <div class="card accent"><span class="tag">Built</span><h3>Everything except the model</h3><p>Seed data (13 plants, 27 diseases). The API: auth, Google, email, account, catalog, scans, feedback. The web app: design system, splash, landing, handbook, auth, member shell, dashboard, account and the scan journey. Plus this document.</p></div>
+    <div class="card danger"><span class="tag">Not built</span><h3>Four open items</h3><p>1. The real ML model, written by the teammate. 2. Disease reference images, blocked by corrupt DAHON sample blobs. 3. Real Google credentials. 4. Hosting, which is undecided.</p></div>
+  </div>
+
+  <h2>Confirmed decisions</h2>
+  <div class="card-grid cols-2">
+    <div class="card"><span class="tag">Auth</span><h3>Cookies set by Next.js</h3><p>JWT access token (15 min) and a rotating refresh token (30 days, 90 day family cap) in httpOnly cookies. Tokens never reach page scripts and there is no browser CORS.</p></div>
+    <div class="card"><span class="tag">Auth</span><h3>Google sign in</h3><p>Continue with Google beside email and password. Authorization Code flow with PKCE, state and nonce. The code exchange runs in FastAPI so the client secret stays on the API.</p></div>
+    <div class="card"><span class="tag">Storage</span><h3>Two buckets, public handbook</h3><p>Private <code>leafy-scans</code> (presigned links, 10 minutes) and public <code>leafy-catalog</code>. The handbook is public; scans, history and account are private. Scan images are not used for training unless the team decides so and updates the Privacy Policy.</p></div>
+    <div class="card"><span class="tag">Data</span><h3>Seed from DAHON</h3><p>The DAHON dump seeds the catalog now. Joel's dataset swaps in later through the same seed format.</p></div>
+    <div class="card accent"><span class="tag">ML</span><h3>One function contract</h3><p><code>predict(image: bytes) -&gt; dict[str, str]</code> returns <code>{"plant": slug, "disease": slug, "healthy" or "unknown", optional "confidence": "0.93"}</code>. It receives the sanitized JPEG, long edge at most 2048 px, EXIF stripped. The stub raises <code>NotImplementedError</code>, which maps to 503 <code>ml_unavailable</code>.</p></div>
+    <div class="card"><span class="tag">Account</span><h3>Account scope for v1</h3><p>Sign up, sign in, sign out, email verification, forgot and reset password, edit profile, change password, delete account with all scans.</p></div>
+    <div class="card"><span class="tag">Tooling</span><h3>Default toolchain</h3><p>Python 3.12, uv, ruff, pytest, SQLAlchemy 2 async with asyncpg and Alembic. pnpm, Next.js 15, Tailwind. SMTP email with Mailpit in development.</p></div>
+    <div class="card"><span class="tag">UI</span><h3>Leafy brand and rules</h3><p>Dark forest default with light mode. Josefin Sans Light caps, Poppins, Manrope. Titles of one or two lines, no hyphenation, sideways panels. English only for v1, strings in one dictionary.</p></div>
+    <div class="card"><span class="tag">UX</span><h3>Honest progress</h3><p>Scans return 202 and run in the background. The UI shows real upload percent, then Checking image, Analyzing leaf, Saving result, Done.</p></div>
+    <div class="card info"><span class="tag">Speed</span><h3>Lighthouse is the yardstick</h3><p>Four categories at 90 or more on mobile. LCP at most 2.5 s, INP at most 200 ms, CLS at most 0.1.</p></div>
+  </div>
+
+  <h2>Scope</h2>
+  <table class="table scope-table">
+    <colgroup><col style="width:26%"><col style="width:50%"><col style="width:24%"></colgroup>
+    <thead><tr><th>Area</th><th>In scope for v1</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Monorepo and compose</td><td>Scaffold, <code>docker-compose.yml</code>, <code>.env.example</code>, lint and CI skeleton. Dockerfiles for <code>api</code> and <code>app</code> are not written yet.</td><td><span class="status waiting">Partly</span></td></tr>
+      <tr><td>Seed data</td><td>13 plants, 27 diseases, <code>labels.json</code>, <code>slug_overrides.yaml</code>, cleaning report, idempotent loader. Raspberry is not seeded, so it resolves to <code>unknown</code>.</td><td><span class="status built">Built</span></td></tr>
+      <tr><td>API core and account</td><td>Config, errors, envelope, models, auth, email tokens, Google sign in (mock until real keys), profile, delete account.</td><td><span class="status built">Built</span></td></tr>
+      <tr><td>Scans API</td><td>Storage, image validator, ML stub, resolver, async 202 flow, retry, janitor, stats, feedback and its CSV export.</td><td><span class="status built">Built</span></td></tr>
+      <tr><td>Web foundation and brand</td><td>Env, <code>apiFetch</code>, cookies, middleware, auth handlers, tokens, logo set, splash, 3D scenes, sound.</td><td><span class="status built">Built</span></td></tr>
+      <tr><td>Public pages</td><td>Landing, handbook (plants, diseases, search), About, Privacy, Terms, SEO, PWA manifest, branded emails.</td><td><span class="status built">Built</span></td></tr>
+      <tr><td>Member pages</td><td>Auth pages, dashboard, scan journey with progress UI, result panels, history, feedback, account.</td><td><span class="status built">Built</span></td></tr>
+      <tr><td>Browser tests</td><td>Playwright suites for auth, member, scan, UI and the full stack, with layout assertions.</td><td><span class="status built">Built</span></td></tr>
+      <tr><td>Lighthouse and PageSpeed</td><td>Lighthouse CI is configured. PageSpeed Insights needs a public URL.</td><td><span class="status waiting">Waits for hosting</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Out of scope</h2>
+  <table class="table">
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>Item</th><th>Why and what ships instead</th></tr></thead>
+    <tbody>
+      <tr><td>The real <code>predict()</code></td><td>The teammate writes the ML. Leafy ships the abstract class, the stub, <code>labels.json</code>, <code>slug_overrides.yaml</code> and a one page guide (see the ML integration section). A dev only fake model lets the whole journey run.</td></tr>
+      <tr><td>Joel’s dataset</td><td>Swapped into the seed format later.</td></tr>
+      <tr><td>Email change in profile</td><td>Needs re-verification, planned for v2.</td></tr>
+      <tr><td>Admin or CMS for handbook</td><td>Content changes by editing the seed JSON and re-running the idempotent seed.</td></tr>
+      <tr><td>Deployment</td><td>Decided later. The repository stays deploy ready.</td></tr>
+      <tr><td>Filipino translation, Google unlink, profile photo</td><td>English only for v1. The other two are not in v1.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What closes the four open items</h2>
+  <div class="card-grid cols-2">
+    <div class="card"><span class="tag">ML</span><h3>Plug in the model</h3><p>The teammate subclasses <code>MLInferenceService</code> and sets <code>ML_SERVICE=package.module:Class</code>. No other code changes.</p></div>
+    <div class="card"><span class="tag">Images</span><h3>A clean image set</h3><p>Disease reference photos come from a clean source, such as Joel’s dataset, through the same seed format. Licensing is checked first.</p></div>
+    <div class="card"><span class="tag">Google</span><h3>Create the OAuth client</h3><p>The team creates the client in Google Cloud Console, sets the three Google variables and turns <code>GOOGLE_MOCK</code> off.</p></div>
+    <div class="card"><span class="tag">Hosting</span><h3>Pick a host</h3><p>Then write the Dockerfiles, set <code>S3_PUBLIC_ENDPOINT</code>, and run PageSpeed Insights on the public URL.</p></div>
+  </div>
+</section>

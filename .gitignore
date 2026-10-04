@@ -42,3 +42,7 @@ Thumbs.db
 *.log
 
 # note: *.pdf is intentionally NOT ignored so docs/ PDFs can be committed
+
+.next-*/
+test-results-*/
+.lighthouseci*/

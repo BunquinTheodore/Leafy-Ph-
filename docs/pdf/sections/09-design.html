@@ -1,0 +1,511 @@
+<!-- Section 9: Design and branding. Logos and screenshots are the real built assets (copies live in assets/design/).
+     The style block below only adds classes prefixed d9- for specimens and static component mockups. -->
+<style>
+  .small code, figcaption code, .d9-ex .why code, .d9-panel .cap code { font-size: 1em; }
+  .d9-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); margin: 0 0 var(--gap); }
+  .d9-tile { display: flex; flex-direction: column; min-width: 0; margin: 0; background: var(--paper); border: var(--hair) solid var(--rule); border-radius: var(--radius); overflow: hidden; break-inside: avoid; }
+  .d9-tile .art { display: flex; align-items: center; justify-content: center; height: 34mm; padding: 4mm; }
+  .d9-tile .art.dark { background: #06120b; }
+  .d9-tile .art.light { background: #f5faf4; }
+  .d9-tile .art.white { background: #ffffff; }
+  .d9-tile .art img { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; }
+  .d9-tile figcaption { padding: var(--gap-sm); font-size: 9.5pt; line-height: 1.4; text-wrap: balance; border-top: var(--hair) solid var(--rule); }
+  .d9-tile figcaption strong { display: block; font-family: var(--font-head); font-weight: 600; color: var(--brand-deep); }
+  .d9-tile figcaption span { color: var(--ink); }
+
+  .d9-shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); margin: 0 0 var(--gap); }
+  .d9-shot { display: flex; flex-direction: column; margin: 0; background: var(--paper); border: var(--hair) solid var(--rule); border-radius: var(--radius); overflow: hidden; break-inside: avoid; }
+  .d9-shot img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 7; object-fit: cover; }
+  .d9-shot figcaption { flex: 1; padding: var(--gap-sm); font-size: 9pt; line-height: 1.45; border-top: var(--hair) solid var(--rule); text-wrap: pretty; }
+  .d9-shots .wide { grid-column: 1 / -1; }
+  .d9-shots .wide img { aspect-ratio: 1440 / 630; object-fit: contain; background: #06120b; }
+  .d9-shots .wide.text img { aspect-ratio: 880 / 330; object-fit: cover; }
+  .d9-shots .wide.short img { aspect-ratio: 1440 / 780; object-fit: cover; }
+  .d9-shots + .d9-note { margin-bottom: var(--gap-lg); }
+  .d9-shot figcaption strong { display: block; font-family: var(--font-head); font-weight: 600; color: var(--brand-deep); }
+
+  .d9-sw-title { display: flex; align-items: center; gap: var(--gap-sm); margin: 0 0 var(--gap-sm); font-family: var(--font-head); font-weight: 600; font-size: 10.5pt; color: var(--brand-deep); }
+  .d9-sw-title .dot { width: 4mm; height: 4mm; border-radius: 50%; border: 0.4mm solid var(--brand-deep); flex: none; }
+  .d9-sw-title .dot.dark { background: #06120b; }
+  .d9-sw-title .dot.light { background: #f5faf4; }
+  .d9-sw .swatch { border: 0.4mm solid #7fa088; }
+  .d9-sw .swatch-chip { height: 9mm; box-shadow: inset 0 0 0 0.5mm #4f7a5c; border-bottom: 0.4mm solid #7fa088; }
+  .d9-brand { align-items: start; }
+  .d9-brand .card { align-self: stretch; justify-content: flex-start; }
+  .d9-sw .swatch-meta { padding: var(--gap-xs) 1.6mm calc(var(--gap-sm) + 1.6mm); line-height: 1.35; }
+  .d9-sw .swatch-meta span { color: var(--ink); }
+  .d9-sw .swatch-meta code { background: none; padding: 0; font-size: 8pt; font-weight: 600; color: var(--ink); white-space: nowrap; letter-spacing: -0.02em; }
+
+  /* heading hierarchy for this section: clear size and weight steps, fixed spacing above each level */
+  .d9-sheet > h2 { font-size: 17pt; margin: var(--gap-lg) 0 var(--gap-sm); }
+  .d9-sheet > h3 { font-size: 10.5pt; font-weight: 500; letter-spacing: 0.03em; color: var(--ink); margin: var(--gap) 0 var(--gap-sm); }
+  .d9-sheet > h2:first-child, .d9-sheet > h2.d9-first { margin-top: var(--gap); }
+  .d9-sheet > h2.d9-gap { margin-top: 9mm; }
+  .d9-sheet > p { max-width: none; }
+
+  .d9-sample { display: inline-flex; align-items: center; justify-content: center; min-width: 12mm; padding: 0.6mm 2mm; border-radius: 1.5mm; border: var(--hair) solid var(--rule); font-family: var(--font-head); font-weight: 600; font-size: 9pt; line-height: 1.3; }
+  .d9-pass { font-family: var(--font-head); font-weight: 600; color: var(--brand-deep); white-space: nowrap; }
+  .d9-pass::before { content: ""; display: inline-block; width: 3mm; height: 3mm; margin-right: 1.2mm; vertical-align: -0.5mm; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2317542d' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center / contain no-repeat; }
+  .d9-table-balance td, .d9-table-balance th { text-wrap: balance; }
+  .d9-fail { font-family: var(--font-head); font-weight: 600; color: var(--danger); }
+
+  .d9-sev { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--gap-sm); margin: 0 0 var(--gap); }
+  .d9-sev-item { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gap-xs); min-width: 0; padding: var(--gap-sm); background: #06120b; border-radius: var(--radius); break-inside: avoid; }
+  .d9-badge { display: inline-flex; align-items: center; gap: 1.5mm; padding: 0.8mm 2.6mm 0.8mm 2mm; border-radius: 99mm; border: 0.3mm solid var(--c); background: #0b1d12; color: #e9f4ec; font-family: var(--font-head); font-weight: 600; font-size: 9pt; line-height: 1.3; }
+  .d9-badge svg { width: 3.4mm; height: 3.4mm; flex: none; fill: none; stroke: var(--c); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .d9-sev-item span.hex { font-size: 9.5pt; font-weight: 500; color: #cfe8d6; font-family: var(--font-mono); }
+
+  .d9-spec { display: grid; grid-template-columns: 38mm minmax(0, 1fr); gap: var(--gap); margin: 0 0 var(--gap); padding: var(--gap-sm) var(--gap); background: var(--paper); border: var(--hair) solid var(--rule); border-radius: var(--radius); break-inside: avoid; align-items: center; }
+  .d9-spec .meta { display: flex; flex-direction: column; gap: 1mm; min-width: 0; font-size: 9pt; line-height: 1.4; color: var(--ink-soft); text-wrap: balance; }
+  .d9-spec .meta strong { font-family: var(--font-head); font-weight: 600; font-size: 10pt; color: var(--brand-deep); }
+  .d9-spec .sample { min-width: 0; color: var(--ink); }
+  .d9-spec .display { font-family: var(--font-display); font-weight: 300; text-transform: uppercase; letter-spacing: 0.14em; font-size: 26pt; line-height: 1.2; color: var(--brand-deep); }
+  .d9-spec .poppins { font-family: var(--font-head); font-weight: 600; font-size: 17pt; line-height: 1.25; color: var(--brand-deep); }
+  .d9-spec .poppins-sub { font-family: var(--font-head); font-weight: 500; font-size: 10pt; line-height: 1.4; color: var(--ink-soft); }
+  .d9-spec .manrope { font-family: var(--font-body); font-weight: 400; font-size: 11pt; line-height: 1.6; max-width: 62ch; }
+  .d9-glyphs { margin: 1.5mm 0 0; font-size: 9pt; line-height: 1.4; color: var(--ink-soft); max-width: none; }
+
+  .d9-sheet .card-grid:has(.d9-ex) { align-items: start; }
+  .d9-ex { display: flex; flex-direction: column; gap: var(--gap-sm); min-width: 0; padding: var(--gap-sm) var(--gap); background: var(--paper); border: var(--hair) solid var(--rule); border-radius: var(--radius); break-inside: avoid; }
+  .d9-ex.good { border-top: 0.9mm solid var(--brand); }
+  .d9-ex.bad { border: 0.4mm dashed var(--danger); border-top: 0.9mm solid var(--danger); }
+  .d9-ex .verdict { display: flex; align-items: center; gap: var(--gap-xs); font-family: var(--font-head); font-weight: 600; font-size: 9pt; letter-spacing: 0.08em; text-transform: uppercase; }
+  .d9-ex.good .verdict { color: var(--brand-deep); }
+  .d9-ex.bad .verdict { color: var(--danger); }
+  .d9-ex .verdict svg { width: 3.6mm; height: 3.6mm; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .d9-ex .demo { flex: none; min-width: 0; padding: var(--gap-sm); background: var(--tint); border-radius: 2mm; }
+  .d9-ex .why { margin: 0; font-size: 9pt; line-height: 1.45; color: var(--ink); max-width: none; }
+  .d9-ex .demo p, .d9-ex .demo div { color: var(--ink); }
+  .d9-ex .demo .t-good, .d9-ex .demo .t-bad { color: var(--brand-deep); }
+  .d9-ex .t-good { font-family: var(--font-display); font-weight: 300; text-transform: uppercase; letter-spacing: 0.1em; font-size: 15pt; line-height: 1.2; color: var(--brand-deep); text-wrap: balance; }
+  .d9-ex .t-bad { font-family: var(--font-display); font-weight: 300; text-transform: uppercase; letter-spacing: 0.1em; font-size: 15pt; line-height: 1.2; color: var(--brand-deep); width: 30mm; }
+  .d9-ex .p-good { font-size: 9.5pt; line-height: 1.6; max-width: 62ch; text-align: left; margin: 0; }
+  .d9-ex .p-bad { color: var(--ink); font-weight: 500; font-size: 9.5pt; line-height: 1.3; text-align: justify; margin: 0; max-width: none; }
+  .d9-ex .copy { font-family: var(--font-body); font-size: 10.5pt; line-height: 1.5; margin: 0; max-width: none; }
+
+  .d9-cursor { display: flex; align-items: center; justify-content: center; gap: var(--gap); height: 28mm; padding: var(--gap-sm); border-radius: var(--radius); border: var(--hair) solid var(--rule); }
+  .d9-cursor.dark { background: #06120b; }
+  .d9-cursor.light { background: #f5faf4; }
+  .d9-cursor img { display: block; width: 18mm; height: 18mm; }
+  .d9-cursor.light { background: #e3efe0; }
+  .d9-cursor.light img { filter: brightness(0.55) saturate(1.3) drop-shadow(0 0 0.25mm #06120b); }
+
+  .d9-min { display: flex; align-items: flex-end; gap: var(--gap-lg); padding: var(--gap-sm) 0 0; }
+  .d9-min figure { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gap-xs); margin: 0; font-size: 9pt; line-height: 1.35; }
+  .d9-min .stage { display: flex; align-items: flex-end; padding: var(--gap-sm); background: #f5faf4; border: 0.3mm dashed #4f7a5c; border-radius: 2mm; }
+  .d9-min figcaption { color: var(--ink); }
+  .d9-scale { display: flex; flex-direction: column; gap: var(--gap-sm); margin: 0 0 var(--gap); padding: var(--gap-sm) var(--gap); background: var(--paper); border: var(--hair) solid var(--rule); border-radius: var(--radius); break-inside: avoid; font-size: 9pt; line-height: 1.35; }
+  .d9-scale-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-lg); }
+  .d9-scale-col { display: grid; grid-template-columns: 8mm 15mm minmax(0, 1fr); column-gap: var(--gap-sm); row-gap: 2mm; align-items: center; align-content: start; }
+  .d9-scale .note code { font-size: 1em; }
+  .d9-scale .note { margin: 0; padding-top: var(--gap-sm); border-top: var(--hair) solid var(--rule); max-width: none; font-size: 9pt; color: var(--ink-soft); }
+  .d9-scale .px { font-family: var(--font-head); font-weight: 600; color: var(--brand-deep); }
+  .d9-scale .track { display: flex; align-items: center; height: 4mm; }
+  .d9-scale .bar { height: 3mm; background: var(--brand); border-radius: 0.8mm; }
+  .d9-scale .use { color: var(--ink-soft); }
+
+  .d9-shapes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); margin: 0 0 var(--gap); padding: 1.5mm 2.5mm 0 1.5mm; }
+  .d9-shape { display: flex; flex-direction: column; gap: var(--gap-xs); min-width: 0; font-size: 9pt; line-height: 1.35; break-inside: avoid; }
+  .d9-shape .box { display: flex; align-items: center; justify-content: center; height: 12mm; background: var(--tint-2); border: 0.4mm solid var(--brand); font-family: var(--font-head); font-weight: 600; color: var(--brand-deep); }
+  .d9-shape strong { font-family: var(--font-head); font-weight: 600; color: var(--brand-deep); }
+
+  /* component mockups on the real dark surface */
+  .d9-ui { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); align-items: stretch; margin: 0 0 var(--gap); }
+  .d9-panel code { background: #10281a; color: #e9f4ec; }
+  .d9-panel { display: flex; flex-direction: column; gap: var(--gap-sm); min-width: 0; padding: var(--gap); background: #0b1d12; border: 0.3mm solid #1e3d2b; border-top: 0.6mm solid #40c057; border-radius: 4mm; color: #e9f4ec; break-inside: avoid; }
+  .d9-panel h3 { margin: 0; font-size: 10.5pt; color: #e9f4ec; }
+  .d9-panel .cap { margin: auto 0 0; font-size: 9pt; line-height: 1.4; color: #c4dacb; max-width: none; text-wrap: balance; }
+  .d9-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-sm); }
+  .d9-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 8mm; padding: 0 4.5mm; border-radius: 99mm; font-family: var(--font-head); font-weight: 600; font-size: 9pt; line-height: 1; white-space: nowrap; }
+  .d9-btn.primary { background: #40c057; color: #06120b; }
+  .d9-btn.secondary { background: #10281a; color: #e9f4ec; border: 0.3mm solid #40c057; }
+  .d9-btn.ghost { color: #e9f4ec; background: transparent; border: 0.3mm dashed #1e3d2b; }
+  .d9-btn.disabled { background: #1e3d2b; color: #e9f4ec; }
+  .d9-field { display: flex; flex-direction: column; gap: 0.6mm; padding: 1.6mm 3mm; background: #06120b; border: 0.3mm solid #ff6b6b; border-radius: 3mm; font-size: 9pt; line-height: 1.3; }
+  .d9-field .lab { font-size: 9pt; color: #c4dacb; }
+  .d9-field .val { font-family: var(--font-body); color: #e9f4ec; }
+  .d9-err { margin: 0; font-size: 9pt; line-height: 1.35; color: #ff6b6b; max-width: none; }
+  .d9-bar { height: 2.2mm; background: #1e3d2b; border-radius: 99mm; }
+  .d9-bar .fill { height: 100%; width: 62%; background: #40c057; border-radius: 99mm; }
+  .d9-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap-xs); }
+  .d9-step { display: flex; flex-direction: column; gap: 1.2mm; min-width: 0; font-size: 10pt; line-height: 1.2; color: #e9f4ec; }
+  .d9-step .seg { height: 1.2mm; border-radius: 99mm; background: #1e3d2b; }
+  .d9-step.done .seg { background: #40c057; }
+  .d9-step.now { color: #e9f4ec; font-weight: 600; }
+  .d9-step.now .seg { background: #7be495; }
+  .d9-toast { display: flex; flex-direction: column; gap: 0.5mm; padding: 2mm 3mm; border-radius: 3mm; border: 0.3mm solid #5cc8d0; background: #0b2a2c; font-size: 9pt; line-height: 1.35; }
+  .d9-toast.err { border-color: #ff6b6b; background: #2a1512; }
+  .d9-toast strong { font-family: var(--font-head); font-weight: 600; }
+  .d9-stat { display: flex; flex-direction: column; gap: 0.5mm; padding: 2.5mm 3.5mm; background: #10281a; border-radius: 3mm; border: 0.3mm solid #1e3d2b; }
+  .d9-stat .n { font-family: var(--font-head); font-weight: 600; font-size: 17pt; line-height: 1.1; font-variant-numeric: tabular-nums; color: #7be495; }
+  .d9-stat .l { font-size: 9pt; line-height: 1.3; color: #c4dacb; }
+  .d9-skel { height: 7mm; border-radius: 2mm; background: #10281a; }
+  .d9-focus { display: inline-flex; align-items: center; justify-content: center; min-height: 8mm; padding: 0 4.5mm; border-radius: 99mm; background: #40c057; color: #06120b; font-family: var(--font-head); font-weight: 600; font-size: 9pt; line-height: 1; outline: 0.7mm solid #7be495; outline-offset: 0.8mm; }
+</style>
+
+<!-- ================= Page 1: foundation and logo ================= -->
+<section class="sheet portrait d9-sheet">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">Design and branding</h1>
+    <p class="lede">Leafy looks like a lab inside a forest: calm, precise and reassuring. Below are the real logo files, colour tokens, type rules and components. The brand, tokens, logos, splash and cursor are built.</p>
+  </header>
+
+  <h2>Brand foundation</h2>
+  <div class="card-grid cols-3 d9-brand">
+    <div class="card"><span class="tag">Name</span><h3>Leafy</h3><p>Sentence case in copy. LEAFY in Josefin Sans Light capitals for the wordmark and display titles. DAHON is credited as origin only: dahon means leaf in Filipino.</p></div>
+    <div class="card"><span class="tag">Position</span><h3>A plant doctor in your pocket</h3><p>Snap a leaf, understand the disease, know what to do next. Draft taglines: Know your leaf. Read the leaf. Save the plant. Plant health, understood.</p></div>
+    <div class="card"><span class="tag">Voice</span><h3>Calm and precise</h3><p>Short sentences, plain words, active voice. No jargon without a one line explanation, no exclamation marks.</p></div>
+  </div>
+  <table class="table">
+    <colgroup><col style="width:42%"><col></colgroup>
+    <thead><tr><th>Copy example</th><th>Why it works</th></tr></thead>
+    <tbody>
+      <tr><td>We found signs of early blight.</td><td>States the finding without alarm.</td></tr>
+      <tr><td>This photo is a little dark. Try daylight and hold the leaf flat.</td><td>Says what happened and what to do next.</td></tr>
+      <tr><td>Treatment: remove affected leaves and avoid wetting the foliage.</td><td>Plain action, no jargon.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Brand assets and where they live</h2>
+  <table class="table">
+    <colgroup><col style="width:34%"><col></colgroup>
+    <thead><tr><th>Asset</th><th>Location (all built unless noted)</th></tr></thead>
+    <tbody>
+      <tr><td>Marks, wordmark, lockups</td><td><code>app/public/brand/*.svg</code></td></tr>
+      <tr><td>Favicons, touch and PWA icons, share image</td><td><code>app/public/icons/*</code> (16, 32 and 48 px, an SVG favicon that follows <code>prefers-color-scheme</code>, Apple touch icon, maskable 192 and 512 px) and <code>app/public/og/og-image.png</code> (1200 by 630 px)</td></tr>
+      <tr><td>Custom cursors</td><td><code>app/public/cursors/*.svg</code></td></tr>
+      <tr><td>Colour tokens (contrast tested)</td><td><code>app/src/styles/tokens.css</code></td></tr>
+      <tr><td>Brand constants and guide</td><td><code>components/brand/</code>, <code>lib/brand.ts</code> (<code>LeafMark3D</code> planned), and the guide at <code>/brand</code> (not indexed)</td></tr>
+    </tbody>
+  </table>
+  </section>
+
+<!-- ================= Page 2: logo and assets ================= -->
+<section class="sheet portrait d9-sheet">
+  <h2>Logo family</h2>
+  <p>The mark is the DAHON two leaf shape redrawn on a clean grid. These are the built files from <code>app/public/brand/</code>.</p>
+  <div class="d9-tiles">
+    <figure class="d9-tile"><div class="art dark"><img src="../assets/design/leafy-lockup-horizontal-on-dark.svg" alt="Leafy horizontal lockup on dark" style="width:34mm"></div><figcaption><strong>Horizontal, on dark</strong><span>Mark plus wordmark</span></figcaption></figure>
+    <figure class="d9-tile"><div class="art light"><img src="../assets/design/leafy-lockup-horizontal-on-light.svg" alt="Leafy horizontal lockup on light" style="width:34mm"></div><figcaption><strong>Horizontal, on light</strong><span>Deep green mark</span></figcaption></figure>
+    <figure class="d9-tile"><div class="art dark"><img src="../assets/design/leafy-lockup-stacked-on-dark.svg" alt="Leafy stacked lockup on dark" style="height:17mm"></div><figcaption><strong>Stacked, on dark</strong><span>Narrow spaces</span></figcaption></figure>
+    <figure class="d9-tile"><div class="art light"><img src="../assets/design/leafy-lockup-stacked-on-light.svg" alt="Leafy stacked lockup on light" style="height:17mm"></div><figcaption><strong>Stacked, on light</strong><span>Print and email</span></figcaption></figure>
+    <figure class="d9-tile"><div class="art dark"><img src="../assets/design/leafy-mark-on-dark.svg" alt="Leafy mark on dark" style="height:16mm"></div><figcaption><strong>Mark, on dark</strong><span>Light green</span></figcaption></figure>
+    <figure class="d9-tile"><div class="art light"><img src="../assets/design/leafy-mark-on-light.svg" alt="Leafy mark on light" style="height:16mm"></div><figcaption><strong>Mark, on light</strong><span>Deep green</span></figcaption></figure>
+    <figure class="d9-tile"><div class="art white"><img src="../assets/design/leafy-mark-mono-black.svg" alt="Leafy mark in mono black" style="height:16mm"></div><figcaption><strong>Mono black</strong><span>One colour print</span></figcaption></figure>
+    <figure class="d9-tile"><div class="art dark"><img src="../assets/design/leafy-mark-mono-white.svg" alt="Leafy mark in mono white" style="height:16mm"></div><figcaption><strong>Mono white</strong><span>Busy imagery</span></figcaption></figure>
+  </div>
+
+  <table class="table">
+    <colgroup><col style="width:24%"><col></colgroup>
+    <thead><tr><th>Rule</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Wordmark</td><td>LEAFY in Josefin Sans Light, capitals, tracking about 0.18em.</td></tr>
+      <tr><td>Clear space</td><td>Equal to the height of the mark's small leaf on every side.</td></tr>
+      <tr><td>Minimum size</td><td>Mark 20 px. Lockup 96 px wide.</td></tr>
+      <tr><td>Two tone</td><td>Brand green with a lighter inner leaf. The same paths feed the 3D extrusion (<code>LeafMark3D</code>, planned).</td></tr>
+      <tr><td>Never</td><td>Stretch the logo, recolour outside the variants, or place it on a busy background (use the mono versions).</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Minimum size</h2>
+  <div class="d9-min">
+    <figure><div class="stage"><img src="../assets/design/leafy-mark-on-light.svg" alt="Mark at minimum size" style="height:5.3mm;display:block"></div><figcaption>Mark at 20 px, shown at 100%</figcaption></figure>
+    <figure><div class="stage"><img src="../assets/design/leafy-lockup-horizontal-on-light.svg" alt="Lockup at minimum size" style="width:25.4mm;display:block"></div><figcaption>Lockup at 96 px wide, shown at 100%</figcaption></figure>
+  </div>
+</section>
+
+<!-- ================= Page 2b: brand in use ================= -->
+<section class="sheet portrait d9-sheet">
+  <h2>Brand in use</h2>
+  <div class="d9-shots">
+    <figure class="d9-shot wide text"><img src="../assets/design/landing-dark-hero-text.png" alt="Leafy landing hero in dark mode: eyebrow, the headline Know your leaf, one supporting line and two buttons"><figcaption><strong>Landing hero, dark</strong>Headline Know your leaf, then the line Snap a leaf, understand the disease, know what to do next, and two buttons. The green 3D leaf sits to the right of this crop. Built screenshot, left part of a 1440 by 900 page.</figcaption></figure>
+    <figure class="d9-shot wide short"><img src="../assets/design/splash-1440.png" alt="Leafy splash screen: the glowing mark above the LEAFY wordmark on a dark green glow"><figcaption><strong>Splash</strong>The glowing mark above the LEAFY wordmark on a soft green glow, shown on every full page load. Built screenshot at 1440 by 900, trimmed slightly at the top and bottom.</figcaption></figure>
+  </div>
+
+</section>
+
+<!-- ================= Page 3: colour tokens ================= -->
+<section class="sheet portrait d9-sheet">
+  <h2>Colour tokens</h2>
+  <p>CSS variables on <code>:root</code> and <code>[data-theme=light|dark]</code>. Dark is the default, the system theme is followed, and the header toggle overrides it.</p>
+
+  <div class="d9-sw-title"><span class="dot dark" aria-hidden="true"></span>Dark theme (default)</div>
+  <div class="swatch-grid d9-sw" style="--cols:6">
+    <div class="swatch" style="--c:#06120b"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Page</strong><span>#06120b</span><code>--bg</code></div></div>
+    <div class="swatch" style="--c:#0b1d12"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Raised</strong><span>#0b1d12</span><code>--bg-raised</code></div></div>
+    <div class="swatch" style="--c:#10281a"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Surface</strong><span>#10281a</span><code>--surface</code></div></div>
+    <div class="swatch" style="--c:#1e3d2b"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Border</strong><span>#1e3d2b</span><code>--border</code></div></div>
+    <div class="swatch" style="--c:#e9f4ec"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Text</strong><span>#e9f4ec</span><code>--text</code></div></div>
+    <div class="swatch" style="--c:#9bb8a6"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Muted</strong><span>#9bb8a6</span><code>--text-muted</code></div></div>
+    <div class="swatch" style="--c:#40c057"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Brand</strong><span>#40c057</span><code>--brand</code></div></div>
+    <div class="swatch" style="--c:#1f6b3a"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Deep</strong><span>#1f6b3a</span><code>--brand-deep</code></div></div>
+    <div class="swatch" style="--c:#7be495"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Glow</strong><span>#7be495</span><code>--brand-glow</code></div></div>
+    <div class="swatch" style="--c:#ffb300"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Accent</strong><span>#ffb300</span><code>--accent</code></div></div>
+    <div class="swatch" style="--c:#5cc8d0"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Info</strong><span>#5cc8d0</span><code>--info</code></div></div>
+    <div class="swatch" style="--c:#ff6b6b"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Danger</strong><span>#ff6b6b</span><code>--danger</code></div></div>
+  </div>
+
+  <div class="d9-sw-title"><span class="dot light" aria-hidden="true"></span>Light theme</div>
+  <div class="swatch-grid d9-sw" style="--cols:6">
+    <div class="swatch" style="--c:#f5faf4"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Page</strong><span>#f5faf4</span><code>--bg</code></div></div>
+    <div class="swatch" style="--c:#ffffff"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Raised</strong><span>#ffffff</span><code>--bg-raised</code></div></div>
+    <div class="swatch" style="--c:#eaf3e8"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Surface</strong><span>#eaf3e8</span><code>--surface</code></div></div>
+    <div class="swatch" style="--c:#cfe0cb"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Border</strong><span>#cfe0cb</span><code>--border</code></div></div>
+    <div class="swatch" style="--c:#0e2316"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Text</strong><span>#0e2316</span><code>--text</code></div></div>
+    <div class="swatch" style="--c:#46604f"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Muted</strong><span>#46604f</span><code>--text-muted</code></div></div>
+    <div class="swatch" style="--c:#23813a"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Brand</strong><span>#23813a</span><code>--brand</code></div></div>
+    <div class="swatch" style="--c:#17542d"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Deep</strong><span>#17542d</span><code>--brand-deep</code></div></div>
+    <div class="swatch" style="--c:#40c057"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Glow</strong><span>#40c057</span><code>--brand-glow</code></div></div>
+    <div class="swatch" style="--c:#955d00"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Accent</strong><span>#955d00</span><code>--accent</code></div></div>
+    <div class="swatch" style="--c:#0f7480"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Info</strong><span>#0f7480</span><code>--info</code></div></div>
+    <div class="swatch" style="--c:#c0362c"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Danger</strong><span>#c0362c</span><code>--danger</code></div></div>
+  </div>
+
+  <table class="table">
+    <colgroup><col style="width:34%"><col></colgroup>
+    <thead><tr><th>Tokens</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td>Page, raised, surface, border</td><td>Page, raised sections, cards and panels (glass at 70% with blur over 3D, solid elsewhere).</td></tr>
+      <tr><td>Text, muted</td><td>Primary and secondary text.</td></tr>
+      <tr><td>Brand, deep, glow</td><td>Leaf green (matches the cursor), the DAHON logo family green, and 3D and scan beam highlights. Gradients stay inside the green family.</td></tr>
+      <tr><td>Accent, info, danger</td><td>Amber is the single accent for secondary actions and warnings, used sparingly. Info and danger are for notices and errors.</td></tr>
+    </tbody>
+  </table>
+
+</section>
+
+<!-- ================= Page 4: contrast ================= -->
+<section class="sheet portrait d9-sheet">
+  <h2>Contrast ratios</h2>
+  <p>Ratios are computed from the hex values with the WCAG relative luminance formula. AA needs 4.5 for normal text (column Text) and 3.0 for large text and interface parts (column Large). A script in CI repeats this check.</p>
+  <table class="table">
+    <colgroup><col style="width:12%"><col style="width:31%"><col style="width:10%"><col style="width:14%"><col style="width:14%"><col></colgroup>
+    <thead><tr><th>Sample</th><th>Pair</th><th class="num">Ratio</th><th>Text 4.5</th><th>Large 3.0</th><th>Used for</th></tr></thead>
+    <tbody>
+      <tr><td><span class="d9-sample" style="color:#e9f4ec;background:#06120b">Aa</span></td><td>Dark: text on background</td><td class="num">16.94</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Body text</td></tr>
+      <tr><td><span class="d9-sample" style="color:#9bb8a6;background:#06120b">Aa</span></td><td>Dark: muted on background</td><td class="num">8.92</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Captions</td></tr>
+      <tr><td><span class="d9-sample" style="color:#9bb8a6;background:#10281a">Aa</span></td><td>Dark: muted on surface</td><td class="num">7.31</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Card captions</td></tr>
+      <tr><td><span class="d9-sample" style="color:#40c057;background:#06120b">Aa</span></td><td>Dark: brand on background</td><td class="num">8.09</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Links, labels</td></tr>
+      <tr><td><span class="d9-sample" style="color:#06120b;background:#40c057">Aa</span></td><td>Dark: background on brand</td><td class="num">8.09</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Primary button text</td></tr>
+      <tr><td><span class="d9-sample" style="color:#ffb300;background:#06120b">Aa</span></td><td>Dark: accent on background</td><td class="num">10.65</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Warnings</td></tr>
+      <tr><td><span class="d9-sample" style="color:#5cc8d0;background:#06120b">Aa</span></td><td>Dark: info on background</td><td class="num">9.67</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Notices</td></tr>
+      <tr><td><span class="d9-sample" style="color:#ff6b6b;background:#06120b">Aa</span></td><td>Dark: danger on background</td><td class="num">6.89</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Errors</td></tr>
+      <tr><td><span class="d9-sample" style="color:#0e2316;background:#f5faf4">Aa</span></td><td>Light: text on background</td><td class="num">15.63</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Body text</td></tr>
+      <tr><td><span class="d9-sample" style="color:#46604f;background:#f5faf4">Aa</span></td><td>Light: muted on background</td><td class="num">6.52</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Captions</td></tr>
+      <tr><td><span class="d9-sample" style="color:#23813a;background:#f5faf4">Aa</span></td><td>Light: brand on background</td><td class="num">4.65</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Links, labels</td></tr>
+      <tr><td><span class="d9-sample" style="color:#ffffff;background:#23813a">Aa</span></td><td>Light: white on brand</td><td class="num">4.91</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Primary button text</td></tr>
+      <tr><td><span class="d9-sample" style="color:#0f7480;background:#f5faf4">Aa</span></td><td>Light: info on background</td><td class="num">5.19</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Notices</td></tr>
+      <tr><td><span class="d9-sample" style="color:#c0362c;background:#f5faf4">Aa</span></td><td>Light: danger on background</td><td class="num">5.22</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Errors</td></tr>
+      <tr><td><span class="d9-sample" style="color:#955d00;background:#f5faf4">Aa</span></td><td>Light: accent on background</td><td class="num">5.17</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Warnings, secondary actions</td></tr>
+      <tr><td><span class="d9-sample" style="color:#1a1100;background:#ffb300">Aa</span></td><td>Dark: on accent on accent fill</td><td class="num">10.41</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Amber button text</td></tr>
+      <tr><td><span class="d9-sample" style="color:#ffffff;background:#955d00">Aa</span></td><td>Light: on accent on accent fill</td><td class="num">5.46</td><td class="d9-pass">Pass</td><td class="d9-pass">Pass</td><td>Amber button text</td></tr>
+    </tbody>
+  </table>
+  <div class="callout note"><span class="callout-title">One value changed from the plan</span><p>The plan started the light accent at <code>#a86a00</code>, which reaches only 4.20 on the light background. The built token is <code>#955d00</code> (5.17), so every pair in the contrast table passes AA. The CI script <code>tokens.contrast.test.ts</code> guards it.</p></div>
+</section>
+
+<!-- ================= Page 5: severity and typography ================= -->
+<section class="sheet portrait d9-sheet">
+  <h2>Severity scale</h2>
+  <p>Severity is never carried by colour alone. Each level has a label and an icon. The colours below were computed against the dark background.</p>
+  <div class="d9-sev">
+    <div class="d9-sev-item"><span class="d9-badge" style="--c:#40c057"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>Healthy</span><span class="hex">#40c057</span></div>
+    <div class="d9-sev-item"><span class="d9-badge" style="--c:#a3d65c"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-8"/><path d="M12 13c0-4-3-6-7-6 0 4 3 6 7 6z"/><path d="M12 13c0-3 2-5 6-5 0 3-2 5-6 5z"/></svg>Low</span><span class="hex">#a3d65c</span></div>
+    <div class="d9-sev-item"><span class="d9-badge" style="--c:#ffb300"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19C5 10 10 5 20 4c0 10-5 15-15 15z"/><path d="M5 19l8-8"/></svg>Moderate</span><span class="hex">#ffb300</span></div>
+    <div class="d9-sev-item"><span class="d9-badge" style="--c:#ff7a3d"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>High</span><span class="hex">#ff7a3d</span></div>
+    <div class="d9-sev-item"><span class="d9-badge" style="--c:#ff4d4f"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><path d="M12 16.5h.01"/></svg>Severe</span><span class="hex">#ff4d4f</span></div>
+  </div>
+  <table class="table">
+    <colgroup><col style="width:14%"><col style="width:22%"><col style="width:14%"><col></colgroup>
+    <thead><tr><th>Level</th><th>Colour</th><th>On dark bg</th><th>On the light theme</th></tr></thead>
+    <tbody>
+      <tr><td>Healthy</td><td>Green <code>#40c057</code></td><td>8.09</td><td>Label and icon in <code>--text</code>; the green marks only the chip edge.</td></tr>
+      <tr><td>Low</td><td>Lime <code>#a3d65c</code></td><td>11.22</td><td>Colour against light is 1.61, so the label and icon carry the meaning.</td></tr>
+      <tr><td>Moderate</td><td>Amber <code>#ffb300</code></td><td>10.65</td><td>Colour against light is 1.70, same rule.</td></tr>
+      <tr><td>High</td><td>Orange <code>#ff7a3d</code></td><td>7.37</td><td>Colour against light is 2.45, same rule.</td></tr>
+      <tr><td>Severe</td><td>Red <code>#ff4d4f</code></td><td>5.85</td><td>Colour against light is 3.09, same rule.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Type specimens</h2>
+  <p>Three families, all self hosted and limited to the weights in use. The same fonts are used inside the Three.js scenes.</p>
+
+  <div class="d9-spec">
+    <div class="meta"><strong>Josefin Sans Light</strong><span>Weight 300, ALL CAPS, wide tracking</span><span>Display: hero, page titles, section labels, wordmark</span></div>
+    <div class="sample"><div class="display">Know your leaf.</div><p class="d9-glyphs">ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789</p></div>
+  </div>
+  <div class="d9-spec">
+    <div class="meta"><strong>Poppins</strong><span>Weights 500 and 600</span><span>Subheadings, buttons, navigation, cards, stats</span></div>
+    <div class="sample"><div class="poppins">Early blight on tomato</div><div class="poppins-sub">Scan a leaf · Browse the handbook · 27 diseases · 13 plants</div><p class="d9-glyphs">Aa Bb Cc Dd Ee Ff Gg 0123456789 (tabular figures for stats)</p></div>
+  </div>
+  <div class="d9-spec">
+    <div class="meta"><strong>Manrope</strong><span>Weights 400, 500 and 700</span><span>Body, forms and disease text</span></div>
+    <div class="sample"><div class="manrope">Brown spots with yellow rings appear first on the oldest leaves. Remove affected leaves and avoid wetting the foliage when you water.</div><p class="d9-glyphs">Aa Bb Cc Dd Ee Ff Gg 0123456789</p></div>
+  </div>
+</section>
+
+<!-- ================= Page 6: type scale and paragraph rules ================= -->
+<section class="sheet portrait d9-sheet">
+  <h2>Type scale</h2>
+  <table class="table d9-table-balance">
+    <colgroup><col style="width:12%"><col style="width:20%"><col style="width:22%"><col style="width:16%"><col></colgroup>
+    <thead><tr><th>Role</th><th>Family and weight</th><th>Size, fluid <code>clamp()</code></th><th>Line height</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Display</td><td>Josefin Sans 300, caps</td><td>About 40 px mobile to 96 px desktop</td><td>1.1 to 1.2</td><td>One or two lines. Tracking about 0.18em on the wordmark.</td></tr>
+      <tr><td>H2</td><td>Poppins 600</td><td>28 to 44 px</td><td>1.25</td><td>Panel and section titles.</td></tr>
+      <tr><td>Body</td><td>Manrope 400 to 700</td><td>16 to 18 px</td><td>1.65</td><td>Measure 62ch, 1em paragraph spacing.</td></tr>
+      <tr><td>Stats</td><td>Poppins 600</td><td>Per component</td><td>1.1</td><td>Tabular figures so numbers do not jump.</td></tr>
+    </tbody>
+  </table>
+  <p class="small muted">This PDF follows the same rules in print: Josefin Sans Light capitals for section titles, Poppins for headings and labels, Manrope for body. Print sets body at a line height of 1.6; the app uses 1.65, as in the table above.</p>
+
+  <h2>Paragraph and title rules</h2>
+  <p>Rules from the plan, each shown as a good and a bad example. The bad examples are only here to show what to avoid.</p>
+
+  <h3>Paragraph shape: measure 62ch, left aligned, never justified</h3>
+  <div class="card-grid cols-2">
+    <div class="d9-ex good"><span class="verdict"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Do</span><div class="demo"><p class="p-good">A paragraph keeps a measure of about 62 characters, is left aligned and uses a line height of 1.65. The last line is never a single orphan word.</p></div><p class="why">Short lines and an even left edge are easy to follow.</p></div>
+    <div class="d9-ex bad"><span class="verdict"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Avoid</span><div class="demo"><p class="p-bad">A paragraph that runs across the full width of the screen, is justified and has a tight line height creates uneven gaps and makes it hard to find the start of the next line.</p></div><p class="why">Too wide, justified, tight line height.</p></div>
+  </div>
+
+  <h3>Titles: one line, two at most, never three</h3>
+  <div class="card-grid cols-2">
+    <div class="d9-ex good"><span class="verdict"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Do</span><div class="demo"><div class="t-good">Early blight on tomato</div></div><p class="why">Balanced wrap. Cards show a short display name, the detail page shows the full name in two lines.</p></div>
+    <div class="d9-ex bad"><span class="verdict"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Avoid</span><div class="demo"><div class="t-bad">Early blight on tomato</div></div><p class="why">A narrow box forces more than two lines. Playwright fails any h1 or h2 over two lines at 360, 768 and 1440.</p></div>
+  </div>
+</section>
+
+<!-- ================= Page 7: more text rules and spacing ================= -->
+<section class="sheet portrait d9-sheet">
+  <h2 class="d9-first" data-toc="off">Paragraph and title rules, continued</h2>
+  <h3>No hyphenation</h3>
+  <div class="card-grid cols-2">
+    <div class="d9-ex good"><span class="verdict"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Do</span><div class="demo"><p class="copy">Plant health, understood. Words move whole to the next line.</p></div><p class="why"><code>hyphens: none</code> everywhere, including 3D text.</p></div>
+    <div class="d9-ex bad"><span class="verdict"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Avoid</span><div class="demo"><p class="copy">Plant health, under-<br>stood. A word split with a hyphen at the line end.</p></div><p class="why">No <code>&amp;shy;</code>, no mid word breaks. A seed lint flags them in the data.</p></div>
+  </div>
+
+  <h3>Voice: calm, never alarmist</h3>
+  <div class="card-grid cols-2">
+    <div class="d9-ex good"><span class="verdict"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Do</span><div class="demo"><p class="copy">We found signs of early blight. Remove affected leaves and keep the foliage dry.</p></div><p class="why">Plain words, active voice, a next step.</p></div>
+    <div class="d9-ex bad"><span class="verdict"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Avoid</span><div class="demo"><p class="copy">Warning!!! Your plant is in serious danger and may die.</p></div><p class="why">Alarmist, exclamation marks, no next step.</p></div>
+  </div>
+
+  <h2>More text rules</h2>
+  <table class="table">
+    <colgroup><col style="width:26%"><col></colgroup>
+    <thead><tr><th>Also in force</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr><td>Wrapping</td><td><code>text-wrap: pretty</code> on paragraphs, <code>balance</code> on headings and short blurbs. Both degrade gracefully where unsupported.</td></tr>
+      <tr><td>Overflow guard</td><td><code>overflow-wrap: break-word</code> only as a guard, never as a style.</td></tr>
+      <tr><td>Slugs</td><td>URL slugs keep hyphens because they are not displayed text.</td></tr>
+      <tr><td>Disease photos</td><td>Natural colour in a neutral frame, never tinted.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Spacing</h2>
+  <div class="d9-scale">
+    <div class="d9-scale-cols">
+      <div class="d9-scale-col">
+        <span class="px">4</span><span class="track"><span class="bar" style="width:1mm"></span></span><span class="use">Icon and label gaps</span>
+        <span class="px">8</span><span class="track"><span class="bar" style="width:2.1mm"></span></span><span class="use">Tight groups</span>
+        <span class="px">12</span><span class="track"><span class="bar" style="width:3.2mm"></span></span><span class="use">Inside cards</span>
+        <span class="px">16</span><span class="track"><span class="bar" style="width:4.2mm"></span></span><span class="use">Minimum screen gutter</span>
+      </div>
+      <div class="d9-scale-col">
+        <span class="px">24</span><span class="track"><span class="bar" style="width:6.4mm"></span></span><span class="use">Between cards</span>
+        <span class="px">32</span><span class="track"><span class="bar" style="width:8.5mm"></span></span><span class="use">Between blocks</span>
+        <span class="px">48</span><span class="track"><span class="bar" style="width:12.7mm"></span></span><span class="use">Maximum gutter, large panels</span>
+      </div>
+    </div>
+    <p class="note">Bars are drawn at 1 px = 0.265 mm. The screen gutter follows <code class="keep-together">clamp(16px, 3vw, 48px)</code>.</p>
+  </div>
+</section>
+
+<!-- ================= Page 8: cursor and component notes ================= -->
+<section class="sheet portrait d9-sheet">
+  <h2>Custom cursor</h2>
+  <p>A green <code>#40c057</code> outline arrow with a thin white halo, visible on dark 3D scenes and green sections. The hotspot is the arrow tip, about x=10, y=5 at 32 px. Built files: <code>app/public/cursors/</code>.</p>
+  <div class="card-grid cols-2" style="margin-bottom:var(--gap-sm)">
+    <div class="d9-cursor dark"><img src="../assets/design/leaf-cursor.svg" alt="Default cursor on dark"><img src="../assets/design/leaf-cursor-pointer.svg" alt="Pointer cursor on dark"><img src="../assets/design/leaf-cursor-busy.svg" alt="Busy cursor on dark"></div>
+    <div class="d9-cursor light"><img src="../assets/design/leaf-cursor.svg" alt="Default cursor on light"><img src="../assets/design/leaf-cursor-pointer.svg" alt="Pointer cursor on light"><img src="../assets/design/leaf-cursor-busy.svg" alt="Busy cursor on light"></div>
+  </div>
+  <table class="table">
+    <colgroup><col style="width:20%"><col style="width:30%"><col></colgroup>
+    <thead><tr><th>Variant</th><th>File</th><th>Used on</th></tr></thead>
+    <tbody>
+      <tr><td>Default</td><td><code>leaf-cursor.svg</code></td><td>The page, 32 by 32 viewBox.</td></tr>
+      <tr><td>Pointer</td><td><code>leaf-cursor-pointer.svg</code></td><td>Links, buttons, <code>[role=button]</code>, summary, label for, select. Slightly filled.</td></tr>
+      <tr><td>Busy</td><td><code>leaf-cursor-busy.svg</code></td><td>Loading and analyzing.</td></tr>
+      <tr><td>Native kept</td><td>none</td><td>Text fields keep the I-beam, disabled elements keep not allowed, resize and drag handles keep their own. Touch devices get nothing custom.</td></tr>
+      <tr><td>Scope</td><td colspan="2">Applied only under <code class="keep-together">(hover: hover) and (pointer: fine)</code>, always with a native fallback after the URL.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Component notes</h2>
+  <table class="table">
+    <colgroup><col style="width:24%"><col></colgroup>
+    <thead><tr><th>Piece</th><th>Style</th></tr></thead>
+    <tbody>
+      <tr><td>Cards</td><td>Thin vein accent, 12 px radius; tilt and glare on hover (see <a href="#s09-ui-behavior">section 9, UI behavior</a>).</td></tr>
+      <tr><td>Severity badge</td><td>Label plus icon plus colour, five levels (see the severity scale).</td></tr>
+      <tr><td>Panel navigation</td><td>Arrows and labelled dots with a visible swipe or arrow keys hint on first view.</td></tr>
+      <tr><td>Header and nav</td><td>Mark, links, sound and theme toggles, user menu; bottom nav on mobile.</td></tr>
+      <tr><td>Icons</td><td>One set (Lucide) at 1.5 px stroke with rounded caps, plus custom leaf, scan and disease icons. Key actions always keep a label.</td></tr>
+    </tbody>
+  </table>
+
+
+  <h2 class="d9-gap">Shape and surface</h2>
+  <div class="d9-shapes">
+    <div class="d9-shape"><div class="box" style="border-radius:3.2mm">12 px</div><strong>Cards</strong><span>Radius 12 px, hairline 1 px border</span></div>
+    <div class="d9-shape"><div class="box" style="border-radius:99mm">999 px</div><strong>Pills and buttons</strong><span>Fully rounded</span></div>
+    <div class="d9-shape"><div class="box" style="border-radius:6.5mm">20 to 28 px</div><strong>Large panels</strong><span>Glass over 3D, solid elsewhere</span></div>
+    <div class="d9-shape"><div class="box" style="border-radius:3.2mm;box-shadow:0 0 0 0.7mm #7be495">Focus</div><strong>Glow</strong><span>Soft green glow instead of heavy shadows</span></div>
+  </div>
+</section>
+
+<!-- ================= Page 9: components and shape ================= -->
+<section class="sheet portrait d9-sheet">
+  <h2>Components</h2>
+  <p>Static renderings of the built component styles on the dark surface. Each is documented with live examples in the <code>/brand</code> guide.</p>
+  <div class="d9-ui">
+    <div class="d9-panel">
+      <h3>Buttons</h3>
+      <div class="d9-row"><span class="d9-btn primary">Scan a leaf</span><span class="d9-btn secondary">Secondary</span></div>
+      <div class="d9-row"><span class="d9-btn ghost">Ghost</span><span class="d9-btn disabled">Disabled</span></div>
+      <div class="d9-row"><span class="d9-focus">Focus ring</span></div>
+      <p class="cap">Primary is brand fill with dark text and a glow on focus. Secondary is a glass outline. Pills at 999 px, 44 px touch targets.</p>
+    </div>
+    <div class="d9-panel">
+      <h3>Forms</h3>
+      <div class="d9-field"><span class="lab">Email</span><span class="val">ada@example</span></div>
+      <p class="d9-err">Enter an email like name@example.com.</p>
+      <div class="d9-steps"><div class="d9-step done"><span class="seg"></span>Weak</div><div class="d9-step done"><span class="seg"></span>Fair</div><div class="d9-step now"><span class="seg"></span>Good</div><div class="d9-step"><span class="seg"></span>Strong</div></div>
+      <p class="cap">Floating labels, inline validation, show and hide password, strength hint. Input is kept on errors.</p>
+    </div>
+    <div class="d9-panel">
+      <h3>Feedback</h3>
+      <div class="d9-toast"><strong>Your scan is processing</strong><span>You can leave this page.</span></div>
+      <div class="d9-toast err"><strong>That photo did not upload</strong><span>Check your connection and try again.</span></div>
+      <p class="cap">Toasts and dialogs on glass. Every error says what happened and what to do next.</p>
+    </div>
+    <div class="d9-panel">
+      <h3>Loading and empty</h3>
+      <div class="d9-skel" style="width:80%"></div><div class="d9-skel" style="width:55%"></div>
+      <div class="d9-row"><span class="d9-badge" style="--c:#40c057"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19C5 10 10 5 20 4c0 10-5 15-15 15z"/><path d="M5 19l8-8"/></svg>No scans yet</span><span class="d9-btn primary">Scan a leaf</span></div>
+      <p class="cap">Skeletons for slow loads. Empty states are calm and offer one next action.</p>
+    </div>
+    <div class="d9-panel">
+      <h3>Progress</h3>
+      <div class="d9-bar"><div class="fill"></div></div>
+      <div class="d9-steps"><div class="d9-step done"><span class="seg"></span>Upload</div><div class="d9-step done"><span class="seg"></span>Check</div><div class="d9-step now"><span class="seg"></span>Analyze</div><div class="d9-step"><span class="seg"></span>Save</div></div>
+      <p class="cap">Stepper and bar with <code>role="progressbar"</code> and a glow head. Reused for slow actions.</p>
+    </div>
+    <div class="d9-panel">
+      <h3>Stat tiles</h3>
+      <div class="d9-row"><div class="d9-stat"><span class="n">42</span><span class="l">Total scans</span></div><div class="d9-stat"><span class="n">9</span><span class="l">Last 30 days</span></div></div>
+      <p class="cap">Poppins 600 with tabular figures. The dashboard also shows the split of healthy, diseased and unknown.</p>
+    </div>
+  </div>
+</section>

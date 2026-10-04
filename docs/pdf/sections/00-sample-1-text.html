@@ -1,0 +1,58 @@
+<!-- Sample section: proves the pipeline and shows every component. Skipped automatically once real sections exist. -->
+<section class="sheet portrait">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">How to read this document</h1>
+    <p class="lede">Each section starts on a new page. Wide diagrams sit on landscape pages. Everything here is built from the same few components, so the layout stays calm and nothing overlaps.</p>
+  </header>
+
+  <h2>Arrow and status legend</h2>
+  <div class="legend">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>Request (solid)</span>
+    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response or async (dashed)</span>
+    <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional (dotted)</span>
+  </div>
+  <p>Arrows differ by line style and carry a label, so the meaning survives a grayscale printout.</p>
+
+  <h2>Confirmed decisions</h2>
+  <div class="card-grid cols-2">
+    <div class="card"><span class="tag">Auth</span><h3>Cookies only</h3><p>The browser talks to Next.js. Tokens live in httpOnly cookies and never reach page scripts.</p></div>
+    <div class="card"><span class="tag">Storage</span><h3>Two buckets</h3><p>A private bucket for scans with short presigned links, and a public bucket for the handbook.</p></div>
+    <div class="card accent"><span class="tag">ML</span><h3>One function</h3><p>predict(image) returns plant and disease slugs. Until it exists the API answers 503 ml_unavailable.</p></div>
+    <div class="card info"><span class="tag">Speed</span><h3>Lighthouse first</h3><ul><li>Performance, accessibility, best practices, SEO at 90 or more</li><li>LCP at most 2.5 s</li></ul></div>
+  </div>
+
+  <div class="callout note"><span class="callout-title">Built and planned</span><p>Wave 1 is built: scaffold, seed data, API core and account, web foundation, landing hero and brand. The rest is planned.</p></div>
+
+  <h2>Scan states</h2>
+  <table class="table">
+    <colgroup><col style="width:22%"><col style="width:30%"><col></colgroup>
+    <thead><tr><th>State</th><th>Stage</th><th>What the user sees</th></tr></thead>
+    <tbody>
+      <tr><td>uploading</td><td>client</td><td>A real percentage and a cancel button.</td></tr>
+      <tr><td>processing</td><td>validating</td><td>Checking image.</td></tr>
+      <tr><td>processing</td><td>analyzing</td><td>Scanning beam, eased bar, elapsed time.</td></tr>
+      <tr><td>processing</td><td>saving</td><td>Saving result.</td></tr>
+      <tr><td>completed</td><td>disease, healthy or unknown</td><td>The result panels.</td></tr>
+      <tr><td>failed</td><td><code>prediction_failed</code></td><td>Plain reason and a Retry button that reuses the stored image.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Palette</h2>
+  <div class="swatch-grid">
+    <div class="swatch" style="--c:#06120b"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Forest</strong><span>#06120b</span></div></div>
+    <div class="swatch" style="--c:#17542d"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Deep green</strong><span>#17542d</span></div></div>
+    <div class="swatch" style="--c:#23813a"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Brand</strong><span>#23813a</span></div></div>
+    <div class="swatch" style="--c:#ffb300"><div class="swatch-chip"></div><div class="swatch-meta"><strong>Amber</strong><span>#ffb300</span></div></div>
+  </div>
+
+  <h2>Storyboard: splash screen</h2>
+  <p>A PDF cannot animate, so motion is shown as numbered frames side by side.</p>
+  <div class="storyboard" style="--frames:4">
+    <figure class="frame"><div class="frame-visual">Letters fade in</div><figcaption>0 to 300 ms. The wordmark appears.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual">Leaf draws in</div><figcaption>300 to 600 ms. The mark is drawn.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual">Hold</div><figcaption>Minimum 0.9 s so it never flickers.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual">Overlay lifts</div><figcaption>The page underneath is already rendered.</figcaption></figure>
+  </div>
+</section>

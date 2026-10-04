@@ -1,0 +1,87 @@
+<section class="sheet portrait">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">ML integration</h1>
+    <p class="lede">For whoever writes the leaf classifier. The API ships the contract, a stub and a fake. The real <code>predict()</code> is yours, and it is the only piece the app still needs.</p>
+  </header>
+
+  <h2>The contract</h2>
+  <p>Subclass <code>MLInferenceService</code> (<code>api/app/services/ml/base.py</code>) and implement one method.</p>
+  <div class="codeblock"><code>from app.services.ml.base import MLInferenceService
+
+
+class MyModel(MLInferenceService):
+    def predict(self, image: bytes) -&gt; dict[str, str]:
+        ...
+        return {"plant": "tomato", "disease": "early-blight", "confidence": "0.93"}</code></div>
+  <table class="table keep-code">
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>Part</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr><td><code>image</code></td><td>A sanitized JPEG made by the API: long edge at most 2048 px, EXIF and GPS removed.</td></tr>
+      <tr><td>Return value</td><td>A <code>dict[str, str]</code> with string keys and string values only.</td></tr>
+      <tr><td><code>plant</code></td><td>A plant slug from the table below, or <code>unknown</code>.</td></tr>
+      <tr><td><code>disease</code></td><td>A disease slug of that plant, or <code>healthy</code>, or <code>unknown</code>.</td></tr>
+      <tr><td><code>confidence</code></td><td>Optional. A decimal string from <code>"0"</code> to <code>"1"</code>, such as <code>"0.93"</code>.</td></tr>
+      <tr><td>Threads and time</td><td>The call blocks. The API runs it in a worker thread with a timeout, so it must be safe to call from several threads. Load the model once in <code>__init__</code>.</td></tr>
+      <tr><td>Failure</td><td>Raise any exception. The scan is stored as failed (<code>prediction_failed</code>) and the message is never shown. <code>NotImplementedError</code> maps to <code>ml_unavailable</code> (503).</td></tr>
+    </tbody>
+  </table>
+  <p>Wrong or unknown slugs never crash a scan: the API resolves them to an <code>unknown</code> verdict. They do hurt accuracy, so stay inside the table.</p>
+
+</section>
+
+<section class="sheet portrait">
+  <h2>Valid slugs</h2>
+  <p>The source of truth is <code>api/app/seeds/labels.json</code>. Load that file instead of hard coding the list. Blueberry and Soybean have no diseases, so for them return <code>healthy</code> or <code>unknown</code>. Raspberry is not in the catalog: answer <code>unknown</code>.</p>
+  <table class="table keep-code">
+    <colgroup><col style="width:20%"><col style="width:80%"></colgroup>
+    <thead><tr><th>Plant slug</th><th>Disease slugs</th></tr></thead>
+    <tbody>
+      <tr><td><code>apple</code></td><td><code>apple-scab</code> <code>black-rot</code> <code>cedar-apple-rust</code></td></tr>
+      <tr><td><code>bell-pepper</code></td><td><code>bacterial-spot</code> <code>phytophthora-blight</code></td></tr>
+      <tr><td><code>blueberry</code></td><td>none</td></tr>
+      <tr><td><code>cherry</code></td><td><code>powdery-mildew</code></td></tr>
+      <tr><td><code>corn</code></td><td><code>common-rust</code> <code>gray-leaf-spot</code> <code>northern-corn-leaf-blight</code></td></tr>
+      <tr><td><code>grape</code></td><td><code>black-rot</code> <code>esca</code> <code>leaf-blight</code></td></tr>
+      <tr><td><code>orange</code></td><td><code>huanglongbing</code></td></tr>
+      <tr><td><code>peach</code></td><td><code>bacterial-spot</code></td></tr>
+      <tr><td><code>potato</code></td><td><code>early-blight</code> <code>late-blight</code></td></tr>
+      <tr><td><code>soybean</code></td><td>none</td></tr>
+      <tr><td><code>squash</code></td><td><code>powdery-mildew</code></td></tr>
+      <tr><td><code>strawberry</code></td><td><code>leaf-scorch</code></td></tr>
+      <tr><td><code>tomato</code></td><td><code>bacterial-spot</code> <code>early-blight</code> <code>late-blight</code> <code>leaf-mold</code> <code>septoria-leaf-spot</code> <code>spider-mites</code> <code>target-spot</code> <code>tomato-mosaic-virus</code> <code>tomato-yellow-leaf-curl-virus</code></td></tr>
+    </tbody>
+  </table>
+  <p class="muted small">Names that differ from the original DAHON prompt: Corn (maize) is <code>corn</code>, Cherry (including sour) is <code>cherry</code>, Bell Pepper is <code>bell-pepper</code>, Haunglongbing (Citrus greening) is <code>orange</code> and <code>huanglongbing</code>, Esca (Black Measles) is <code>grape</code> and <code>esca</code>. Common alternative spellings are tolerated through <code>api/app/seeds/slug_overrides.yaml</code>, but return the canonical slug.</p>
+</section>
+
+<section class="sheet portrait">
+  <h2>Plugging it in</h2>
+  <p>Install your package into the API environment and set one variable. The factory (<code>api/app/services/ml/factory.py</code>) imports the module, requires the class to subclass <code>MLInferenceService</code>, and calls it with no arguments, so read weight paths from environment variables inside <code>__init__</code>.</p>
+  <div class="codeblock"><code>ML_SERVICE=my_package.my_module:MyModel</code></div>
+  <table class="table keep-code">
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th><code>ML_SERVICE</code> value</th><th>Behavior</th></tr></thead>
+    <tbody>
+      <tr><td><code>stub</code> (default)</td><td>Raises <code>NotImplementedError</code> on every scan, so the API answers 503 <code>ml_unavailable</code>.</td></tr>
+      <tr><td><code>dev-fake</code></td><td>Dev only. Picks a label from the image hash so the UI can be exercised. Refuses to start when <code>ENV=prod</code>.</td></tr>
+      <tr><td><code>package.module:Class</code></td><td>Your model. A bad spec fails fast at startup with <code>MLConfigurationError</code>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Testing your class</h2>
+  <p>Check it against the contract without running the API.</p>
+  <div class="codeblock"><code>labels = json.loads(Path("api/app/seeds/labels.json").read_text())
+result = MyModel().predict(Path("some_leaf.jpg").read_bytes())
+
+assert set(result) &lt;= {"plant", "disease", "confidence"}
+assert all(isinstance(v, str) for v in result.values())
+assert result["plant"] in labels["plants"] or result["plant"] == "unknown"
+allowed = {*labels["plants"].get(result["plant"], []), "healthy", "unknown"}
+assert result["disease"] in allowed</code></div>
+  <p>To exercise the whole API flow with no model, use <code>FakeMLService</code> in <code>api/tests/unit/test_ml_service.py</code>. It returns tomato, healthy, 0.93 for any image. Run <code>uv run pytest</code> in <code>api/</code> to confirm nothing else broke.</p>
+
+  <h2>Where feedback goes</h2>
+  <div class="callout note"><span class="callout-title">Corrections from members</span><p>Members can mark a result as wrong and say what it really was. Export those corrections as CSV with <code>python -m app.tools.export_feedback</code> (scan id, predicted and corrected labels, image key) to see where the model is weak. Scan images are not used for training unless the team decides so and updates the Privacy Policy.</p></div>
+</section>

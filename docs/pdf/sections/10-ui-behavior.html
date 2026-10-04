@@ -1,0 +1,551 @@
+<!-- Section 10: UI behavior. Animation is shown as numbered storyboard frames side by side (never layered).
+     Logos and screenshots reuse copies in assets/design/. The style block adds classes prefixed d10- for the mini screens.
+     Everything is scoped to .d10-sec (the sheets of this section) so other sections are untouched. -->
+<style>
+  /* Mock screens use light text on dark: body text #eaf5ed and muted text #cfe3d5 on #06120b (both above 12:1). */
+  .d10-sec { --m-text: #eaf5ed; --m-muted: #d6e8dc; --m-line: #5c9475; --m-off: #4d7d62; --m-hot: #7be495; }
+  .d10-sec code { line-height: 1; vertical-align: baseline; }
+  .d10-sec .small code, .d10-sec figcaption code { font-size: 1em; }
+  .d10-sec .callout p { text-wrap: wrap; }
+  .d10-sec .callout code { font-size: 0.92em; }
+  .d10-sec .storyboard { align-items: stretch; }
+  .d10-sec code { background: #dcebd8; }
+  .d10-sec .d10-bar code, .d10-sec .d10-screen code { background: none; }
+  .d10-sec .frame figcaption { flex: 1 1 auto; min-height: calc(var(--cap-lines, 3) * 1.4em); }
+  .d10-sec .keep-code code { white-space: nowrap; }
+
+  /* One measure: lead paragraphs run as wide as the tables and figures below them, and never end on a lone word. */
+  .d10-sec > p { max-width: none; text-wrap: pretty; }
+  .d10-sec p code { white-space: normal; overflow-wrap: anywhere; }
+  .d10-sec p code.keep-together { white-space: nowrap; }
+  .d10-sec .table td, .d10-sec .table th { text-wrap: pretty; }
+  /* Roomier tables on pages that would otherwise end a third empty. */
+  .d10-sec .table.roomy { font-size: 10pt; }
+  .d10-sec .table.roomy th { font-size: 9.5pt; padding: 2.6mm 3mm; }
+  .d10-sec .table.roomy td { padding: 3.3mm 3mm; }
+  .d10-sec .table.loose td { padding: 4.4mm 3mm; }
+  .d10-sec .table.loose th { padding: 3.2mm 3mm; }
+  /* Frame grids keep a hair of room inside the margin so the outer borders are never cut by the page edge. */
+  .d10-sec .storyboard, .d10-sec .d10-sizes { box-sizing: border-box; padding: 0 0.5mm; }
+  .d10-sec .storyboard > .frame { min-width: 0; box-sizing: border-box; }
+  .d10-sec .frame figcaption { text-wrap: balance; }
+  .d10-sec .ln.dotted::before { border-top-color: var(--brand); }
+  .d10-sec .ln.dotted::after { border-left-color: var(--brand); }
+
+  .d10-screen { display: flex; flex-direction: column; gap: 1.6mm; width: 100%; min-width: 0; padding: 2.5mm; background: #06120b; border: 0.3mm solid var(--m-line); border-radius: 2mm; color: var(--m-text); text-align: left; font-size: 9pt; line-height: 1.3; }
+  .d10-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5mm 2mm; min-width: 0; font-family: var(--font-head); font-weight: 500; font-size: 9.5pt; color: var(--m-muted); }
+  .d10-bar code { background: none; padding: 0; font-size: 9.5pt; color: var(--m-hot); }
+  .d10-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5mm; }
+  .d10-pn { display: flex; align-items: center; justify-content: center; min-height: 9mm; padding: 1mm; border-radius: 1.5mm; border: 0.3mm solid var(--m-line); background: #0b1d12; font-family: var(--font-head); font-weight: 500; font-size: 9.5pt; text-align: center; color: var(--m-muted); }
+  .d10-pn.on { border-color: #40c057; background: #10281a; color: var(--m-text); }
+  .d10-pn.next { border-style: dashed; border-color: var(--m-hot); color: var(--m-text); }
+  .d10-pn.fade { opacity: 1; color: #c3dacb; border-color: var(--m-line); }
+  .d10-dots { display: flex; align-items: center; justify-content: center; gap: 1.2mm; min-height: 3mm; }
+  .d10-dot { width: 1.8mm; height: 1.8mm; border-radius: 50%; background: #3d6b50; flex: none; }
+  .d10-dot.on { width: 5mm; border-radius: 99mm; background: #40c057; }
+  .d10-hint { margin: 0; max-width: none; font-size: 9.5pt; line-height: 1.3; color: var(--m-muted); text-align: center; }
+  .d10-arrows { display: flex; align-items: center; justify-content: space-between; gap: 2mm; }
+  .d10-arrow { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 5.5mm; height: 5.5mm; border-radius: 50%; border: 0.3mm solid #40c057; font-size: 9pt; line-height: 1; color: var(--m-text); }
+  .d10-arrow.hot { background: #40c057; color: #06120b; }
+
+  .d10-card { display: flex; flex-direction: column; gap: 1mm; padding: 2.5mm; border-radius: 2mm; border: 0.4mm solid var(--m-line); background: #10281a; font-family: var(--font-head); font-weight: 600; font-size: 10pt; line-height: 1.2; }
+  .d10-card .sub { font-family: var(--font-body); font-weight: 400; font-size: 9pt; color: var(--m-muted); }
+  .d10-card .img { height: 9mm; border-radius: 1.2mm; background: linear-gradient(135deg, #1f6b3a, #40c057); }
+  .d10-card .hintrow { font-family: var(--font-head); font-weight: 600; font-size: 9pt; color: var(--m-hot); min-height: 4mm; }
+  .d10-card.hover { border-color: var(--m-hot); background: #153521; box-shadow: 0 0 0 0.5mm rgba(123, 228, 149, 0.45); transform: perspective(160mm) rotateY(7deg) rotateX(3deg); }
+  .d10-card.press { border-color: var(--m-hot); background: #153521; transform: scale(0.96); }
+  .d10-cur { display: flex; align-items: center; gap: 2mm; margin-top: 2.5mm; padding: 0 1mm; font-size: 9pt; color: var(--m-text); }
+  .d10-cur img { display: block; width: 6.5mm; height: 6.5mm; flex: none; }
+  .d10-pill { display: inline-flex; align-items: center; justify-content: center; align-self: flex-start; min-height: 6.5mm; padding: 0 3mm; border-radius: 99mm; background: #40c057; color: #06120b; font-family: var(--font-head); font-weight: 600; font-size: 9pt; line-height: 1; white-space: nowrap; }
+  .d10-pill.alt { background: #10281a; color: var(--m-text); border: 0.3mm solid #40c057; }
+  .d10-ring { width: 6.5mm; height: 6.5mm; border-radius: 50%; border: 0.4mm solid var(--m-hot); flex: none; }
+
+  .d10-splash { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2mm; width: 100%; min-height: 32mm; padding: 2mm; border-radius: 2mm; background: radial-gradient(circle at 50% 45%, #153521 0%, #06120b 80%); color: var(--m-text); text-align: center; }
+  .d10-splash.empty { background: #06120b; border: 0.4mm dashed var(--m-line); }
+  .d10-splash img.m { display: block; height: 10mm; width: auto; }
+  .d10-splash img.ghost { opacity: 0.6; }
+  .d10-word { display: flex; gap: 1mm; font-family: var(--font-display); font-weight: 300; font-size: 12pt; line-height: 1; letter-spacing: 0; text-transform: uppercase; }
+  .d10-word span:nth-child(1) { opacity: 1; } .d10-word span:nth-child(2) { opacity: 0.9; } .d10-word span:nth-child(3) { opacity: 0.8; }
+  .d10-word span:nth-child(4) { opacity: 0.7; } .d10-word span:nth-child(5) { opacity: 0.6; }
+  .d10-word.solid span { opacity: 1; }
+  .d10-lift { display: flex; flex-direction: column; gap: 1.5mm; width: 100%; min-height: 32mm; }
+  .d10-lift .over, .d10-lift .page { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.8mm; padding: 1mm; border-radius: 2mm; color: var(--m-text); text-align: center; }
+  .d10-lift .over { background: #1d4a2f; border: 0.5mm dashed var(--m-hot); }
+  .d10-lift .page { background: #06120b; border: 0.4mm solid #40c057; }
+  .d10-lift .name { font-family: var(--font-display); font-weight: 300; font-size: 10pt; letter-spacing: 0.15em; text-transform: uppercase; }
+  .d10-lift .tag { font-family: var(--font-head); font-weight: 500; font-size: 9pt; line-height: 1.2; color: var(--m-text); }
+  .d10-lift .up { display: inline-block; width: 0; height: 0; border-left: 1.6mm solid transparent; border-right: 1.6mm solid transparent; border-bottom: 2.4mm solid var(--m-hot); }
+
+  .d10-panels-board .frame-visual { height: 41mm; align-items: stretch; }
+  .d10-panels-board .d10-screen { height: 100%; justify-content: space-between; }
+  .d10-panels-board .d10-arrows { min-height: 6mm; }
+  .d10-card-board .frame-visual { height: 37mm; align-items: stretch; }
+  .d10-card-board .d10-screen { height: 100%; flex-direction: row; align-items: center; justify-content: space-between; gap: 4mm; padding: 3mm; }
+  .d10-card-board .d10-card { flex: none; width: 40mm; }
+  .d10-card-board .d10-card .img { height: 6mm; }
+  .d10-card-board .d10-cur { flex: 1 1 0; min-width: 0; margin: 0; padding: 0; flex-direction: column; align-items: flex-start; gap: 1.5mm; font-size: 9.5pt; line-height: 1.25; }
+  .d10-splash-board .frame-visual { height: 47mm; align-items: stretch; }
+  .d10-splash-board .d10-splash, .d10-splash-board .d10-lift { height: 100%; min-height: 0; }
+  .d10-lift { padding: 0; gap: 2mm; }
+  .d10-lift .over, .d10-lift .page { padding: 1.2mm 2mm; gap: 0.8mm; }
+  .d10-lift .up { border-bottom-width: 1.8mm; }
+  .d10-lift .name { font-size: 9pt; }
+  .d10-lift .tag { font-size: 9.5pt; line-height: 1.25; }
+
+  .d10-prog { height: 2.6mm; background: var(--m-off); border-radius: 99mm; }
+  .d10-prog .f { height: 100%; background: #40c057; border-radius: 99mm; }
+  .d10-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2mm 3mm; }
+  .d10-st { display: flex; flex-direction: column; gap: 1mm; min-width: 0; font-size: 9pt; line-height: 1.2; color: var(--m-muted); }
+  .d10-st .seg { height: 1.4mm; border-radius: 99mm; background: var(--m-off); }
+  .d10-st.done .seg { background: #40c057; }
+  .d10-st.now { color: var(--m-text); font-weight: 600; }
+  .d10-st.now .seg { background: var(--m-hot); }
+  .d10-st.bad .seg { background: #ff8f8f; }
+  .d10-st.bad { color: #ffb0b0; font-weight: 600; }
+  .d10-st.bad::after { content: "Failed"; font-size: 9pt; line-height: 1.2; text-transform: uppercase; letter-spacing: 0.08em; }
+  .d10-st.bad .seg { background: repeating-linear-gradient(45deg, #ff8f8f 0 1mm, #3a1a17 1mm 1.8mm); }
+  .d10-leaf { display: flex; align-items: center; justify-content: center; height: 16mm; border-radius: 2mm; background: linear-gradient(180deg, #0b1d12 0%, #0b1d12 38%, var(--m-hot) 40%, var(--m-hot) 43%, #0b1d12 45%, #0b1d12 100%); }
+  .d10-leaf img { display: block; height: 11mm; width: auto; }
+  .d10-meta { display: flex; justify-content: space-between; gap: 2mm; font-size: 9pt; line-height: 1.2; color: var(--m-muted); }
+  .d10-note { margin: 0; max-width: none; font-size: 9pt; line-height: 1.3; color: var(--m-text); }
+  .d10-warn { padding: 2mm 2.5mm; border-radius: 1.5mm; border: 0.3mm solid #ff8f8f; background: #3a1a17; font-size: 9pt; line-height: 1.3; color: #ffe3e0; }
+  .d10-prog-board .d10-screen { min-height: 54mm; justify-content: space-between; }
+
+  .d10-sizes { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(0, 1.3fr); gap: var(--gap); align-items: stretch; margin: 0 0 var(--gap); break-inside: avoid; }
+  .d10-sizes .frame { margin: 0; }
+  .d10-sizes .frame-visual { flex: 1 1 auto; align-items: stretch; }
+  .d10-sec .d10-sizes figcaption { flex: none; display: block; min-height: calc(3 * 1.4em); }
+  .d10-sizes figcaption::before { display: none; }
+  .d10-sizes figcaption strong { font-family: var(--font-head); font-weight: 600; }
+  .d10-wire { display: flex; flex-direction: column; gap: 2mm; width: 100%; min-width: 0; padding: 2.5mm; background: #06120b; border: 0.5mm solid var(--m-line); border-radius: 2mm; color: var(--m-text); font-size: 9pt; line-height: 1.2; }
+  .d10-wire .row { display: flex; gap: 2mm; min-width: 0; }
+  .d10-wire .row.fill { flex: 1 1 auto; }
+  .d10-wire .blk { display: flex; align-items: center; justify-content: center; min-width: 0; padding: 1.5mm 2mm; border-radius: 1.5mm; border: 0.4mm solid var(--m-line); background: #10281a; font-family: var(--font-head); font-weight: 500; font-size: 10pt; text-align: center; color: var(--m-text); }
+  .d10-wire .blk.brand { border-color: #40c057; }
+  .d10-wire .grow { flex: 1 1 0; }
+  .d10-wire .tall { flex: 1 1 auto; min-height: 46mm; }
+  .d10-wire .low { min-height: 9mm; }
+</style>
+
+<!-- ================= Page 1: sideways panels (storyboard) ================= -->
+<section class="sheet portrait d10-sec">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">UI behavior</h1>
+    <p class="lede">How Leafy moves and responds: panels, cursor, sound, splash, progress and layout. A PDF cannot animate, so each motion is shown as numbered frames, read left to right and top to bottom.</p>
+  </header>
+
+  <h2>Sideways panels</h2>
+  <p>Every page is a single screen stage. Long content is split into horizontal panels (<code>SlidePanels</code>) instead of a long vertical scroll. The base is CSS scroll snap, with framer motion or GSAP on top, so it still works if scripts are late.</p>
+
+  <div class="storyboard d10-panels-board" style="--frames:2; --cap-lines:3">
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-bar"><span>Disease detail</span><code>#overview</code></div>
+      <div class="d10-strip"><div class="d10-pn on">Overview</div><div class="d10-pn">Causes</div><div class="d10-pn">Symptoms</div></div>
+      <div class="d10-dots"><span class="d10-dot on"></span><span class="d10-dot"></span><span class="d10-dot"></span><span class="d10-dot"></span><span class="d10-dot"></span><span class="d10-dot"></span></div>
+      <p class="d10-hint">Swipe or use arrows (shown on first view)</p>
+    </div></div><figcaption>Rest. One panel fills the stage, labelled dots show where you are, and a hint explains how to move.</figcaption></figure>
+
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-bar"><span>Disease detail</span><code>#overview</code></div>
+      <div class="d10-strip"><div class="d10-pn on">Overview</div><div class="d10-pn next">Causes</div><div class="d10-pn">Symptoms</div></div>
+      <div class="d10-dots"><span class="d10-dot on"></span><span class="d10-dot"></span><span class="d10-dot"></span><span class="d10-dot"></span><span class="d10-dot"></span><span class="d10-dot"></span></div>
+      <div class="d10-arrows"><span class="d10-arrow">&lt;</span><span class="d10-hint">Dot hover previews the title</span><span class="d10-arrow hot">&gt;</span></div>
+    </div></div><figcaption>Intent. Pointer over a dot or the arrow: the dot grows and previews the target panel title. Drag gives a rubber band pull.</figcaption></figure>
+
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-bar"><span>Disease detail</span><code>#causes</code></div>
+      <div class="d10-strip"><div class="d10-pn">Overview</div><div class="d10-pn on">Causes</div><div class="d10-pn">Symptoms</div></div>
+      <div class="d10-dots"><span class="d10-dot"></span><span class="d10-dot on"></span><span class="d10-dot"></span><span class="d10-dot"></span><span class="d10-dot"></span><span class="d10-dot"></span></div>
+      <p class="d10-hint">Panel sound plays. aria-live says: Causes, 2 of 6</p>
+    </div></div><figcaption>Snap. The panel settles in 400 ms, the URL hash updates and screen readers hear the change.</figcaption></figure>
+
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-bar"><span>Reduced motion</span><code>#causes</code></div>
+      <div class="d10-strip"><div class="d10-pn fade">Overview</div><div class="d10-pn on">Causes</div><div class="d10-pn fade">Symptoms</div></div>
+      <div class="d10-dots"><span class="d10-dot"></span><span class="d10-dot on"></span><span class="d10-dot"></span><span class="d10-dot"></span><span class="d10-dot"></span><span class="d10-dot"></span></div>
+      <p class="d10-hint">Cross fade instead of a slide</p>
+    </div></div><figcaption>Same step with reduced motion on. The sideways slide becomes a plain cross fade.</figcaption></figure>
+  </div>
+
+  <h2>Panel content budget</h2>
+  <table class="table">
+    <colgroup><col style="width:24%"><col></colgroup>
+    <thead><tr><th>Rule</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td>Short panels</td><td>At most 3 short paragraphs or 6 list items.</td></tr>
+      <tr><td>Overflow</td><td>Extra content becomes another panel, never a scrollbar.</td></tr>
+      <tr><td>Page height test</td><td>Playwright: document at most 1.15 times the viewport.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= Page 2: landscape diagram, panel inputs ================= -->
+<section class="sheet landscape d10-sec">
+  <div class="head-row">
+    <h2>Panel navigation</h2>
+    <div class="legend strong">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Input or action</span>
+      <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Result or state written back</span>
+      <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/ui-panel-inputs.mjs caption="Every input reaches the same SlidePanels component, so mouse, touch, keyboard and links behave the same way." -->
+</section>
+
+<!-- ================= Page 3: where panels are used, cursor reactions, hover interactions ================= -->
+<section class="sheet portrait d10-sec">
+  <h2>Where sideways panels are used</h2>
+  <table class="table roomy">
+    <colgroup><col style="width:24%"><col></colgroup>
+    <thead><tr><th>Page</th><th>Panels</th></tr></thead>
+    <tbody>
+      <tr><td>Landing</td><td>Hero, How it works in 3 steps, Plants we cover, Why Leafy, FAQ, final call to action.</td></tr>
+      <tr><td>Disease detail</td><td>Overview, Causes, Symptoms, Treatment, Prevention, Images.</td></tr>
+      <tr><td>Handbook</td><td>Plants carousel, then the chosen plant's diseases as a second row.</td></tr>
+      <tr><td>Scan history</td><td>Card rail with paging and a grid toggle.</td></tr>
+      <tr><td>Scan result</td><td>Result, Causes, Symptoms, Treatment, Prevention, Reference photos.</td></tr>
+      <tr><td>Dashboard</td><td>Rails for stats, top diseases and recent scans.</td></tr>
+      <tr><td>Account</td><td>Profile, Password, Danger zone.</td></tr>
+      <tr><td>Forms (sign in, register, upload)</td><td>Stay on a single screen, no panels.</td></tr>
+      <tr><td>Legal pages</td><td>Exempt from the no scroll rule: sideways section panels with a contents list, or normal reading scroll when a section is long.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Cursor reactions</h2>
+  <p>Everything the cursor touches responds in one calm way. One passive pointer listener, throttled with <code>requestAnimationFrame</code>, writes CSS variables, so components never re-render per mouse move.</p>
+  <table class="table roomy">
+    <colgroup><col style="width:24%"><col style="width:38%"><col></colgroup>
+    <thead><tr><th>Variable</th><th>Scope</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>--mx</code>, <code>--my</code></td><td>Viewport, set once</td><td>Pointer position on the screen.</td></tr>
+      <tr><td><code>--px</code>, <code>--py</code></td><td>Per hovered element</td><td>Pointer position inside the element, 0 to 1.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout note"><span class="callout-title">Built</span><p>The pointer components live in <code>app/src/components/interaction/</code>: <code>PointerProvider</code>, <code>Magnetic</code>, <code>TiltCard</code>, <code>ParallaxImage</code>, <code>SpotlightSurface</code>, <code>VeinLink</code> and <code>Tooltip</code>. Unit tests cover the math: clamping, damping and reduced motion.</p></div>
+
+
+</section>
+
+<!-- ================= Page 3b: hover interactions and storyboard ================= -->
+<section class="sheet portrait d10-sec">
+  <h2>Hover interactions</h2>
+  <table class="table">
+    <colgroup><col style="width:19%"><col></colgroup>
+    <thead><tr><th>Element</th><th>What happens</th></tr></thead>
+    <tbody>
+      <tr><td>Buttons</td><td>Magnetic pull of a few pixels toward the cursor, a soft green glow that follows the pointer, a gentle press in, and a ripple or leaf burst on activation. The cursor switches to the pointer variant.</td></tr>
+      <tr><td>Cards</td><td>Plants, diseases, scans and stats. Tilt of at most about 6 degrees with a light glare that tracks the cursor, a lifted glow, a brighter border and an Open hint.</td></tr>
+      <tr><td>Images</td><td>Slow zoom to about 1.04 times and a parallax shift against the cursor, a spotlight vignette, and a caption slide in. Disease reference images get a magnifier lens on desktop.</td></tr>
+      <tr><td>Text</td><td>Links draw a vein shaped underline from the cursor side. Josefin headings get a soft glow and slight letter spacing ease by transform only, so one line titles stay one line. Body paragraphs stay still. Inline terms show a definition tooltip on hover and focus.</td></tr>
+      <tr><td>Surfaces</td><td>A soft radial spotlight follows the cursor over glass panels and the forest background. Vein line dividers light up near the pointer.</td></tr>
+      <tr><td>3D scenes</td><td>Hero, auth and handbook leaves lean and sway toward the cursor with a damped spring. The scan beam can be steered on the preview. The result leaf orbits on drag. Hotspots pulse and show labels.</td></tr>
+      <tr><td>Navigation</td><td>A sliding pill follows the hovered nav item. Panel dots grow and preview the target title. Panels rubber band on drag.</td></tr>
+    </tbody>
+  </table>
+
+
+  <h2>Safeguards for cursor effects</h2>
+  <table class="table">
+    <colgroup><col style="width:28%"><col></colgroup>
+    <thead><tr><th>Situation</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr><td>Mouse only</td><td>Effects run only under <code>(hover: hover) and (pointer: fine)</code>.</td></tr>
+      <tr><td>Touch</td><td>Equivalent press states (scale and glow on touch down), no tilt.</td></tr>
+      <tr><td>Keyboard</td><td>Focus gets the same visual states as hover: glow, lift, underline.</td></tr>
+      <tr><td>Reduced motion</td><td>Tilt, magnetic pull, parallax and sway are off. Only colour and glow changes remain.</td></tr>
+      <tr><td>Contrast preference</td><td><code>prefers-contrast</code> is honored: borders and text strengthen and decorative glow is dropped. No information is carried by color or 3D alone.</td></tr>
+      <tr><td>Layout</td><td>Effects never move text out of reading position or cause layout shift. Touch targets stay at least 44 px. No effect hides information.</td></tr>
+      <tr><td>Performance</td><td>Limited to visible elements (IntersectionObserver) and capped on pages with many cards, to protect INP and TBT.</td></tr>
+      <tr><td>Test runs</td><td>Lighthouse and <code>?nosplash</code> runs skip decorative effects so scores measure the real page.</td></tr>
+      <tr><td>Motion tokens</td><td>Easing <code>cubic-bezier(0.22, 1, 0.36, 1)</code>. Durations 200 ms micro, 400 ms panels, 700 to 900 ms scene transitions. Nothing bounces or flashes.</td></tr>
+    </tbody>
+  </table>
+
+</section>
+
+<section class="sheet portrait d10-sec">
+  <h2>Storyboard: a card under the cursor</h2>
+  <div class="storyboard d10-card-board" style="--frames:2; --cap-lines:3">
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-card"><div class="img"></div>Early blight<span class="sub">Tomato</span><span class="hintrow"></span></div>
+      <div class="d10-cur"><img src="../assets/design/leaf-cursor.svg" alt="">Default arrow</div>
+    </div></div><figcaption>Rest. The card is flat and the cursor is the default arrow.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-card"><div class="img"></div>Early blight<span class="sub">Tomato</span><span class="hintrow"></span></div>
+      <div class="d10-cur"><img src="../assets/design/leaf-cursor-pointer.svg" alt="">Pointer variant</div>
+    </div></div><figcaption>Enter. The cursor becomes the pointer variant and a hover sound may play.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-card hover"><div class="img"></div>Early blight<span class="sub">Tomato</span><span class="hintrow">Open</span></div>
+      <div class="d10-cur"><img src="../assets/design/leaf-cursor-pointer.svg" alt="">Tilt, glare, glow</div>
+    </div></div><figcaption>Hover. Tilt up to about 6 degrees, glare follows the pointer, border brightens, Open appears.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-card press"><div class="img"></div>Early blight<span class="sub">Tomato</span><span class="hintrow">Open</span></div>
+      <div class="d10-cur"><span class="d10-ring"></span>Press in, click sound</div>
+    </div></div><figcaption>Press. The card presses in, a click sound plays and the page opens.</figcaption></figure>
+  </div>
+
+  <p><strong>Layout never shifts.</strong> Only transform, opacity and filter change on hover, and Playwright checks that hover does not change layout or titles.</p>
+
+
+  <h2>Cursor variants by context</h2>
+  <table class="table">
+    <colgroup><col style="width:24%"><col style="width:56%"><col style="width:20%"></colgroup>
+    <thead><tr><th>Context</th><th>Cursor</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Page</td><td>Default arrow</td><td>Built</td></tr>
+      <tr><td>Links, buttons, interactive</td><td>Pointer variant</td><td>Built</td></tr>
+      <tr><td>Draggable panels and rails</td><td>Subtle drag variant</td><td>Planned, no file yet (optional)</td></tr>
+      <tr><td>Analyzing</td><td>Busy variant</td><td>Built</td></tr>
+      <tr><td>Text fields, disabled elements, resize handles</td><td>Native cursors stay: I-beam, <code>not-allowed</code>, resize</td><td>Rule</td></tr>
+      <tr><td>Touch devices</td><td>No custom cursor at all</td><td>Rule</td></tr>
+      <tr><td>Hero and auth scenes</td><td>Tiny leaves drift in the cursor's wake (instanced particles). No DOM cursor follower. Off for reduced motion and low power devices.</td><td>Optional</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= Page 5: SFX table, how a sound is chosen, rules (diagram follows) ================= -->
+<section class="sheet portrait d10-sec">
+  <h2>Sound effects map</h2>
+  <p>Soft, organic UI sounds synthesized with the Web Audio API: oscillators and filtered noise envelopes. There are no audio files and no extra requests. UI sounds stay under 250 ms and scan sounds under 600 ms. Lengths and minimum gaps below are the built values in <code>app/src/components/sfx/</code>.</p>
+  <table class="table roomy loose keep-code">
+    <colgroup><col style="width:12%"><col style="width:38%"><col style="width:23%"><col style="width:12%"><col style="width:15%"></colgroup>
+    <thead><tr><th>Sound</th><th>When it plays</th><th>Character</th><th class="num">Length</th><th class="num">Minimum gap</th></tr></thead>
+    <tbody>
+      <tr><td>Click</td><td>Buttons, links, toggles (default for <code>button</code>, <code>a[href]</code>, <code>[role=button]</code>)</td><td>Soft pluck</td><td class="num">100 ms</td><td class="num">60 ms</td></tr>
+      <tr><td>Hover</td><td>Primary buttons and <code>[data-sfx-hover]</code>, mouse only</td><td>Very quiet tick</td><td class="num">50 ms</td><td class="num">300 ms</td></tr>
+      <tr><td>Toggle</td><td>Switches such as theme and sound</td><td>Two note step</td><td class="num">160 ms</td><td class="num">80 ms</td></tr>
+      <tr><td>Panel</td><td>Sideways panel slide</td><td>Leaf rustle whoosh</td><td class="num">220 ms</td><td class="num">160 ms</td></tr>
+      <tr><td>Success</td><td>Sign in, saved, scan complete</td><td>Small rising chime</td><td class="num">240 ms</td><td class="num">400 ms</td></tr>
+      <tr><td>Error</td><td>Failed action</td><td>Low soft thud, not harsh</td><td class="num">220 ms</td><td class="num">400 ms</td></tr>
+      <tr><td>Delete</td><td>Delete and undo</td><td>Muted</td><td class="num">140 ms</td><td class="num">200 ms</td></tr>
+      <tr><td>Scan start</td><td>Upload and scan beam begin</td><td>Rising sweep</td><td class="num">500 ms</td><td class="num">800 ms</td></tr>
+      <tr><td>Scan done</td><td>Result arrives</td><td>Three note chime</td><td class="num">550 ms</td><td class="num">800 ms</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout note"><span class="callout-title">Brand fit</span><p>A small sound palette (pitch family, envelopes, volume levels) is documented in the <code>/brand</code> guide so the sounds feel like one product with the visuals and the cursor.</p></div>
+</section>
+
+<!-- ================= Page 5b: sound rules ================= -->
+<section class="sheet portrait d10-sec">
+  <h2>How a sound is chosen</h2>
+  <p>One delegated <code>pointerdown</code> and <code>pointerover</code> listener on the document maps the element to a sound. Components override with <code>data-sfx="click|<wbr>toggle|<wbr>success|<wbr>error|<wbr>none"</code> or call <code>sfx.play('success')</code>. Disabled elements and <code>data-sfx="none"</code> stay silent. The diagram after the rules shows the whole path.</p>
+
+
+  <h2>Sound rules for users</h2>
+  <table class="table roomy loose">
+    <colgroup><col style="width:28%"><col></colgroup>
+    <thead><tr><th>Rule</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td>Starts on a gesture</td><td>The audio context starts only after the first user gesture (browser autoplay policy). No sound on the splash.</td></tr>
+      <tr><td>Visible toggle</td><td>A Sound on and off toggle in the header, keyboard accessible, saved in <code>localStorage</code>. The choice is remembered.</td></tr>
+      <tr><td>Quiet by default</td><td>Master volume about 25%.</td></tr>
+      <tr><td>Reduced motion</td><td>Hover sounds off. Only essential click, success and error remain.</td></tr>
+      <tr><td>Tab hidden</td><td>Muted while the tab is hidden.</td></tr>
+      <tr><td>Never on</td><td>Keyboard focus movement, autoplay, or touch hover.</td></tr>
+      <tr><td>Rate limited</td><td>Per sound minimum gap plus a burst limit across sounds, so rapid clicks never stack.</td></tr>
+      <tr><td>Never the only feedback</td><td>Every sound has a visual twin.</td></tr>
+      <tr><td>Skipped for scores</td><td><code>?nosound</code> and Lighthouse runs never play or load sound.</td></tr>
+      <tr><td>Performance</td><td>Module lazy loaded after idle, under 3 KB, initialized on first interaction, off the main render path. No effect on LCP or INP.</td></tr>
+      <tr><td>Tests</td><td>Unit tests cover the mapping and throttling with a mocked <code>AudioContext</code>.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= Page 6: landscape diagram, pointer and sound pipeline ================= -->
+<section class="sheet landscape d10-sec">
+  <div class="head-row">
+    <h2>Pointer and sound pipeline</h2>
+    <div class="legend strong">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Event or data</span>
+      <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Blocked path, ends silent</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/ui-pointer-sound.mjs caption="Visual reactions read CSS variables written by one pointer listener. Sounds go through a mapping, a rate limit gate and the synthesizer. A blocked sound ends at Silent." -->
+</section>
+
+<!-- ================= Page 8: splash ================= -->
+<section class="sheet portrait d10-sec">
+  <h2>Splash screen</h2>
+  <p>A full screen LEAFY screen shown on every full page load: first open and every browser refresh. It does not show on in app client navigation. The name comes from one <code>BRAND_NAME</code> constant.</p>
+
+  <div class="storyboard d10-splash-board" style="--frames:3; --cap-lines:3">
+    <figure class="frame"><div class="frame-visual"><div class="d10-splash empty"><span class="d10-hint">Overlay painted at first byte</span></div></div><figcaption>Paint. A server rendered, CSS only overlay covers the page. No JavaScript needed.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-splash"><div class="d10-word"><span>L</span><span>E</span><span>A</span><span>F</span><span>Y</span></div></div></div><figcaption>Letters. They fade and slide in one after another.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-splash"><img class="m ghost" src="../assets/design/leafy-mark-on-dark.svg" alt=""><div class="d10-word solid"><span>L</span><span>E</span><span>A</span><span>F</span><span>Y</span></div></div></div><figcaption>Leaf. The mark draws in beside the wordmark.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-splash"><img class="m" src="../assets/design/leafy-mark-on-dark.svg" alt=""><div class="d10-word solid"><span>L</span><span>E</span><span>A</span><span>F</span><span>Y</span></div></div></div><figcaption>Hold. Mark and wordmark stay at least about 0.9&nbsp;s, so it never flickers.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-lift"><div class="over"><span class="up"></span><span class="name">Leafy</span><span class="tag">Overlay lifts away</span></div><div class="page"><span class="tag">Page already rendered</span><span class="name">Know your leaf.</span></div></div></div><figcaption>Lift. The overlay (dashed outline) lifts away by transform and opacity only.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-splash empty"><span class="d10-word solid" style="font-size:9pt">Know your leaf.</span></div></div><figcaption>Done. The overlay is removed. With reduced motion, steps 2 to 5 use a plain fade.</figcaption></figure>
+  </div>
+
+  <table class="table">
+    <colgroup><col style="width:28%"><col></colgroup>
+    <thead><tr><th>Topic</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr><td>Timing</td><td>Minimum about 0.9 s, hard maximum about 2.2 s. A tiny inline script removes it when fonts are loaded and the first route is hydrated. A pure CSS fallback animation hides it if JavaScript fails. In the built checkpoint run it began leaving at 985 ms.</td></tr>
+      <tr><td>Motion</td><td>Letters fade and slide in, a leaf draws beside the wordmark, the overlay lifts (translate and opacity, GPU only).</td></tr>
+      <tr><td>Accessibility</td><td><code>aria-hidden</code> with <code>role="status"</code> text for screen readers: Loading Leafy. It traps no focus.</td></tr>
+      <tr><td>Performance</td><td>No extra requests: inline CSS, the already loaded font with <code>font-display: swap</code> and preload. <code>position: fixed</code>, so no layout shift. The real LCP element is painted underneath.</td></tr>
+      <tr><td>Skipped for</td><td>Crawlers and Lighthouse (<code>navigator.webdriver</code> or <code>?nosplash</code>), so scores measure the real page.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= Page 9: progress UI ================= -->
+<section class="sheet portrait d10-sec">
+  <h2>Progress UI for the scan</h2>
+  <p>The user always sees where things stand. Upload is a real percentage. The server stages come from the status and stage the API reports. The analyzing stage has no true percentage, so its bar eases toward 90% and reaches 100% only when the result arrives.</p>
+
+  <div class="storyboard d10-prog-board" style="--frames:3; --cap-lines:4">
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-steps"><div class="d10-st now"><span class="seg"></span>Uploading</div><div class="d10-st"><span class="seg"></span>Checking image</div><div class="d10-st"><span class="seg"></span>Analyzing leaf</div><div class="d10-st"><span class="seg"></span>Saving result</div></div>
+      <div class="d10-prog"><div class="f" style="width:42%"></div></div>
+      <div class="d10-meta"><span>42%</span><span>0:02</span></div>
+      <span class="d10-pill alt">Cancel</span>
+    </div></div><figcaption>Uploading. A real percentage from the upload progress event. Cancel is available.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-steps"><div class="d10-st done"><span class="seg"></span>Uploading</div><div class="d10-st now"><span class="seg"></span>Checking image</div><div class="d10-st"><span class="seg"></span>Analyzing leaf</div><div class="d10-st"><span class="seg"></span>Saving result</div></div>
+      <div class="d10-prog"><div class="f" style="width:25%"></div></div>
+      <div class="d10-meta"><span>Checking image</span><span>0:03</span></div>
+      <p class="d10-note">Stage validating</p>
+    </div></div><figcaption>Checking image. The server reports processing, stage validating.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-steps"><div class="d10-st done"><span class="seg"></span>Uploading</div><div class="d10-st done"><span class="seg"></span>Checking image</div><div class="d10-st now"><span class="seg"></span>Analyzing leaf</div><div class="d10-st"><span class="seg"></span>Saving result</div></div>
+      <div class="d10-leaf"><img src="../assets/design/leafy-mark-on-dark.svg" alt=""></div>
+      <div class="d10-prog"><div class="f" style="width:60%"></div></div>
+      <div class="d10-meta"><span>Analyzing leaf</span><span>0:05</span></div>
+    </div></div><figcaption>Analyzing. The 3D scanning beam sweeps the leaf, in sync with the stage. The bar eases and slows.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-steps"><div class="d10-st done"><span class="seg"></span>Uploading</div><div class="d10-st done"><span class="seg"></span>Checking image</div><div class="d10-st now"><span class="seg"></span>Analyzing leaf</div><div class="d10-st"><span class="seg"></span>Saving result</div></div>
+      <div class="d10-prog"><div class="f" style="width:88%"></div></div>
+      <div class="d10-meta"><span>Near 90%, never fake</span><span>0:09</span></div>
+      <p class="d10-note">Still analyzing, larger photos take a bit longer.</p>
+    </div></div><figcaption>After about 8 s. Reassurance copy appears and the bar crawls toward 90%.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-steps"><div class="d10-st done"><span class="seg"></span>Uploading</div><div class="d10-st done"><span class="seg"></span>Checking image</div><div class="d10-st done"><span class="seg"></span>Analyzing leaf</div><div class="d10-st now"><span class="seg"></span>Saving result</div></div>
+      <div class="d10-prog"><div class="f" style="width:100%"></div></div>
+      <div class="d10-meta"><span>Saving result</span><span>Done</span></div>
+      <p class="d10-note">Success sound. The result opens.</p>
+    </div></div><figcaption>Saving, then Done. The bar reaches 100% only when the result arrives.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-steps"><div class="d10-st done"><span class="seg"></span>Uploading</div><div class="d10-st done"><span class="seg"></span>Checking image</div><div class="d10-st bad"><span class="seg"></span>Analyzing leaf</div><div class="d10-st"><span class="seg"></span>Saving result</div></div>
+      <div class="d10-warn">That took too long. Your photo is saved.</div>
+      <span class="d10-pill">Retry</span>
+    </div></div><figcaption>Timeout. A clear failure with a Retry button that reuses the stored image.</figcaption></figure>
+  </div>
+
+  <div class="callout note"><span class="callout-title">Stages, polling and timeouts</span><p>The stage table, the polling rhythm, what happens when the user navigates away, the timeout and the accessibility rules are written once, under Honest progress in the Scan state section. This page only shows how they look on screen.</p></div>
+</section>
+
+<!-- ================= Result feedback ================= -->
+<section class="sheet portrait d10-sec">
+  <h2>Result feedback</h2>
+  <p>Every completed scan carries a quiet question in the Result panel: Was this result correct? It never blocks reading the result.</p>
+
+  <div class="storyboard" style="--frames:3; --cap-lines:4">
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-bar"><span>Result</span><code>#result</code></div>
+      <p class="d10-note">Was this result correct?</p>
+      <div class="d10-strip" style="grid-template-columns:repeat(2,minmax(0,1fr))"><span class="d10-pill">Yes</span><span class="d10-pill alt">No</span></div>
+    </div></div><figcaption>1. Ask. Yes or No, shown quietly under the verdict.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-bar"><span>Result</span><code>#result</code></div>
+      <p class="d10-note">What is it really?</p>
+      <div class="d10-strip" style="grid-template-columns:repeat(2,minmax(0,1fr))"><span class="d10-pill alt">Pick it</span><span class="d10-pill alt">Not sure</span></div>
+      <p class="d10-note">Comment, up to 300 characters</p>
+    </div></div><figcaption>2. Correct (optional). After No: pick the plant, then the disease, or choose Not sure, and add a short comment.</figcaption></figure>
+    <figure class="frame"><div class="frame-visual"><div class="d10-screen">
+      <div class="d10-bar"><span>Result</span><code>#result</code></div>
+      <p class="d10-note">Thanks, this helps us improve</p>
+    </div></div><figcaption>3. Thank. Calm copy, and the answer can be changed or cleared later.</figcaption></figure>
+  </div>
+
+  <table class="table">
+    <colgroup><col style="width:24%"><col></colgroup>
+    <thead><tr><th>Topic</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td>When it shows</td><td>Only on completed scans. It is stored in <code>scan_feedback</code> through <code>PUT /scans/{id}/feedback</code> and cleared with <code>DELETE</code>.</td></tr>
+      <tr><td>Export</td><td>The team exports feedback for the ML teammate with <code>python -m app.tools.export_feedback</code>, a CSV of scan id, predicted and corrected labels, and image key.</td></tr>
+      <tr><td>Training use</td><td>Scan images are not used for training unless the team decides so and updates the Privacy Policy.</td></tr>
+      <tr><td>Status</td><td>Built. Shown on the result panel and on every opened scan.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= Page 10: layout rules ================= -->
+<section class="sheet portrait d10-sec">
+  <h2>Layout rules: fill the screen</h2>
+  <p>Every page is a single screen stage (<code class="keep-together">min-h-dvh</code>) that fits 1440&nbsp;by&nbsp;900 and 390&nbsp;by&nbsp;844. Content fills the width with small gutters and no dead strips, and long content moves sideways, so scrolling stays minimal.</p>
+
+  <div class="d10-sizes">
+    <figure class="frame">
+      <div class="frame-visual"><div class="d10-wire">
+        <div class="row"><div class="blk brand grow low">Header: mark, nav, sound, theme, user</div></div>
+        <div class="row fill"><div class="blk grow tall">Text, title and actions</div><div class="blk grow tall">3D scene or imagery</div></div>
+        <div class="row"><div class="blk grow low">Panel arrows and labelled dots</div></div>
+      </div></div>
+      <figcaption><strong>Desktop 1440 by 900.</strong> Columns side by side: text beside 3D or imagery, or a dashboard side rail. Text keeps its readable measure.</figcaption>
+    </figure>
+    <figure class="frame">
+      <div class="frame-visual"><div class="d10-wire">
+        <div class="blk brand low">Header</div>
+        <div class="blk tall">Card or panel</div>
+        <div class="blk low">Dots</div>
+        <div class="blk brand low">Bottom nav</div>
+      </div></div>
+      <figcaption><strong>Mobile 390 by 844.</strong> Bottom nav, safe area insets.</figcaption>
+    </figure>
+  </div>
+
+  <table class="table keep-code">
+    <colgroup><col style="width:28%"><col></colgroup>
+    <thead><tr><th>Rule</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Stage height</td><td><code>dvh</code> heights with a <code>vh</code> fallback and CSS grid <code>fr</code> rows.</td></tr>
+      <tr><td>Width</td><td>Full bleed sections and 3D canvases with content layered on top. Wide container about 1600 px or fluid.</td></tr>
+      <tr><td>Gutters</td><td><code>clamp(16px, 3vw, 48px)</code>.</td></tr>
+      <tr><td>Spacing tokens</td><td>4, 8, 12, 16, 24, 32, 48.</td></tr>
+      <tr><td>Page height test</td><td>Playwright: document at most 1.15 times the viewport on main routes.</td></tr>
+      <tr><td>Title test</td><td>Playwright: every h1 and h2 at most 2 lines at 360, 768 and 1440.</td></tr>
+      <tr><td>Breakpoints</td><td>360, 480, 768, 1024, 1440, 1920. Design is checked at 360, 768 and 1440.</td></tr>
+      <tr><td>Navigation</td><td>Header on desktop, bottom nav on mobile, current location clear, breadcrumbs on handbook pages, panel progress dots with labels.</td></tr>
+      <tr><td>Touch</td><td>44 px minimum targets. On phones the scan offers Take photo, which opens the camera through <code>capture="environment"</code>.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= Page 11: global states and 3D scenes ================= -->
+<section class="sheet portrait d10-sec">
+  <h2>Global states</h2>
+  <table class="table roomy">
+    <colgroup><col style="width:28%"><col></colgroup>
+    <thead><tr><th>State</th><th>What the user sees</th></tr></thead>
+    <tbody>
+      <tr><td>Offline and failed requests</td><td>A banner explains what happened and offers a Retry button. Form input is kept.</td></tr>
+      <tr><td>Page not found</td><td>Calm message with links to the handbook and home.</td></tr>
+      <tr><td>Route error</td><td>Reassuring message with Retry.</td></tr>
+      <tr><td>Signed out on a private route</td><td>Sent to <code>/login?next=</code> with the destination kept.</td></tr>
+      <tr><td>Rate limit</td><td>Message with a countdown.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3D scenes</h2>
+  <p>All 3D code is client only and lazy loaded per route. Content is real HTML on top, and canvases are <code>aria-hidden</code>. The shared module lives in <code>app/src/components/three/</code> and is built, with the scan beam and the orbit view of the result in <code>three/scan/</code>.</p>
+  <table class="table roomy">
+    <colgroup><col style="width:28%"><col></colgroup>
+    <thead><tr><th>Piece</th><th>Role and budget</th></tr></thead>
+    <tbody>
+      <tr><td><code>SceneCanvas</code></td><td>Shared canvas with Suspense and an error boundary. DPR capped at 1.5. <code>frameloop="demand"</code> where the scene is static.</td></tr>
+      <tr><td><code>LeafModel</code></td><td>Procedural leaf or a Draco glTF under 300 KB, shared by splash, hero, auth and scan scenes.</td></tr>
+      <tr><td><code>FloatingLeaves</code></td><td>Instanced drifting leaves with pointer parallax.</td></tr>
+      <tr><td><code>useReducedMotion</code></td><td>Switches scenes to still or plain states.</td></tr>
+      <tr><td><code>useWebGLSupport</code></td><td>No WebGL gives a static poster instead.</td></tr>
+      <tr><td><code>PerfGuard</code></td><td>Pauses off screen canvases. One active canvas per page.</td></tr>
+      <tr><td>Shared <code>View</code> canvas</td><td>Handbook and dashboard plant models render through one drei <code>View</code> canvas, not one WebGL context per card.</td></tr>
+      <tr><td>Mobile budget</td><td>At most 100k triangles and no postprocessing.</td></tr>
+    </tbody>
+  </table>
+</section>

@@ -1,0 +1,70 @@
+<section class="sheet portrait">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">How to run</h1>
+    <p class="lede">Five commands on Windows, no Docker. The script starts Postgres, storage, Mailpit, the migrations, the seed, the API and the web build, with throwaway local secrets and the mock Google provider.</p>
+  </header>
+
+  <h2>Quickstart</h2>
+  <p>You need Node 20 or newer, pnpm, uv, and the PostgreSQL 17 binaries. Set <code>PG_BIN</code> if they are not in <code>C:\Program Files\PostgreSQL\17\bin</code>. Run these from the repository root.</p>
+  <div class="codeblock"><code>git clone https://github.com/BunquinTheodore/Leafy-Ph-.git; cd Leafy-Ph-
+cd api; uv sync; cd ..                    # 1. API dependencies
+cd app; pnpm install; cd ..               # 2. web dependencies
+.\scripts\dev\run-all.ps1                 # 3. services, migrations, seed, API, web
+start http://127.0.0.1:3000               # 4. open the app
+.\scripts\dev\run-all.ps1 -Stop           # 5. stop everything</code></div>
+
+  <h2>Where things run</h2>
+  <table class="table keep-code">
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>Address</th><th>What it is</th></tr></thead>
+    <tbody>
+      <tr><td><code>http://127.0.0.1:3000</code></td><td>The app, a Next.js production build.</td></tr>
+      <tr><td><code>http://127.0.0.1:8000/docs</code></td><td>The API and its interactive docs.</td></tr>
+      <tr><td><code>http://127.0.0.1:8025</code></td><td>Mailpit inbox. Verification and reset emails land here.</td></tr>
+      <tr><td><code>127.0.0.1:5433</code></td><td>Project local Postgres. Port 5432 is never touched.</td></tr>
+    </tbody>
+  </table>
+  <p>The script is safe to run again: it starts what is not running, applies <code>alembic upgrade head</code>, runs <code>python -m app.seeds</code>, and writes logs to <code>.dev/logs</code>.</p>
+
+  <h2>The model while it is missing</h2>
+  <p>The script runs with <code>ML_SERVICE=dev-fake</code>. It returns a label picked from the image hash, so the whole scan journey can be tried. It logs a loud DEV ONLY warning and refuses to start when <code>ENV=prod</code>.</p>
+  <table class="table keep-code">
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>Switch</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td><code>-MlService stub</code></td><td>Use the unimplemented stub. Every scan fails with Analysis isn&rsquo;t available right now.</td></tr>
+      <tr><td><code>-SkipBuild</code></td><td>Reuse the last <code>next build</code>.</td></tr>
+      <tr><td><code>-E2E</code></td><td>Rate limits off, a 1 second resend cooldown, and a second stack with the stub (API <code>:8001</code>, web <code>:3001</code>).</td></tr>
+      <tr><td><code>-Stop</code></td><td>Stop the API, the web servers and the dev services.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <table class="table keep-code">
+    <colgroup><col style="width:44%"><col style="width:56%"></colgroup>
+    <thead><tr><th>Command</th><th>What it runs</th></tr></thead>
+    <tbody>
+      <tr><td><code>cd api; uv run pytest</code></td><td>API unit and integration tests on a real Postgres.</td></tr>
+      <tr><td><code>cd app; pnpm test</code></td><td>Web unit and component tests (Vitest).</td></tr>
+      <tr><td><code>cd app; pnpm e2e:all</code></td><td>Builds once, then the auth, member, scan, ui and full browser suites, with a summary.</td></tr>
+      <tr><td><code>cd app; pnpm screens:audit</code></td><td>Screenshots every route at 1440, 768 and 390 pixels in both themes and reports layout problems.</td></tr>
+    </tbody>
+  </table>
+  <h2>Before launch: placeholders and open items</h2>
+  <p>Details the team still has to supply live in <code>app/src/lib/site-config.ts</code>. Each one shows on the site as a visible TODO marker, and a unit test fails if one stops being a marked value without being replaced on purpose.</p>
+  <table class="table keep-code">
+    <colgroup><col style="width:40%"><col style="width:60%"></colgroup>
+    <thead><tr><th>Item</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr><td><code>LEGAL_CONTACT_EMAIL</code></td><td>Put the real contact address into the Privacy Policy and Terms of Use.</td></tr>
+      <tr><td><code>TEAM_MEMBERS</code></td><td>Add the three real names for the About page.</td></tr>
+      <tr><td>Privacy Policy and Terms</td><td>The text is a plain language draft. Get a legal review.</td></tr>
+      <tr><td>Google sign in</td><td>Create the OAuth client, set <code>GOOGLE_CLIENT_ID</code>, <code>GOOGLE_CLIENT_SECRET</code>, <code>GOOGLE_REDIRECT_URI</code> and <code>GOOGLE_MOCK=0</code>.</td></tr>
+      <tr><td>ML model</td><td>Plug it in with <code>ML_SERVICE=package.module:ClassName</code> (see the ML integration section).</td></tr>
+      <tr><td><code>S3_PUBLIC_ENDPOINT</code></td><td>Set the real public storage host for both <code>api</code> and <code>app</code>.</td></tr>
+      <tr><td>Photo provenance</td><td>Check licensing for the handbook images.</td></tr>
+    </tbody>
+  </table>
+  <p class="muted small">The full suite signs in with Google through the mock provider: <code>/api/auth/google?email=someone@example.com</code> picks the identity. With Docker instead, copy <code>.env.example</code> to <code>.env</code>, edit the secrets, and use <code>docker compose</code>. The Dockerfiles are not written yet.</p>
+</section>

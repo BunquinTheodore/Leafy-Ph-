@@ -1,0 +1,143 @@
+<section class="sheet portrait">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">System architecture</h1>
+    <p class="lede">Leafy has one front door. The browser only talks to Next.js, Next.js talks to FastAPI, and FastAPI is the only thing that touches the database, storage, email, the ML service and Google.</p>
+  </header>
+
+  <h2>Four tiers</h2>
+  <div class="card-grid cols-2">
+    <div class="card"><span class="tag">Client</span><h3>Browser</h3><p>Shows the Leafy UI. It holds two httpOnly cookies, <code>leafy_at</code> and <code>leafy_rt</code>, and never sees a token in JavaScript. It never calls FastAPI, so there is no browser CORS.</p></div>
+    <div class="card"><span class="tag">Web tier</span><h3>Next.js 15</h3><p>Middleware refreshes the session and guards routes. Server components fetch data with <code>apiFetch</code>. Route handlers proxy changing calls to FastAPI and set cookies.</p></div>
+    <div class="card accent"><span class="tag">API tier</span><h3>FastAPI</h3><p>REST under <code>/api/v1</code> in four layers: router, controller, service, repository. It owns business rules, transactions and the error envelope. Only Next.js can reach it.</p></div>
+    <div class="card info"><span class="tag">Services</span><h3>Data and outside systems</h3><p>PostgreSQL 16 for data, an S3 compatible store for images, SMTP for email, the ML service for predictions and Google for sign in. Only FastAPI calls them, except presigned image links.</p></div>
+  </div>
+
+  <h2>How to read the diagrams</h2>
+  <div class="legend strong">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>Request</span>
+    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response</span>
+    <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional</span>
+  </div>
+  <p class="fill">Every arrow is one call with a label. Line style shows the kind of call and outline style shows the kind of box.</p>
+  <div class="card-grid key">
+    <div class="card key-card"><span class="sw own" aria-hidden="true"></span><h3>Plain outline</h3><p>Our own code.</p></div>
+    <div class="card key-card"><span class="sw main" aria-hidden="true"></span><h3>Heavy outline</h3><p>A main piece.</p></div>
+    <div class="card key-card"><span class="sw outside" aria-hidden="true"></span><h3>Dashed outline</h3><p>An outside system.</p></div>
+    <div class="card key-card"><span class="sw store" aria-hidden="true"></span><h3>Double rule</h3><p>A place that holds data.</p></div>
+  </div>
+
+  <div class="callout note"><span class="callout-title">Status</span><p>Every box here is built. The ML service box runs the stub, or a dev only fake, until the teammate’s model arrives. The Dockerfiles are not written yet, so development uses native services.</p></div>
+</section>
+
+<section class="sheet landscape">
+  <div class="head-row">
+    <h2>System architecture diagram</h2>
+    <div class="legend strong">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Request</span>
+      <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response</span>
+      <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional (Google)</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/arch-overview.mjs caption="The browser only talks to Next.js. Numbers match the calls table on the next pages. Dashed boxes are outside systems, double rule boxes hold data." -->
+</section>
+
+<section class="sheet landscape">
+  <div class="head-row">
+    <h2>FastAPI layers</h2>
+    <div class="legend strong">
+      <span class="legend-title">Arrows</span>
+      <span class="legend-item"><span class="ln" aria-hidden="true"></span>Call</span>
+      <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional (plug in the real model)</span>
+    </div>
+  </div>
+  <!-- @diagram diagrams/arch-api-layers.mjs caption="Each layer only calls the next one. Responses return the same way. Blocking work runs in a threadpool. Dashed boxes are outside systems, double rule boxes hold data." -->
+</section>
+
+<section class="sheet portrait">
+  <h2>Calls in the architecture diagram</h2>
+  <table class="table">
+    <colgroup><col style="width:8%"><col style="width:21%"><col style="width:24%"><col></colgroup>
+    <thead><tr><th>No.</th><th>From to</th><th>Call</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Browser to middleware</td><td>HTTPS page or <code>/api</code> request</td><td>Cookies <code>leafy_at</code> and <code>leafy_rt</code> ride along. Every request passes the middleware first.</td></tr>
+      <tr><td>2</td><td>Middleware to pages</td><td>Allowed page request</td><td>Protected routes without a session go to <code class="keep-together">/login?next=</code>. Guest routes go to <code>/dashboard</code> when signed in.</td></tr>
+      <tr><td>3</td><td>Middleware to route handlers</td><td>Allowed <code>/api</code> request</td><td>State changing handlers call <code>assertSameOrigin</code>.</td></tr>
+      <tr><td>4</td><td>Middleware to FastAPI</td><td><code>POST /auth/refresh</code></td><td>Sent when the access token is missing or within 30 s of expiry. Single flight.</td></tr>
+      <tr><td>5</td><td>Pages to FastAPI</td><td><code>apiFetch</code> with bearer token</td><td>On 401 it refreshes and retries once, or redirects through <code class="keep-together">/api/auth/refresh?next=</code>.</td></tr>
+      <tr><td>6</td><td>Route handlers to FastAPI</td><td>Proxied REST call with bearer token</td><td>Uploads stream through, at most 8 MiB. The API URL is server only.</td></tr>
+      <tr><td>7</td><td>Route handlers to browser</td><td>JSON and <code>Set-Cookie</code></td><td>Cookies are httpOnly, SameSite=Lax, path <code>/</code>, <code>__Host-</code> prefix in production.</td></tr>
+      <tr><td>8</td><td>Pages to browser</td><td>Server rendered HTML</td><td>Public handbook pages use ISR with a one hour cache.</td></tr>
+      <tr><td>9</td><td>FastAPI to PostgreSQL</td><td>SQL over asyncpg</td><td>SQLAlchemy 2 async, one UnitOfWork per request.</td></tr>
+      <tr><td>10</td><td>FastAPI to ML service</td><td><code>predict(image)</code></td><td>Runs in a threadpool with a timeout. The stub raises <code>NotImplementedError</code>, which becomes 503 <code>ml_unavailable</code>.</td></tr>
+      <tr><td>11</td><td>FastAPI to SMTP</td><td>Verify, reset and password changed mails</td><td>Mailpit in development.</td></tr>
+      <tr><td>12</td><td>FastAPI to S3 storage</td><td>Put, delete, presign</td><td>Private <code>leafy-scans</code> with 10 minute presigned GET, public <code>leafy-catalog</code>.</td></tr>
+      <tr><td>13</td><td>Browser to Google</td><td>Consent redirect</td><td>Started by <code>/api/auth/google</code>. PKCE, state and nonce.</td></tr>
+      <tr><td>14</td><td>FastAPI to Google</td><td>Token exchange and JWKS fetch</td><td>Holds <code>GOOGLE_CLIENT_SECRET</code>. Verifies the ID token.</td></tr>
+      <tr><td>15</td><td>Browser to S3 storage</td><td>GET presigned image</td><td>Signed against <code>S3_PUBLIC_ENDPOINT</code>. An expired link is refetched through the API.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet portrait">
+  <h2>What runs in docker compose</h2>
+  <table class="table">
+    <colgroup><col style="width:22%"><col style="width:16%"><col></colgroup>
+    <thead><tr><th>Service</th><th>Port</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td><code>app</code></td><td>3000</td><td>Next.js. The only service published in production.</td></tr>
+      <tr><td><code>api</code></td><td>8000</td><td>FastAPI. Runs <code>alembic upgrade head</code>, then the seeds, then uvicorn. A dev override publishes the port for <code>/docs</code>.</td></tr>
+      <tr><td><code>postgres</code></td><td>5432</td><td>PostgreSQL 16 with citext and pg_trgm.</td></tr>
+      <tr><td><code>minio</code>, <code>minio-init</code></td><td>9000, 9001</td><td>S3 compatible storage. The init job creates both buckets and a scoped key.</td></tr>
+      <tr><td><code>mailpit</code></td><td>1025, 8025</td><td>Dev SMTP inbox and its web view.</td></tr>
+      <tr><td><code>purge</code></td><td>none</td><td>Loop that drains the storage deletion outbox and cleans old tokens.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Session cookies</h2>
+  <table class="table">
+    <colgroup><col style="width:18%"><col style="width:16%"><col></colgroup>
+    <thead><tr><th>Cookie</th><th>Lifetime</th><th>Purpose and flags</th></tr></thead>
+    <tbody>
+      <tr><td><code>leafy_at</code></td><td>900 s</td><td>Access token, a JWT valid for 15 minutes. Set by Next.js, never readable by page scripts.</td></tr>
+      <tr><td><code>leafy_rt</code></td><td>30 days</td><td>Rotating refresh token. The family is capped at 90 days.</td></tr>
+      <tr><td>Both cookies</td><td>see above</td><td>httpOnly, Secure in production with the <code>__Host-</code> prefix, SameSite=Lax and path <code>/</code>. Lax is used because Strict would drop the session when someone follows an email link.</td></tr>
+    </tbody>
+  </table>
+  <h2>Key settings in .env.example</h2>
+  <table class="table">
+    <colgroup><col style="width:28%"><col style="width:14%"><col></colgroup>
+    <thead><tr><th>Setting</th><th>Read by</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>DATABASE_URL</code></td><td>api</td><td>PostgreSQL connection string (asyncpg).</td></tr>
+      <tr><td><code>JWT_SECRET</code></td><td>api</td><td>Signs access tokens. Must be set at startup. Never committed.</td></tr>
+      <tr><td><code>APP_ORIGIN</code></td><td>app, api</td><td>The public site origin, used for the origin check and email links.</td></tr>
+      <tr><td><code>COOKIE_SECURE</code></td><td>app</td><td>Turns on Secure cookies and the <code>__Host-</code> prefix in production.</td></tr>
+      <tr><td><code>COOKIE_PREFIX</code></td><td>app</td><td>Cookie name prefix, so <code>__Host-</code> can be on in production and off locally.</td></tr>
+      <tr><td><code>API_INTERNAL_URL</code></td><td>app</td><td>Where Next.js reaches FastAPI. Server only, never sent to the browser.</td></tr>
+      <tr><td><code>MAX_UPLOAD_BYTES</code></td><td>app, api</td><td>Upload size cap, enforced at Next.js and again in FastAPI.</td></tr>
+      <tr><td><code>S3_PUBLIC_ENDPOINT</code></td><td>api</td><td>Host that presigned image links are signed against.</td></tr>
+      <tr><td><code>ML_SERVICE</code></td><td>api</td><td>The <code>pkg.mod:Class</code> that provides <code>predict()</code>.</td></tr>
+      <tr><td><code>GOOGLE_CLIENT_ID</code></td><td>app, api</td><td>OAuth client id from Google Cloud Console. The API checks it as the ID token <code>aud</code>.</td></tr>
+      <tr><td><code>GOOGLE_CLIENT_SECRET</code></td><td>api only</td><td>OAuth client secret. Never sent to Next.js or the browser.</td></tr>
+      <tr><td><code>GOOGLE_REDIRECT_URI</code></td><td>app, api</td><td><code class="keep-together">http://localhost:3000/api/auth/google/callback</code> locally, plus the production callback URL. Must match the console exactly.</td></tr>
+      <tr><td><code>GOOGLE_MOCK</code></td><td>app, api</td><td>Set to <code>1</code> to use a mock Google provider (tiny fake token endpoint and JWKS) in tests and local dev, so nothing waits for real credentials.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout note"><span class="callout-title">Google Cloud Console steps</span><p>The README section on this is still a stub. The steps are: create an OAuth consent screen, then a Web client with the redirect URIs above, and copy the id and secret into <code>.env</code> with <code>GOOGLE_MOCK=0</code>. Until then the mock provider is used.</p></div>
+  <div class="callout warn"><span class="callout-title">Why the browser never calls FastAPI</span><p>Tokens stay out of JavaScript, there is no CORS to configure, and FastAPI can stay unpublished in production. It trusts <code>X-Forwarded-For</code> only from the compose network.</p></div>
+
+  <h2>Local services without Docker</h2>
+  <table class="table">
+    <colgroup><col style="width:30%"><col style="width:26%"><col></colgroup>
+    <thead><tr><th>Service</th><th>Address</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>PostgreSQL 17 (project local)</td><td><code>127.0.0.1:5433</code></td><td>Database and user <code>leafy</code>. Never port 5432. State lives in <code>.dev/</code>.</td></tr>
+      <tr><td>S3 compatible storage</td><td><code>127.0.0.1:9000</code></td><td>A <code>moto</code> server with the two buckets. In memory, so data is lost on stop.</td></tr>
+      <tr><td>Mailpit</td><td><code>:1025</code> and <code>:8025</code></td><td>SMTP and the inbox page. Verify and reset mails land here.</td></tr>
+      <tr><td>API and web</td><td><code>:8000</code> and <code>:3000</code></td><td>FastAPI with <code>/docs</code>, and the Next.js production build.</td></tr>
+    </tbody>
+  </table>
+</section>

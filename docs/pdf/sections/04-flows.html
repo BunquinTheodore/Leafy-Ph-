@@ -1,0 +1,150 @@
+<section class="sheet portrait">
+  <header class="section-head">
+    <p class="eyebrow">Section {{num}}</p>
+    <h1 class="section-title">App flows</h1>
+    <p class="lede">Every journey in Leafy, one diagram per page. Each box is a screen or a step, each arrow is something the user does or the system answers.</p>
+  </header>
+
+  <h2>Guests and members</h2>
+  <table class="table">
+    <colgroup><col style="width:18%"><col></colgroup>
+    <thead><tr><th>Who</th><th>Pages</th></tr></thead>
+    <tbody>
+      <tr><td>Guest</td><td>Landing, Handbook (public), Login, Register, Forgot and reset password, Verify email. A signed in user who opens a guest page goes to <code>/dashboard</code>.</td></tr>
+      <tr><td>Member</td><td>Dashboard, Scan, Scans (history), Scan detail, Handbook, Account. A signed out visitor on a member page goes to <code>/login?next=</code>.</td></tr>
+      <tr><td>Navigation</td><td>Desktop: header with Handbook, Scan, History, Dashboard, theme toggle and user menu. Mobile: bottom bar with Home, a centered Scan button, History, Handbook and Account.</td></tr>
+      <tr><td>Rule</td><td>Every page keeps one obvious next action.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The flows in this section</h2>
+  <table class="table">
+    <colgroup><col style="width:9%"><col style="width:33%"><col></colgroup>
+    <thead><tr><th>Flow</th><th>Journey</th><th>Entry point</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>First visit</td><td>Splash, then the landing page</td></tr>
+      <tr><td>2</td><td>Sign up and verify email</td><td><code>/register</code>, then the email link</td></tr>
+      <tr><td>2b</td><td>Google sign in</td><td>Continue with Google on <code>/login</code> and <code>/register</code></td></tr>
+      <tr><td>3</td><td>Sign in, session expiry and sign out</td><td><code>/login</code></td></tr>
+      <tr><td>3b</td><td>Forgot and reset password</td><td><code>/forgot-password</code></td></tr>
+      <tr><td>4</td><td>Scan a leaf, with four outcomes</td><td><code>/scan</code></td></tr>
+      <tr><td>5</td><td>History and delete with undo</td><td><code>/scans</code></td></tr>
+      <tr><td>6</td><td>Handbook browse</td><td><code>/handbook</code></td></tr>
+      <tr><td>7</td><td>Dashboard</td><td><code>/dashboard</code></td></tr>
+      <tr><td>8</td><td>Account</td><td><code>/account</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="legend flow-key">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action or request</span>
+    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response</span>
+    <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional</span>
+  </div>
+</section>
+
+<section class="sheet landscape">
+  <h2>Flow 1: first visit</h2>
+  <!-- @diagram diagrams/flow-first-visit.mjs caption="A first visitor either scans a leaf, with sign in on the way, or browses the handbook with no account." -->
+  <div class="legend flow-key">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action</span>
+    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response or redirect back</span>
+  </div>
+</section>
+
+<section class="sheet landscape">
+  <h2>Flow 2: sign up and verify email</h2>
+  <!-- @diagram diagrams/flow-signup.mjs caption="Sign up signs the user in at once. Verifying the email unlocks scanning, and a new link is always one tap away." -->
+  <div class="legend flow-key">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action</span>
+    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response or email sent</span>
+    <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional or conditional</span>
+  </div>
+</section>
+
+<section class="sheet landscape">
+  <h2>Flow 2b: Google sign in</h2>
+  <!-- @diagram diagrams/flow-google.mjs caption="The browser legs run through Next.js. The code exchange and ID token check run in FastAPI, so the client secret never leaves the API." -->
+  <div class="legend flow-key">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action or request</span>
+    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Redirect or response</span>
+    <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional or conditional</span>
+  </div>
+</section>
+
+<section class="sheet landscape">
+  <h2>Flow 3: sign in, session expiry and sign out</h2>
+  <!-- @diagram diagrams/flow-signin.mjs caption="Sessions renew silently. When a session cannot be renewed the user returns to sign in with the page they wanted kept." -->
+  <div class="legend flow-key">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action or request</span>
+    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response</span>
+    <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional or conditional</span>
+  </div>
+</section>
+
+<section class="sheet landscape">
+  <h2>Flow 3b: forgot and reset password</h2>
+  <!-- @diagram diagrams/flow-recovery.mjs caption="The reply never reveals whether an email has an account. A reset ends every other session." -->
+  <div class="legend flow-key">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action</span>
+    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Email sent</span>
+    <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional or conditional</span>
+  </div>
+</section>
+
+<section class="sheet landscape">
+  <h2>Flow 4: scan a leaf</h2>
+  <!-- @diagram diagrams/flow-scan.mjs caption="The core journey. Every scan ends as disease found, healthy, unknown or failed, and leaving the page is always safe." -->
+  <div class="legend flow-key">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action or step</span>
+    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Result opens</span>
+    <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional or retry</span>
+  </div>
+</section>
+
+<section class="sheet landscape">
+  <h2>Flow 5: history and delete with undo</h2>
+  <!-- @diagram diagrams/flow-history.mjs caption="Deleting is forgiving: a short Undo window comes before the purge runs." -->
+  <div class="legend flow-key">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action</span>
+    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Return</span>
+    <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional or conditional</span>
+  </div>
+</section>
+
+<section class="sheet landscape">
+  <h2>Flow 6: handbook browse</h2>
+  <!-- @diagram diagrams/flow-handbook.mjs caption="The handbook is public. URLs are plant scoped and shareable, and back and forward work throughout." -->
+  <div class="legend flow-key">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action</span>
+    <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional or conditional</span>
+  </div>
+</section>
+
+<section class="sheet landscape">
+  <h2>Flow 7: dashboard</h2>
+  <!-- @diagram diagrams/flow-dashboard.mjs caption="One screen answers how my plants are doing, with a single primary action: Scan a leaf." -->
+  <div class="legend flow-key">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>Shows or opens</span>
+    <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Only in some states</span>
+  </div>
+</section>
+
+<section class="sheet landscape">
+  <h2>Flow 8: account</h2>
+  <!-- @diagram diagrams/flow-account.mjs caption="Three panels. Deleting the account needs a password, or typing DELETE for Google only users. Email change is not in v1." -->
+  <div class="legend flow-key">
+    <span class="legend-title">Arrows</span>
+    <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action</span>
+    <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Error path</span>
+  </div>
+</section>

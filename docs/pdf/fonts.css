@@ -1,0 +1,11 @@
+/* Local font faces (no network at render time). __FONTS__ is replaced by build.mjs with the
+   file URL of node_modules/@fontsource. Only the latin subset is embedded. */
+@font-face{font-family:"Josefin Sans";font-style:normal;font-weight:300;font-display:block;src:url("__FONTS__/josefin-sans/files/josefin-sans-latin-300-normal.woff2") format("woff2");}
+@font-face{font-family:"Josefin Sans";font-style:normal;font-weight:400;font-display:block;src:url("__FONTS__/josefin-sans/files/josefin-sans-latin-400-normal.woff2") format("woff2");}
+@font-face{font-family:"Poppins";font-style:normal;font-weight:400;font-display:block;src:url("__FONTS__/poppins/files/poppins-latin-400-normal.woff2") format("woff2");}
+@font-face{font-family:"Poppins";font-style:normal;font-weight:500;font-display:block;src:url("__FONTS__/poppins/files/poppins-latin-500-normal.woff2") format("woff2");}
+@font-face{font-family:"Poppins";font-style:normal;font-weight:600;font-display:block;src:url("__FONTS__/poppins/files/poppins-latin-600-normal.woff2") format("woff2");}
+@font-face{font-family:"Manrope";font-style:normal;font-weight:400;font-display:block;src:url("__FONTS__/manrope/files/manrope-latin-400-normal.woff2") format("woff2");}
+@font-face{font-family:"Manrope";font-style:normal;font-weight:500;font-display:block;src:url("__FONTS__/manrope/files/manrope-latin-500-normal.woff2") format("woff2");}
+@font-face{font-family:"Manrope";font-style:normal;font-weight:600;font-display:block;src:url("__FONTS__/manrope/files/manrope-latin-600-normal.woff2") format("woff2");}
+@font-face{font-family:"Manrope";font-style:normal;font-weight:700;font-display:block;src:url("__FONTS__/manrope/files/manrope-latin-700-normal.woff2") format("woff2");}

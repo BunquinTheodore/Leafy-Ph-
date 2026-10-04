@@ -83,7 +83,7 @@ What the images do:
 |---|---|---|
 | `api/Dockerfile` | `./api` | `python:3.12.11-slim-bookworm`, `uv sync --frozen --no-dev` in a builder stage, runs as a non-root user (uid 10001). `entrypoint.sh serve` (the default) runs `alembic upgrade head`, `python -m app.seeds` (catalog rows plus photo upload to the catalog bucket), then uvicorn on port 8000. Any other command is exec'd as is. |
 | `purge` service | `./api` (same image) | `python -m app.jobs.purge_storage --loop`. The loop also runs `cleanup_tokens` about hourly, so there is no separate cleanup service. Its image HEALTHCHECK is disabled in compose because it serves no HTTP. |
-| `app/Dockerfile` | `./app` | `node:24.7.0-slim`, pnpm 12.8.1 through corepack with `--frozen-lockfile`, `next build` with `output: "standalone"`, runtime stage copies `.next/standalone`, `.next/static` and `public`, runs `node server.js` as the non-root `node` user on port 3000. HEALTHCHECK requests `/robots.txt`. |
+| `app/Dockerfile` | `./app` | `node:24.7.0-slim`, pnpm 12.8.1 installed from npm (corepack failed in CI) with `--frozen-lockfile`, `next build` with `output: "standalone"`, runtime stage copies `.next/standalone`, `.next/static` and `public`, runs `node server.js` as the non-root `node` user on port 3000. HEALTHCHECK requests `/robots.txt`. |
 
 No secrets are baked in: `DATABASE_URL`, `JWT_SECRET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` and the rest
 arrive at run time from `.env` through compose. The web app reads its settings at run time, so

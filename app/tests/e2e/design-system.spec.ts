@@ -202,9 +202,26 @@ test.describe("hero fallbacks and effects", () => {
   test("buttons meet the 44px touch target", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/?nosplash");
-    for (const button of await page.locator(".hero .btn, .site-header .btn").all()) {
+    // On phones the header CTA is hidden on purpose: the hero carries the primary action and the
+    // member bottom nav carries Scan. Every button that is shown must be at least 44px tall.
+    await expect(page.locator(".site-header__cta")).toBeHidden();
+    await expect(page.locator(".hero .btn").first()).toBeVisible();
+    const buttons = await page.locator(".hero .btn, .site-header .btn").all();
+    let checked = 0;
+    for (const button of buttons) {
+      if (!(await button.isVisible())) continue;
       const box = await button.boundingBox();
       expect(box?.height ?? 0).toBeGreaterThanOrEqual(43.5);
+      checked += 1;
     }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  test("the header CTA is shown on desktop and meets the 44px target", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/?nosplash");
+    const cta = page.locator(".site-header__cta");
+    await expect(cta).toBeVisible();
+    expect((await cta.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(43.5);
   });
 });

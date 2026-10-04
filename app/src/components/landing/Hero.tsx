@@ -2,11 +2,17 @@ import { en } from "@/lib/i18n/en";
 import { LinkButton } from "../ui/Button";
 import { HeroScene } from "./HeroScene";
 
-/** Landing hero: one viewport stage with the leaf scene behind real HTML content. */
-export function Hero() {
+/**
+ * Landing hero: the leaf scene behind real HTML content. Standalone it is a full stage;
+ * `embedded` fills the first sideways panel instead.
+ */
+export function Hero({ embedded = false }: { embedded?: boolean }) {
   const copy = en.hero;
   return (
-    <section className="hero stage-fill" aria-labelledby="hero-title">
+    <section
+      className={embedded ? "hero hero--embedded" : "hero stage-fill"}
+      aria-labelledby="hero-title"
+    >
       <HeroScene />
       <div className="hero__content">
         <p className="eyebrow m-0">{copy.eyebrow}</p>

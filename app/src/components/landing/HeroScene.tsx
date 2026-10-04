@@ -1,34 +1,27 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { LogoMark } from "../brand/Logo";
+import { useDeferredMount } from "../three/deferred-mount";
+import { useInView } from "./useInView";
 
 const HeroSceneCanvas = dynamic(() => import("./HeroSceneCanvas"), { ssr: false });
 
-const IDLE_TIMEOUT_MS = 1200;
-
 /**
  * The hero background. A static poster (mark and glow) is always in the HTML as the LCP safe
- * layer; the three.js canvas loads after idle and fades in over it. No WebGL keeps the poster.
+ * layer; the three.js canvas loads once the page has settled and fades in over it. No WebGL keeps the poster.
  */
 export function HeroScene() {
-  const [mounted, setMounted] = useState(false);
+  const host = useRef<HTMLDivElement>(null);
+  const visible = useInView(host, 0.5);
+  const idle = useDeferredMount();
   const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    if (typeof window.requestIdleCallback === "function") {
-      const handle = window.requestIdleCallback(() => setMounted(true), {
-        timeout: IDLE_TIMEOUT_MS,
-      });
-      return () => window.cancelIdleCallback(handle);
-    }
-    const timer = window.setTimeout(() => setMounted(true), 300);
-    return () => window.clearTimeout(timer);
-  }, []);
+  // Sideways panels: the canvas lives only while the hero is on screen (one WebGL context at a time).
+  const mounted = idle && visible;
 
   return (
-    <div className="hero__scene" data-ready={ready} aria-hidden="true">
+    <div ref={host} className="hero__scene" data-ready={ready && mounted} aria-hidden="true">
       <div className="hero__poster">
         <LogoMark height={300} />
       </div>

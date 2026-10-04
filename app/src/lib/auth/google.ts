@@ -1,18 +1,28 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 import { authSessionSchema } from "../api/types";
 import { readJson } from "../api/envelope";
 import { getEnv, type AppEnv } from "../env";
+import { forwardedClientIp } from "../http/client-ip";
 import { sanitizeNext } from "../http/safe-redirect";
 import { clearOauthCookie, cookieNames, setOauthCookie, setSessionCookies } from "./cookies";
+import { NOTICE_COOKIE, NOTICE_MAX_AGE_SECONDS, noticeAfterGoogle } from "./notice";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-const MOCK_CODE = "mock-code";
+const MOCK_EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}$/;
+const MOCK_DEFAULT_EMAIL = "dev@example.com";
 const PASS_THROUGH_ERRORS = new Set([
   "google_email_unverified",
   "google_auth_failed",
   "rate_limited",
 ]);
 const RANDOM_BYTES = 32;
+
+/** What the API says happened to the account; missing flags mean a plain returning sign in. */
+const accountFlagsSchema = z.object({
+  is_new_user: z.boolean().default(false),
+  linked_existing_account: z.boolean().default(false),
+});
 
 export interface GoogleFlowDeps {
   env: AppEnv;
@@ -89,6 +99,33 @@ export function createGoogleFlow({ env, fetch: doFetch }: GoogleFlowDeps) {
     return response;
   };
 
+  /**
+   * GOOGLE_MOCK only: plays the account picker against the API's mock provider, server side, so the
+   * browser never talks to the API. `?email=` picks the identity; the API issues a single use code.
+   */
+  const startMockSignIn = async (request: NextRequest, stored: OauthState): Promise<URL | null> => {
+    const requested = request.nextUrl.searchParams.get("email") ?? "";
+    const email = MOCK_EMAIL.test(requested) ? requested : MOCK_DEFAULT_EMAIL;
+    const authorize = new URL(`${env.apiBaseUrl}/mock-google/authorize`);
+    authorize.searchParams.set("redirect_uri", env.googleRedirectUri);
+    authorize.searchParams.set("state", stored.state);
+    authorize.searchParams.set("nonce", stored.nonce);
+    authorize.searchParams.set("email", email);
+    authorize.searchParams.set("code_challenge", await codeChallengeFor(stored.verifier));
+    try {
+      const reply = await doFetch(authorize, { redirect: "manual", cache: "no-store" });
+      const location = reply.headers.get("location");
+      const code = location ? new URL(location).searchParams.get("code") : null;
+      if (!code) return null;
+      const target = new URL("/api/auth/google/callback", env.appOrigin);
+      target.searchParams.set("code", code);
+      target.searchParams.set("state", stored.state);
+      return target;
+    } catch {
+      return null;
+    }
+  };
+
   return {
     async start(request: NextRequest): Promise<NextResponse> {
       if (!env.googleMock && !env.googleClientId) return toLogin("google_unavailable");
@@ -102,9 +139,9 @@ export function createGoogleFlow({ env, fetch: doFetch }: GoogleFlowDeps) {
 
       let target: URL;
       if (env.googleMock) {
-        target = new URL("/api/auth/google/callback", env.appOrigin);
-        target.searchParams.set("code", MOCK_CODE);
-        target.searchParams.set("state", stored.state);
+        const mockTarget = await startMockSignIn(request, stored);
+        if (!mockTarget) return toLogin("google_auth_failed");
+        target = mockTarget;
       } else {
         target = new URL(GOOGLE_AUTH_URL);
         target.searchParams.set("client_id", env.googleClientId);
@@ -137,6 +174,7 @@ export function createGoogleFlow({ env, fetch: doFetch }: GoogleFlowDeps) {
       const code = params.get("code");
       if (!code) return toLogin("google_auth_failed");
 
+      const clientIp = forwardedClientIp(request.headers, env.trustedProxyHops);
       let upstream: Response;
       try {
         upstream = await doFetch(`${env.apiBaseUrl}/auth/google`, {
@@ -145,6 +183,7 @@ export function createGoogleFlow({ env, fetch: doFetch }: GoogleFlowDeps) {
             "content-type": "application/json",
             accept: "application/json",
             "x-request-id": crypto.randomUUID(),
+            ...(clientIp ? { "x-forwarded-for": clientIp } : {}),
           },
           body: JSON.stringify({
             code,
@@ -172,6 +211,23 @@ export function createGoogleFlow({ env, fetch: doFetch }: GoogleFlowDeps) {
       const response = NextResponse.redirect(new URL(sanitizeNext(stored.next), env.appOrigin));
       setSessionCookies(response.cookies, session.data, env);
       clearOauthCookie(response.cookies, env);
+      const flags = accountFlagsSchema.safeParse(payload?.data);
+      const notice = flags.success
+        ? noticeAfterGoogle({
+            isNewUser: flags.data.is_new_user,
+            linkedExistingAccount: flags.data.linked_existing_account,
+          })
+        : null;
+      if (notice) {
+        // Readable by the page (not httpOnly) so it can show the notice once and delete the cookie.
+        response.cookies.set(NOTICE_COOKIE, notice, {
+          httpOnly: false,
+          secure: env.cookieSecure,
+          sameSite: "lax",
+          path: "/",
+          maxAge: NOTICE_MAX_AGE_SECONDS,
+        });
+      }
       response.headers.set("cache-control", "no-store");
       return response;
     },

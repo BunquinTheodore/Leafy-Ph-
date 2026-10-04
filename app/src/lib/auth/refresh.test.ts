@@ -24,6 +24,26 @@ describe("createRefresher", () => {
     expect(JSON.parse(fetchMock.calls[0]?.body ?? "{}")).toEqual({ refresh_token: "rt-old" });
   });
 
+  it("keeps the held refresh token when the API answers with a null one (grace window)", async () => {
+    const fetchMock = createMockFetch({
+      "POST /auth/refresh": () =>
+        ok({
+          access_token: "at-grace",
+          refresh_token: null,
+          token_type: "bearer",
+          expires_in: 900,
+          refresh_expires_at: null,
+        }),
+    });
+    const refresh = createRefresher({ fetch: fetchMock, apiBaseUrl: API });
+    const result = await refresh("rt-held");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.session.access_token).toBe("at-grace");
+      expect(result.session.refresh_token).toBe("rt-held");
+    }
+  });
+
   it("collapses concurrent calls with the same token into one request", async () => {
     const fetchMock = createMockFetch({ "POST /auth/refresh": () => ok(mockSession()) });
     const refresh = createRefresher({ fetch: fetchMock, apiBaseUrl: API });

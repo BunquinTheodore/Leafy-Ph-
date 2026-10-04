@@ -19,3 +19,11 @@ export function indexForHash(hash: string, ids: readonly string[]): number | nul
   const index = ids.indexOf(decoded);
   return index === -1 ? null : index;
 }
+
+/**
+ * Panels this close to the active one may load their images; farther ones wait (CSS hides their
+ * lazy images, so the browser does not fetch pictures several screens away while the page loads).
+ */
+export function isNearActive(index: number, active: number): boolean {
+  return Math.abs(index - active) <= 1;
+}

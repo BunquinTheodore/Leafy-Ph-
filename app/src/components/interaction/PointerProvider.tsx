@@ -5,16 +5,15 @@ import { FINE_POINTER_QUERY, readEffectsOff } from "./hooks";
 import { pointerFraction } from "./math";
 
 /**
- * One passive, rAF throttled pointermove listener for the whole app. It writes the viewport
- * position to --mx/--my on <html> and the position inside the hovered surface to --px/--py
- * (0..1) on elements marked data-pointer-surface. Components read these in CSS, so there are no
- * per element listeners and no React re-renders.
+ * One passive, rAF throttled pointermove listener for the whole app. It writes the position inside
+ * the hovered surface to --px/--py (0..1) on elements marked data-pointer-surface. Components read
+ * these in CSS, so there are no per element listeners and no React re-renders. Nothing is written
+ * to <html>: a custom property changed on the root restyles the whole document on every frame.
  */
 export function PointerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!window.matchMedia(FINE_POINTER_QUERY).matches || readEffectsOff()) return;
 
-    const root = document.documentElement;
     let frame = 0;
     let latest: PointerEvent | null = null;
     let active: HTMLElement | null = null;
@@ -28,8 +27,6 @@ export function PointerProvider({ children }: { children: ReactNode }) {
       frame = 0;
       const event = latest;
       if (!event) return;
-      root.style.setProperty("--mx", String(event.clientX));
-      root.style.setProperty("--my", String(event.clientY));
       const surface =
         event.target instanceof Element
           ? event.target.closest<HTMLElement>("[data-pointer-surface]")

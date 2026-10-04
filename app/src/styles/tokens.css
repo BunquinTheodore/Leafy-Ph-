@@ -18,6 +18,7 @@
   --accent: #ffb300;
   --info: #5cc8d0;
   --danger: #ff6b6b;
+  --on-danger: #1a0505;
   --on-brand: #06120b;
   --on-accent: #1a1100;
   --logo-big: #40c057;
@@ -41,6 +42,7 @@
   --accent: #955d00;
   --info: #0f7480;
   --danger: #c0362c;
+  --on-danger: #ffffff;
   --on-brand: #ffffff;
   --on-accent: #ffffff;
   --logo-big: #17542d;
@@ -65,6 +67,7 @@
     --accent: #955d00;
     --info: #0f7480;
     --danger: #c0362c;
+    --on-danger: #ffffff;
     --on-brand: #ffffff;
     --on-accent: #ffffff;
     --logo-big: #17542d;

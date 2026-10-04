@@ -1,0 +1,70 @@
+.state-page {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  align-items: center;
+  padding: var(--space-6) var(--gutter);
+  background:
+    radial-gradient(
+      55% 70% at 80% 45%,
+      color-mix(in srgb, var(--brand-deep) 45%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      45% 55% at 10% 90%,
+      color-mix(in srgb, var(--brand-deep) 25%, transparent),
+      transparent 70%
+    );
+}
+
+.state-page__mark {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: grid;
+  place-items: center end;
+  padding-right: 10vw;
+}
+
+.state-page__mark svg {
+  width: clamp(160px, 28vw, 380px);
+  height: auto;
+  opacity: 0.35;
+}
+
+.state-page__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: 1600px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.state-page__content .display {
+  max-width: 26ch;
+}
+
+.state-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.state-page__note {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+@media (max-width: 720px) {
+  .state-page__mark {
+    place-items: start center;
+    padding: 4vh 0 0;
+  }
+
+  .state-page__actions .btn {
+    flex: 1 1 100%;
+  }
+}

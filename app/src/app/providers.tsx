@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { FlashNotice } from "@/components/layout/FlashNotice";
 import { PointerProvider } from "@/components/interaction/PointerProvider";
 import { SfxProvider } from "@/components/sfx/SfxProvider";
 import { SplashReady } from "@/components/splash/SplashReady";
@@ -12,6 +13,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <SfxProvider>
         <ToastProvider>
           {children}
+          <FlashNotice />
           <SplashReady />
         </ToastProvider>
       </SfxProvider>

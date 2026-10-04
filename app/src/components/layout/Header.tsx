@@ -1,25 +1,15 @@
-import Link from "next/link";
-import { en } from "@/lib/i18n/en";
-import { Logo } from "../brand/Logo";
-import { SoundToggle, ThemeToggle } from "./Toggles";
+import { getSessionUser } from "@/lib/auth/current-user";
+import { HeaderBar } from "./HeaderBar";
+import "./member.css";
 
-/** Guest header for the checkpoint: mark, public links, sound and theme toggles. */
-export function Header() {
+/** Shared header (server side): looks up the signed in user once per request. */
+export async function Header() {
+  const user = await getSessionUser();
   return (
-    <header className="site-header">
-      <Link href="/" aria-label={en.nav.home} className="inline-flex min-h-[44px] items-center">
-        <Logo height={30} />
-      </Link>
-      <nav aria-label={en.nav.primary} className="site-nav">
-        <Link href="/handbook" className="nav-link pressable">
-          {en.nav.handbook}
-        </Link>
-        <Link href="/login" className="nav-link pressable">
-          {en.nav.signIn}
-        </Link>
-        <SoundToggle />
-        <ThemeToggle />
-      </nav>
-    </header>
+    <HeaderBar
+      user={
+        user ? { firstName: user.first_name, lastName: user.last_name, email: user.email } : null
+      }
+    />
   );
 }

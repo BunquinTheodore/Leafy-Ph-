@@ -26,6 +26,18 @@ describe("parseEnv", () => {
     expect(env.appOrigin).toBe("http://x.test");
   });
 
+  it("refuses the mock Google provider on a production like (Secure cookie) setup", () => {
+    expect(() => parseEnv({ ...base, GOOGLE_MOCK: "1", COOKIE_SECURE: "true" })).toThrow(
+      /GOOGLE_MOCK/,
+    );
+    expect(parseEnv({ ...base, GOOGLE_MOCK: "1" }).googleMock).toBe(true);
+  });
+
+  it("refuses the mock Google provider when ENV=prod even without Secure cookies", () => {
+    expect(() => parseEnv({ ...base, GOOGLE_MOCK: "1", ENV: "prod" })).toThrow(/GOOGLE_MOCK/);
+    expect(parseEnv({ ...base, GOOGLE_MOCK: "0", ENV: "prod" }).googleMock).toBe(false);
+  });
+
   it("requires Secure cookies for the __Host- prefix", () => {
     expect(() => parseEnv({ ...base, COOKIE_PREFIX: "__Host-", COOKIE_SECURE: "false" })).toThrow();
     const env = parseEnv({ ...base, COOKIE_PREFIX: "__Host-", COOKIE_SECURE: "true" });

@@ -1,0 +1,75 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "node scripts/lh-serve.mjs",
+      "startServerReadyPattern": "Lighthouse server ready",
+      "startServerReadyTimeout": 180000,
+      "url": [
+        "https://localhost:3443/dashboard",
+        "https://localhost:3443/scan",
+        "https://localhost:3443/scans"
+      ],
+      "numberOfRuns": 3,
+      "settings": {
+        "chromeFlags": "--ignore-certificate-errors --no-sandbox --disable-gpu"
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": [
+          "error",
+          {
+            "minScore": 0.85,
+            "aggregationMethod": "median-run"
+          }
+        ],
+        "categories:accessibility": [
+          "error",
+          {
+            "minScore": 0.9,
+            "aggregationMethod": "median-run"
+          }
+        ],
+        "categories:best-practices": [
+          "error",
+          {
+            "minScore": 0.9,
+            "aggregationMethod": "median-run"
+          }
+        ],
+        "largest-contentful-paint": [
+          "warn",
+          {
+            "maxNumericValue": 2500,
+            "aggregationMethod": "median"
+          }
+        ],
+        "cumulative-layout-shift": [
+          "error",
+          {
+            "maxNumericValue": 0.1,
+            "aggregationMethod": "median"
+          }
+        ],
+        "total-blocking-time": [
+          "warn",
+          {
+            "maxNumericValue": 200,
+            "aggregationMethod": "median"
+          }
+        ],
+        "first-contentful-paint": [
+          "warn",
+          {
+            "maxNumericValue": 1800,
+            "aggregationMethod": "median"
+          }
+        ]
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": ".lighthouseci-member"
+    }
+  }
+}

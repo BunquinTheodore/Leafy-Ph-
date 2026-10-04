@@ -4,3 +4,8 @@ coverage
 pnpm-lock.yaml
 src/lib/api/schema.d.ts
 next-env.d.ts
+.next-*
+test-results*
+playwright-report
+.lighthouseci*
+tsconfig.json

@@ -1,0 +1,289 @@
+/* Auth and token pages: one viewport stage, intro beside a glass card, drifting leaves behind. */
+.auth-stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  align-items: center;
+  min-height: calc(100dvh - var(--header-h) - var(--footer-h, 0px));
+  padding: var(--space-6) var(--gutter);
+}
+
+.auth-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.auth-backdrop__poster {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center start;
+  padding-left: 8vw;
+  background:
+    radial-gradient(
+      55% 70% at 20% 45%,
+      color-mix(in srgb, var(--brand-deep) 50%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      50% 60% at 90% 90%,
+      color-mix(in srgb, var(--brand-deep) 30%, transparent),
+      transparent 70%
+    );
+  transition: opacity var(--dur-scene) var(--ease);
+}
+
+.auth-backdrop__poster svg {
+  width: clamp(140px, 22vw, 300px);
+  height: auto;
+  opacity: 0.4;
+}
+
+.auth-backdrop[data-ready="true"] .auth-backdrop__poster {
+  opacity: 0;
+}
+
+.auth-backdrop__canvas {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--dur-scene) var(--ease);
+}
+
+.auth-backdrop[data-ready="true"] .auth-backdrop__canvas {
+  opacity: 1;
+}
+
+/* Keeps the title and the form readable wherever a leaf drifts behind them. */
+.auth-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--bg) 82%, transparent),
+      color-mix(in srgb, var(--bg) 60%, transparent) 38%,
+      transparent 62%
+    ),
+    radial-gradient(
+      70% 80% at 50% 50%,
+      color-mix(in srgb, var(--bg) 45%, transparent),
+      transparent 75%
+    );
+}
+
+.auth-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 27rem);
+  align-items: center;
+  gap: clamp(24px, 6vw, 112px);
+  width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
+}
+
+.auth-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.auth-intro .display {
+  max-width: 14ch;
+}
+
+.auth-card {
+  width: 100%;
+  padding: clamp(20px, 3vw, 32px);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.auth-form__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.auth-form__links a,
+.auth-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--brand-glow);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+[data-theme="light"] .auth-form__links a,
+[data-theme="light"] .auth-link {
+  color: var(--brand);
+}
+
+.auth-legal {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+.auth-legal a {
+  color: var(--text);
+  text-underline-offset: 3px;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-1) 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.auth-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.auth-state > p {
+  margin: 0;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+.auth-state__icon {
+  color: var(--brand-glow);
+}
+
+.auth-state__icon[data-tone="warning"] {
+  color: var(--accent);
+}
+
+/* Full width actions; the show password icon button keeps its own 44px size. */
+.auth-state .btn:not(.btn-icon),
+.auth-form .btn:not(.btn-icon) {
+  width: 100%;
+}
+
+.auth-hint-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0 var(--space-2);
+  font-size: 0.875rem;
+}
+
+/* ---- Google button (follows Google's light and dark button guidelines) ---- */
+.google-btn {
+  --google-bg: #ffffff;
+  --google-border: #747775;
+  --google-text: #1f1f1f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--google-border);
+  border-radius: var(--radius-pill);
+  background: var(--google-bg);
+  color: var(--google-text);
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .google-btn,
+:root:not([data-theme]) .google-btn {
+  --google-bg: #131314;
+  --google-border: #8e918f;
+  --google-text: #e3e3e3;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .google-btn {
+    --google-bg: #ffffff;
+    --google-border: #747775;
+    --google-text: #1f1f1f;
+  }
+}
+
+.google-btn:hover {
+  box-shadow: 0 0 0 1px var(--google-border);
+}
+
+.google-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  box-shadow: var(--glow);
+}
+
+.google-btn[aria-busy="true"] {
+  opacity: 0.75;
+}
+
+.google-btn svg {
+  flex: none;
+}
+
+/* ---- Phones: title above the card, tight spacing so the form stays on one screen ---- */
+@media (max-width: 899px) {
+  .auth-stage {
+    align-items: start;
+    padding-block: var(--space-4);
+  }
+
+  .auth-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    max-width: 30rem;
+  }
+
+  .auth-intro {
+    gap: var(--space-2);
+  }
+
+  .auth-intro .display {
+    max-width: none;
+  }
+
+  .auth-intro .blurb {
+    display: none;
+  }
+}
+
+@media (min-width: 900px) and (max-height: 700px) {
+  .auth-intro .blurb {
+    display: none;
+  }
+}

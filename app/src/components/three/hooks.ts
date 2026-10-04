@@ -20,10 +20,16 @@ function detectWebGL(): boolean {
   }
 }
 
-/** `null` until checked on the client, then true or false. Render the poster for null and false. */
-export function useWebGLSupport(): boolean | null {
+/**
+ * `null` until checked on the client, then true or false. Render the poster for null and false.
+ * Creating a context is slow on machines with software GL (it blocked the main thread for
+ * seconds in lab runs), so callers that are not about to draw pass `active = false` until they are.
+ */
+export function useWebGLSupport(active = true): boolean | null {
   const [supported, setSupported] = useState<boolean | null>(null);
-  useEffect(() => setSupported(detectWebGL()), []);
+  useEffect(() => {
+    if (active) setSupported(detectWebGL());
+  }, [active]);
   return supported;
 }
 
@@ -66,25 +72,35 @@ export function useSceneColors(): SceneColors {
   return colors;
 }
 
-/** Only one WebGL canvas should render per page; later ones stay on the poster. */
+/** Only one WebGL canvas should render per page; later ones stay on the poster until it is free. */
 const activeCanvases = new Set<string>();
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((listener) => listener());
 
+function subscribeToCanvases(onChange: () => void): () => void {
+  listeners.add(onChange);
+  return () => listeners.delete(onChange);
+}
+
 export function useSingleActiveCanvas(id: string): boolean {
   useEffect(() => {
-    if (activeCanvases.size === 0 || activeCanvases.has(id)) activeCanvases.add(id);
-    emit();
-    return () => {
-      activeCanvases.delete(id);
+    let alive = true;
+    // A canvas that mounted while another was active claims the slot as soon as it is free.
+    const claim = () => {
+      if (!alive || activeCanvases.size > 0) return;
+      activeCanvases.add(id);
       emit();
+    };
+    claim();
+    listeners.add(claim);
+    return () => {
+      alive = false;
+      listeners.delete(claim);
+      if (activeCanvases.delete(id)) emit();
     };
   }, [id]);
   return useSyncExternalStore(
-    (onChange) => {
-      listeners.add(onChange);
-      return () => listeners.delete(onChange);
-    },
+    subscribeToCanvases,
     () => activeCanvases.has(id),
     () => true,
   );

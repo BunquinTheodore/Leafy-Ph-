@@ -73,15 +73,51 @@ describe("google start", () => {
     );
   });
 
-  it("in mock mode loops straight back to the callback", async () => {
+  it("in mock mode takes a code from the API mock provider and returns to the callback", async () => {
+    const mock = parseEnv({ ...baseEnv, GOOGLE_CLIENT_ID: "", GOOGLE_MOCK: "1" });
+    const fetchMock = createMockFetch({
+      "GET /mock-google/authorize": ({ url }) =>
+        new Response(null, {
+          status: 302,
+          headers: {
+            location: `${ORIGIN}/api/auth/google/callback?code=real-code&state=${url.searchParams.get("state")}`,
+          },
+        }),
+    });
+    const res = await createGoogleFlow({ env: mock, fetch: fetchMock }).start(
+      get("/api/auth/google?email=ada@example.com"),
+    );
+    const url = new URL(res.headers.get("location") ?? "");
+    expect(url.pathname).toBe("/api/auth/google/callback");
+    expect(url.searchParams.get("code")).toBe("real-code");
+    expect(url.searchParams.get("state")).toBeTruthy();
+    const asked = new URL(fetchMock.calls[0]?.url ?? "");
+    expect(asked.searchParams.get("email")).toBe("ada@example.com");
+    expect(asked.searchParams.get("code_challenge")?.length).toBeGreaterThanOrEqual(43);
+    expect(asked.searchParams.get("redirect_uri")).toBe(`${ORIGIN}/api/auth/google/callback`);
+  });
+
+  it("in mock mode falls back to the default identity for a malformed email", async () => {
+    const mock = parseEnv({ ...baseEnv, GOOGLE_CLIENT_ID: "", GOOGLE_MOCK: "1" });
+    const fetchMock = createMockFetch({
+      "GET /mock-google/authorize": () =>
+        new Response(null, { status: 302, headers: { location: `${ORIGIN}/cb?code=c&state=s` } }),
+    });
+    await createGoogleFlow({ env: mock, fetch: fetchMock }).start(
+      get("/api/auth/google?email=not-an-email"),
+    );
+    const asked = new URL(fetchMock.calls[0]?.url ?? "");
+    expect(asked.searchParams.get("email")).toBe("dev@example.com");
+  });
+
+  it("in mock mode sends the visitor to login when the mock provider fails", async () => {
     const mock = parseEnv({ ...baseEnv, GOOGLE_CLIENT_ID: "", GOOGLE_MOCK: "1" });
     const res = await createGoogleFlow({ env: mock, fetch: createMockFetch({}) }).start(
       get("/api/auth/google"),
     );
     const url = new URL(res.headers.get("location") ?? "");
-    expect(url.pathname).toBe("/api/auth/google/callback");
-    expect(url.searchParams.get("code")).toBe("mock-code");
-    expect(url.searchParams.get("state")).toBeTruthy();
+    expect(url.pathname).toBe("/login");
+    expect(url.searchParams.get("error")).toBe("google_auth_failed");
   });
 });
 
@@ -115,6 +151,61 @@ describe("google callback", () => {
     expect(apiBody.redirect_uri).toBe(`${ORIGIN}/api/auth/google/callback`);
     expect(apiBody.code_verifier?.length).toBeGreaterThanOrEqual(43);
     expect(apiBody.nonce?.length).toBeGreaterThanOrEqual(32);
+  });
+
+  it.each([
+    [
+      "a first time Google user",
+      { is_new_user: true, linked_existing_account: false },
+      "google_welcome",
+    ],
+    [
+      "an account linked to Google",
+      { is_new_user: false, linked_existing_account: true },
+      "google_linked",
+    ],
+  ])("leaves a one time notice cookie for %s", async (_label, flags, notice) => {
+    const fetchMock = createMockFetch({
+      "POST /auth/google": () => ok({ ...mockSession(), ...flags }),
+    });
+    const flow = createGoogleFlow({ env, fetch: fetchMock });
+    const { state, cookie } = await startAndGetState(flow, "/dashboard");
+    const res = await flow.callback(
+      get(`/api/auth/google/callback?code=abc&state=${state}`, cookie),
+    );
+    const raw = res.headers.getSetCookie().find((c) => c.startsWith("leafy_notice=")) ?? "";
+    expect(raw).toContain(`leafy_notice=${notice}`);
+    expect(raw).toContain("Max-Age=120");
+    expect(raw.toLowerCase()).not.toContain("httponly");
+  });
+
+  it("sets no notice cookie for a plain returning Google sign in", async () => {
+    const fetchMock = createMockFetch({
+      "POST /auth/google": () =>
+        ok({ ...mockSession(), is_new_user: false, linked_existing_account: false }),
+    });
+    const flow = createGoogleFlow({ env, fetch: fetchMock });
+    const { state, cookie } = await startAndGetState(flow, "/dashboard");
+    const res = await flow.callback(
+      get(`/api/auth/google/callback?code=abc&state=${state}`, cookie),
+    );
+    expect(res.headers.getSetCookie().join(";")).not.toContain("leafy_notice=");
+  });
+
+  it("forwards the trusted client address to the API and drops a spoofed one", async () => {
+    const trusted = parseEnv({ ...baseEnv, TRUSTED_PROXY_HOPS: "1" });
+    const run = async (hopsEnv: typeof env, xff: string) => {
+      const fetchMock = createMockFetch({ "POST /auth/google": () => ok(mockSession()) });
+      const flow = createGoogleFlow({ env: hopsEnv, fetch: fetchMock });
+      const { state, cookie } = await startAndGetState(flow);
+      const req = new NextRequest(`${ORIGIN}/api/auth/google/callback?code=abc&state=${state}`, {
+        headers: { cookie, "x-forwarded-for": xff },
+      });
+      await flow.callback(req);
+      return fetchMock.calls[0]?.headers.get("x-forwarded-for") ?? null;
+    };
+    expect(await run(trusted, "6.6.6.6, 203.0.113.7")).toBe("203.0.113.7");
+    expect(await run(env, "6.6.6.6")).toBeNull();
   });
 
   it("rejects a state mismatch without calling the API", async () => {

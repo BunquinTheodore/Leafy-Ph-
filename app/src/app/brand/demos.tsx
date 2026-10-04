@@ -113,7 +113,7 @@ const SOUNDS: Array<{ name: SoundName; label: string; note: string }> = [
 export function SoundDemo() {
   const sfx = useSfx();
   return (
-    <ul className="m-0 grid list-none grid-cols-1 gap-2 p-0 sm:grid-cols-3">
+    <ul className="m-0 grid list-none grid-cols-1 gap-2 p-0 sm:grid-cols-2 xl:grid-cols-3">
       {SOUNDS.map((sound) => (
         <li key={sound.name}>
           <button

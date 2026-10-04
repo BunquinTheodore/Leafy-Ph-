@@ -1,5 +1,5 @@
 import { readJson } from "../api/envelope";
-import { sessionTokensSchema, type SessionTokens } from "../api/types";
+import { refreshOutSchema, type SessionTokens } from "../api/types";
 import { getEnv } from "../env";
 
 export const REFRESH_RETENTION_MS = 15_000;
@@ -49,9 +49,19 @@ async function callRefresh(deps: RefresherDeps, refreshToken: string): Promise<R
   if (!response.ok) {
     return { ok: false, status: response.status, code: body?.error?.code ?? "refresh_invalid" };
   }
-  const parsed = sessionTokensSchema.safeParse(body?.data);
+  const parsed = refreshOutSchema.safeParse(body?.data);
   if (!parsed.success) return { ok: false, status: 502, code: "invalid_response" };
-  return { ok: true, session: parsed.data };
+  const { access_token, refresh_token, expires_in, refresh_expires_at } = parsed.data;
+  // A null refresh token means a concurrent rotation was answered in the grace window: keep ours.
+  return {
+    ok: true,
+    session: {
+      access_token,
+      refresh_token: refresh_token ?? refreshToken,
+      expires_in,
+      refresh_expires_at,
+    },
+  };
 }
 
 /**

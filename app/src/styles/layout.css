@@ -72,6 +72,11 @@
   scroll-behavior: smooth;
 }
 
+.panels__viewport:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -4px;
+}
+
 .panels__viewport::-webkit-scrollbar {
   display: none;
 }
@@ -92,8 +97,19 @@
   content-visibility: auto;
 }
 
+/* Lazy pictures several panels away are not fetched until the panel gets near (see isNearActive). */
+.panels__panel[data-near="false"] img[loading="lazy"] {
+  display: none;
+}
+
+.panels__panel:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -4px;
+}
+
 .panels__controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: var(--space-4);
@@ -102,6 +118,10 @@
 
 .panels__dots {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-width: 0;
+  max-width: 100%;
   align-items: center;
   gap: var(--space-1);
   margin: 0;
@@ -305,6 +325,12 @@
 }
 
 @media (max-width: 720px) {
+  /* Full width, so the buttons always stack: a content sized row would wrap or not depending on
+     which font is loaded, which moved the whole hero when Poppins arrived. */
+  .hero__actions {
+    align-self: stretch;
+  }
+
   .hero__actions .btn {
     flex: 1 1 100%;
   }

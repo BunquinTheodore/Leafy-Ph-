@@ -1,0 +1,25 @@
+{
+  "defaultRouteKb": 170,
+  "maxChunkKb": 130,
+  "routes": {
+    "/(protected)/scan/page": 170,
+    "/(protected)/scans/[id]/page": 170,
+    "/(protected)/scans/(list)/page": 160,
+    "/(protected)/dashboard/page": 145,
+    "/(protected)/account/page": 150,
+    "/(auth)/register/page": 150,
+    "/(auth)/login/page": 150,
+    "/(public)/handbook/[plant]/[disease]/page": 150,
+    "/(public)/handbook/[plant]/page": 145,
+    "/(public)/handbook/(list)/page": 145,
+    "/(auth)/forgot-password/page": 145,
+    "/reset-password/page": 145,
+    "/verify-email/page": 145,
+    "/brand/page": 140,
+    "/(public)/page": 140,
+    "/about/page": 130,
+    "/terms/page": 130,
+    "/privacy/page": 130,
+    "/_not-found/page": 125
+  }
+}

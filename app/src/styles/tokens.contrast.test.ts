@@ -45,6 +45,7 @@ const textPairs: Array<[string, string, string, number]> = [
   ["on-accent on accent fill", "on-accent", "accent", 4.5],
   ["info on bg", "info", "bg", 4.5],
   ["danger on bg", "danger", "bg", 4.5],
+  ["on-danger on danger fill", "on-danger", "danger", 4.5],
 ];
 
 describe.each(Object.entries(themes))("%s theme tokens", (_name, tokens) => {
@@ -63,6 +64,7 @@ describe.each(Object.entries(themes))("%s theme tokens", (_name, tokens) => {
       "accent",
       "info",
       "danger",
+      "on-danger",
     ]) {
       expect(tokens[key], key).toBeDefined();
     }

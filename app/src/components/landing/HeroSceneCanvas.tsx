@@ -38,10 +38,10 @@ function HeroLeaf({
   const viewport = useThree((state) => state.viewport);
   const palette = useMemo(() => leafPalette(colors), [colors]);
   const scale = compact
-    ? Math.min(viewport.height * 0.27, viewport.width * 0.42)
+    ? Math.min(viewport.height * 0.21, viewport.width * 0.36)
     : Math.min(viewport.height * 0.4, viewport.width * 0.4);
   const position: [number, number, number] = compact
-    ? [0, viewport.height * 0.2, 0]
+    ? [0, viewport.height * 0.27, 0]
     : [viewport.width * 0.25, -viewport.height * 0.02, 0];
   return (
     <LeafModel

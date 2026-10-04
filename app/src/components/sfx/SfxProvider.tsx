@@ -49,9 +49,17 @@ function blockedByEnvironment(): boolean {
 
 type SynthModule = typeof import("./synth");
 
+/** Runs after the next paint, so audio setup never delays the visual feedback of the interaction. */
+function afterPaint(task: () => void): void {
+  requestAnimationFrame(() => window.setTimeout(task, 0));
+}
+
 /**
- * Web Audio SFX. Nothing loads or plays until the first user gesture; the synth chunk is lazy
- * loaded; hover sounds are limited to a real mouse with motion allowed; the tab hidden mutes it.
+ * Web Audio SFX. Nothing loads, is created or plays until the first user gesture (hovering alone
+ * never starts audio: the browser would keep it suspended anyway, and creating the audio context
+ * costs tens of milliseconds); the synth chunk is lazy loaded; audio setup runs after the paint of
+ * the interaction that caused it; hover sounds are limited to a real mouse with motion allowed;
+ * the tab hidden mutes it.
  */
 export function SfxProvider({ children }: { children: ReactNode }) {
   const [enabled, setEnabledState] = useState(true);
@@ -60,6 +68,7 @@ export function SfxProvider({ children }: { children: ReactNode }) {
   const synthRef = useRef<SynthModule | null>(null);
   const gateRef = useRef(new SfxGate());
   const blockedRef = useRef(false);
+  const gestureRef = useRef(false);
 
   useEffect(() => {
     const stored = readStored();
@@ -86,9 +95,11 @@ export function SfxProvider({ children }: { children: ReactNode }) {
     (name: SoundName) => {
       if (!enabledRef.current || blockedRef.current || document.hidden) return;
       if (!gateRef.current.allow(name, performance.now())) return;
-      void ensureAudio().then((ready) => {
-        const ctx = contextRef.current;
-        if (ready && ctx && synthRef.current) synthRef.current.playSound(ctx, name);
+      afterPaint(() => {
+        void ensureAudio().then((ready) => {
+          const ctx = contextRef.current;
+          if (ready && ctx && synthRef.current) synthRef.current.playSound(ctx, name);
+        });
       });
     },
     [ensureAudio],
@@ -108,6 +119,7 @@ export function SfxProvider({ children }: { children: ReactNode }) {
     const fine = window.matchMedia(FINE_POINTER_QUERY).matches;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const onDown = (event: PointerEvent) => {
+      gestureRef.current = true;
       const sound = soundForTarget(
         event.target instanceof Element ? event.target : null,
         "pointerdown",
@@ -115,7 +127,7 @@ export function SfxProvider({ children }: { children: ReactNode }) {
       if (sound) play(sound);
     };
     const onOver = (event: PointerEvent) => {
-      if (!fine || reduced || event.pointerType !== "mouse") return;
+      if (!gestureRef.current || !fine || reduced || event.pointerType !== "mouse") return;
       const sound = soundForTarget(
         event.target instanceof Element ? event.target : null,
         "pointerover",
@@ -127,11 +139,16 @@ export function SfxProvider({ children }: { children: ReactNode }) {
       if (!ctx) return;
       if (document.hidden) void ctx.suspend();
     };
+    const onKey = () => {
+      gestureRef.current = true;
+    };
     document.addEventListener("pointerdown", onDown, { passive: true });
+    document.addEventListener("keydown", onKey, { passive: true });
     document.addEventListener("pointerover", onOver, { passive: true });
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerover", onOver);
       document.removeEventListener("visibilitychange", onVisibility);
     };

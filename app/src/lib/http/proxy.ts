@@ -6,6 +6,7 @@ import { clearSessionCookies, cookieNames, setSessionCookies } from "../auth/coo
 import { isExpiringSoon } from "../auth/jwt-exp";
 import { refreshSession, type Refresher } from "../auth/refresh";
 import { getEnv, type AppEnv } from "../env";
+import { forwardedClientIp } from "./client-ip";
 import { assertSameOrigin } from "./csrf";
 import { sanitizeNext } from "./safe-redirect";
 
@@ -162,8 +163,8 @@ export function createProxy(deps: ProxyDeps) {
       ...extra,
     });
     if (access) headers.set("authorization", `Bearer ${access}`);
-    const forwarded = request.headers.get("x-forwarded-for");
-    if (forwarded) headers.set("x-forwarded-for", forwarded);
+    const clientIp = forwardedClientIp(request.headers, env.trustedProxyHops);
+    if (clientIp) headers.set("x-forwarded-for", clientIp);
     return headers;
   }
 

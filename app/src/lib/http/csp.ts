@@ -60,3 +60,16 @@ export function securityHeaders(options: SecurityHeaderOptions): Record<string, 
   }
   return headers;
 }
+
+const NO_REFERRER_PATHS = ["/reset-password", "/verify-email"] as const;
+
+/** Pages whose URL carries a one time secret must never leak it through a Referer header. */
+export function withReferrerPolicyFor(
+  pathname: string,
+  headers: Record<string, string>,
+): Record<string, string> {
+  const secret = NO_REFERRER_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+  return secret ? { ...headers, "Referrer-Policy": "no-referrer" } : headers;
+}

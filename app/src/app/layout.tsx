@@ -2,10 +2,15 @@ import type { Metadata, Viewport } from "next";
 import { Josefin_Sans, Manrope, Poppins } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import type { ReactNode } from "react";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { Header } from "@/components/layout/Header";
+import { JsonLd } from "@/components/layout/JsonLd";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 import { HEAD_SCRIPT } from "@/components/layout/head-script";
 import { Splash } from "@/components/splash/Splash";
 import { BRAND_DESCRIPTION, BRAND_NAME } from "@/lib/brand";
+import { organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
+import { siteOrigin } from "@/lib/seo/origin";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -46,6 +51,9 @@ export const metadata: Metadata = {
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
   appleWebApp: { capable: true, title: BRAND_NAME, statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false, email: false, address: false },
+  // Next emits mobile-web-app-capable from appleWebApp; older iOS wants the apple prefixed name.
+  other: { "apple-mobile-web-app-capable": "yes" },
   openGraph: {
     type: "website",
     siteName: BRAND_NAME,
@@ -89,7 +97,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <Providers>
           <Header />
           <main id="main">{children}</main>
+          <SiteFooter />
+          <BottomNav />
         </Providers>
+        <JsonLd data={websiteJsonLd(siteOrigin())} />
+        <JsonLd data={organizationJsonLd(siteOrigin())} />
       </body>
     </html>
   );

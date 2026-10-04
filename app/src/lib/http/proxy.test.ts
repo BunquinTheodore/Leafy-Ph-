@@ -43,6 +43,40 @@ function setup(routes: Parameters<typeof createMockFetch>[0]) {
 const freshAt = () => jwtWithExp(Math.floor(Date.now() / 1000) + 600);
 const staleAt = () => jwtWithExp(Math.floor(Date.now() / 1000) - 60);
 
+describe("proxy client address", () => {
+  const send = async (hops: string | undefined, xff: string) => {
+    const hopsEnv = parseEnv({
+      API_INTERNAL_URL: "http://api.test",
+      APP_ORIGIN: ORIGIN,
+      ...(hops ? { TRUSTED_PROXY_HOPS: hops } : {}),
+    });
+    const fetchMock = createMockFetch({ "POST /auth/login": () => ok(mockSession()) });
+    const proxy = createProxy({
+      env: hopsEnv,
+      fetch: fetchMock,
+      refresh: createRefresher({ fetch: fetchMock, apiBaseUrl: hopsEnv.apiBaseUrl }),
+      now: () => Date.now(),
+    });
+    await proxy.session(
+      request("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email: "a@b.co", password: "pw" }),
+        headers: { "content-type": "application/json", "x-forwarded-for": xff },
+      }),
+      { apiPath: "/auth/login" },
+    );
+    return fetchMock.calls[0]?.headers.get("x-forwarded-for") ?? null;
+  };
+
+  it("sends only the trusted, validated client address", async () => {
+    expect(await send("1", "6.6.6.6, 203.0.113.7")).toBe("203.0.113.7");
+  });
+
+  it("drops a client supplied header when no proxy is trusted", async () => {
+    expect(await send(undefined, "6.6.6.6")).toBeNull();
+  });
+});
+
 describe("proxy.session (login/register style)", () => {
   it("sets cookies and never returns tokens to the browser", async () => {
     const { proxy } = setup({ "POST /auth/login": () => ok(mockSession()) });

@@ -28,6 +28,7 @@ export function mockSession(overrides: Partial<AuthSessionOut> = {}): AuthSessio
     refresh_token: "rt-new",
     token_type: "bearer",
     expires_in: 900,
+    refresh_expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString(),
     user: mockUser,
     ...overrides,
   };

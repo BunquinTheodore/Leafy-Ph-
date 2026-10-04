@@ -136,16 +136,20 @@ export function EmptyState({
   title,
   children,
   action,
+  headingLevel = 3,
 }: {
   icon?: LucideIcon;
   title: string;
   children?: ReactNode;
   action?: ReactNode;
+  /** 2 when the state sits directly under the page title, 3 (default) when it sits inside a section. */
+  headingLevel?: 2 | 3;
 }) {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
   return (
     <div className="empty">
       <Icon className="empty__icon" size={40} strokeWidth={1.5} aria-hidden="true" />
-      <h3 className="h3">{title}</h3>
+      <Heading className="h3">{title}</Heading>
       {children ? <p className="blurb m-0">{children}</p> : null}
       {action}
     </div>

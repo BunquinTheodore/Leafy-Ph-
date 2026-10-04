@@ -54,6 +54,20 @@ describe("middleware", () => {
     expect(setCookies).toContain("leafy_at=");
   });
 
+  it.each(["/reset-password?token=abc", "/verify-email?token=abc"])(
+    "sends Referrer-Policy: no-referrer on the token page %s",
+    async (path) => {
+      const res = await run(path);
+      expect(res.status).toBe(200);
+      expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    },
+  );
+
+  it("keeps the normal referrer policy elsewhere", async () => {
+    const res = await run("/about");
+    expect(res.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
+  });
+
   it("lets public routes through with a nonce CSP and hardening headers", async () => {
     const res = await run("/");
     expect(res.status).toBe(200);
@@ -62,6 +76,18 @@ describe("middleware", () => {
     );
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
     expect(res.headers.get("x-frame-options")).toBe("DENY");
+  });
+
+  it("allows the public storage origin in img-src and nothing wider", async () => {
+    process.env.S3_PUBLIC_ENDPOINT = "http://127.0.0.1:9000/leafy-scans";
+    try {
+      const csp = (await run("/")).headers.get("content-security-policy") ?? "";
+      expect(csp).toMatch(/img-src 'self' data: blob: http:\/\/127\.0\.0\.1:9000(;|$)/);
+    } finally {
+      delete process.env.S3_PUBLIC_ENDPOINT;
+    }
+    const without = (await run("/")).headers.get("content-security-policy") ?? "";
+    expect(without).toMatch(/img-src 'self' data: blob:(;|$)/);
   });
 
   it("refreshes proactively and sets the rotated cookies", async () => {

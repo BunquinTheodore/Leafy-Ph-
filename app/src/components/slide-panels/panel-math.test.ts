@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { indexForHash, indexForScroll } from "./panel-math";
+import { indexForHash, indexForScroll, isNearActive } from "./panel-math";
 
 describe("indexForScroll", () => {
   it("snaps to the nearest panel", () => {
@@ -30,5 +30,21 @@ describe("indexForHash", () => {
     expect(indexForHash("#", ids)).toBeNull();
     expect(indexForHash("#nope", ids)).toBeNull();
     expect(indexForHash("#%E0%A4%A", ids)).toBeNull();
+  });
+});
+
+describe("isNearActive", () => {
+  it("keeps the active panel and its direct neighbours near", () => {
+    expect([0, 1, 2, 3, 4].map((index) => isNearActive(index, 2))).toEqual([
+      false,
+      true,
+      true,
+      true,
+      false,
+    ]);
+  });
+
+  it("treats the first and last panels as having one neighbour", () => {
+    expect([0, 1, 2].map((index) => isNearActive(index, 0))).toEqual([true, true, false]);
   });
 });

@@ -1,0 +1,170 @@
+/* Legal and About pages: a title strip over sideways section panels. */
+.doc-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.doc-page .panels {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+}
+
+.doc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-6);
+  padding: var(--space-6) var(--gutter) 0;
+}
+
+.doc-head__titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.doc-head .display {
+  max-width: none;
+}
+
+.doc-draft {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 0.8125rem;
+}
+
+/* Each panel: the section title on the left, the reading text on the right. */
+.doc-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: start;
+  gap: clamp(24px, 5vw, 80px);
+  max-width: 1400px;
+  margin-inline: auto;
+  padding-block: var(--space-4);
+}
+
+.doc-panel__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.doc-panel__count {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 300;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.doc-panel .prose ul {
+  padding-left: 1.1em;
+}
+
+.doc-contents {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-6);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: contents;
+}
+
+.doc-contents li {
+  counter-increment: contents;
+}
+
+.doc-contents a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-card);
+  font-family: var(--font-heading);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.doc-contents a::before {
+  content: counter(contents, decimal-leading-zero);
+  font-variant-numeric: tabular-nums;
+  color: var(--brand-glow);
+  font-size: 0.8125rem;
+}
+
+[data-theme="light"] .doc-contents a::before {
+  color: var(--brand);
+}
+
+.doc-contents a:hover {
+  background: color-mix(in srgb, var(--brand) 14%, transparent);
+}
+
+.doc-contents a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 899px) {
+  .doc-panel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  /* Phones: two columns and no intro paragraph, so the whole list fits without scrolling. */
+  .doc-contents {
+    gap: 0 var(--space-2);
+    margin-top: 0;
+  }
+
+  .doc-contents a {
+    padding: 0 var(--space-2);
+    font-size: 0.875rem;
+    line-height: 1.2;
+  }
+
+  .doc-panel--contents .prose p:first-child:not(:last-child) {
+    display: none;
+  }
+}
+
+/* A faint mark fills the empty corner on short pages (About). Decoration only. */
+.doc-page {
+  position: relative;
+  isolation: isolate;
+}
+
+.doc-page__mark {
+  position: absolute;
+  right: clamp(16px, 6vw, 96px);
+  bottom: 88px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.14;
+}
+
+.doc-page__mark svg {
+  width: clamp(140px, 24vw, 340px);
+  height: auto;
+}
+
+@media (max-width: 899px) {
+  .doc-page__mark {
+    display: none;
+  }
+}

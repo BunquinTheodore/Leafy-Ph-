@@ -1,4 +1,7 @@
 {
+  "id": "/",
+  "lang": "en",
+  "dir": "ltr",
   "name": "Leafy",
   "short_name": "Leafy",
   "description": "Snap a leaf, understand the disease, know what to do next.",
@@ -6,6 +9,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
+  "categories": ["education", "lifestyle", "utilities"],
+  "prefer_related_applications": false,
   "background_color": "#06120b",
   "theme_color": "#06120b",
   "icons": [

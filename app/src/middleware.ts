@@ -4,7 +4,8 @@ import { refreshSession } from "@/lib/auth/refresh";
 import { classifyRoute } from "@/lib/auth/routes";
 import { resolveSession } from "@/lib/auth/session";
 import { getEnv } from "@/lib/env";
-import { createNonce, securityHeaders } from "@/lib/http/csp";
+import { createNonce, securityHeaders, withReferrerPolicyFor } from "@/lib/http/csp";
+import { imgOriginsFrom } from "@/lib/http/img-origins";
 import { sanitizeNext } from "@/lib/http/safe-redirect";
 
 function withHeaders(response: NextResponse, headers: Record<string, string>): NextResponse {
@@ -16,12 +17,15 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const env = getEnv();
   const nonce = createNonce();
   const names = cookieNames(env.cookiePrefix);
-  const headers = securityHeaders({
-    nonce,
-    dev: process.env.NODE_ENV !== "production",
-    imgOrigins: [],
-    hsts: env.cookieSecure,
-  });
+  const headers = withReferrerPolicyFor(
+    request.nextUrl.pathname,
+    securityHeaders({
+      nonce,
+      dev: process.env.NODE_ENV !== "production",
+      imgOrigins: imgOriginsFrom(process.env.S3_PUBLIC_ENDPOINT),
+      hsts: env.cookieSecure,
+    }),
+  );
 
   const session = await resolveSession(
     {

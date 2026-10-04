@@ -1,0 +1,917 @@
+/* Handbook: one viewport stage, sideways panels, shared duotone photo treatment. */
+
+.hb {
+  --duo-a: #0b1d12;
+  --duo-b: #7be495;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1760px;
+  margin-inline: auto;
+  height: calc(100vh - var(--header-h) - var(--chrome-extra, 0px) - var(--footer-h, 0px));
+  height: calc(100dvh - var(--header-h) - var(--chrome-extra, 0px) - var(--footer-h, 0px));
+  min-height: 0;
+}
+
+[data-theme="light"] .hb {
+  --duo-a: #17542d;
+  --duo-b: #bfe8c8;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .hb {
+    --duo-a: #17542d;
+    --duo-b: #bfe8c8;
+  }
+}
+
+.hb__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-8);
+  padding: var(--space-3) var(--gutter) 0;
+}
+
+.hb__titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1 1 22rem;
+}
+
+.hb__title {
+  font-size: clamp(1.5rem, 1rem + 2.2vw, 3rem);
+  max-width: 34ch;
+}
+
+.hb__lede {
+  margin: 0;
+  max-width: 52ch;
+  color: var(--text-muted);
+  font-size: clamp(0.9375rem, 0.9rem + 0.2vw, 1.0625rem);
+  text-wrap: balance;
+}
+
+.hb .panels {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+}
+
+.hb .panels__panel {
+  padding-block: var(--space-3);
+}
+
+/* ---- Breadcrumbs ---- */
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-heading);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.crumbs li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.crumbs li + li::before {
+  content: "/";
+  opacity: 0.6;
+}
+
+.crumbs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.crumbs a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.crumbs [aria-current="page"] {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: min(60vw, 28rem);
+}
+
+/* ---- Search ---- */
+.hb-search {
+  position: relative;
+  flex: 1 1 18rem;
+  max-width: 30rem;
+}
+
+.hb-search svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.hb-search input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 44px 0 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-raised);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+}
+
+.hb-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.hb-search__clear {
+  position: absolute;
+  right: 4px;
+  top: 2px;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-muted);
+}
+
+.hb-search__clear:hover {
+  color: var(--text);
+}
+
+/* ---- Card grids (one grid per panel) ---- */
+.rail-grid {
+  display: grid;
+  gap: var(--space-3);
+  height: 100%;
+  align-content: center;
+  max-width: 1600px;
+  margin-inline: auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rail-grid[data-variant="compact"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 700px) {
+  .rail-grid {
+    gap: var(--space-4);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .rail-grid[data-variant="compact"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: center;
+    grid-auto-rows: min-content;
+  }
+}
+
+@media (min-width: 1100px) {
+  .rail-grid {
+    gap: var(--space-6);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .rail-grid[data-variant="compact"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ---- Plant card ---- */
+.pcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--bg-raised);
+}
+
+.pcard:focus-within {
+  box-shadow: var(--glow);
+}
+
+.pcard__link {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.pcard__link:focus-visible {
+  outline: none;
+}
+
+.pcard__body {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  min-width: 0;
+}
+
+.pcard__name {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: clamp(0.9375rem, 0.9rem + 0.3vw, 1.125rem);
+  line-height: 1.25;
+}
+
+.pcard__sci {
+  margin: 0;
+  font-style: italic;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.pcard__meta {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* The shared photo treatment: 4:5 crop, duotone, soft vignette. */
+.duotone {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.duotone > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.08);
+}
+
+.duotone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(160deg, var(--duo-b), var(--duo-a));
+  mix-blend-mode: color;
+  opacity: 0.92;
+  transition: opacity var(--dur-panel) var(--ease);
+}
+
+.duotone::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(120% 100% at 50% 35%, transparent 55%, rgb(0 0 0 / 0.38));
+}
+
+.pcard:hover .duotone::before,
+.pcard:focus-within .duotone::before {
+  opacity: 0.7;
+}
+
+.duotone__empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+/* ---- Compact card (diseases and search results) ---- */
+.ccard {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--bg-raised);
+}
+
+.ccard:focus-within {
+  box-shadow: var(--glow);
+}
+
+.ccard__link {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 72px;
+  padding: var(--space-3) var(--space-4);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.ccard__link:focus-visible {
+  outline: none;
+}
+
+.ccard__thumb {
+  width: 44px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ccard__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--brand) 16%, transparent);
+  color: var(--brand-glow);
+}
+
+.ccard__text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ccard__title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.ccard__sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+/* ---- Leaf accent (shared canvas view) ---- */
+.handbook-canvas {
+  position: fixed !important;
+  inset: 0;
+  z-index: 3;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none !important;
+}
+
+.leaf-accent {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--accent-size, 56px);
+  height: var(--accent-size, 56px);
+  color: var(--brand-glow);
+}
+
+.leaf-accent > svg {
+  height: 70%;
+  width: auto;
+  opacity: 0.75;
+}
+
+.pcard .leaf-accent {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 3;
+}
+
+/* ---- Detail panels ---- */
+.dp {
+  display: grid;
+  gap: var(--space-6) var(--space-8);
+  align-items: center;
+  /* "safe" keeps the top of the content reachable if a panel is ever taller than its stage. */
+  align-content: safe center;
+  height: 100%;
+  max-width: 1400px;
+  margin-inline: auto;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .dp {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 360px);
+  }
+
+  .dp--wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.dp__main {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.dp__aside {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+@media (min-width: 900px) {
+  .dp__aside {
+    display: flex;
+  }
+}
+
+.dp__aside .leaf-accent {
+  --accent-size: clamp(180px, 24vh, 280px);
+}
+
+.dp__caption {
+  margin: 0;
+  max-width: 28ch;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-wrap: balance;
+}
+
+.facts {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.facts > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 9rem) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: baseline;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.facts dt {
+  font-family: var(--font-heading);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.facts dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.plist {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: item;
+  max-width: var(--measure);
+  font-size: clamp(0.9375rem, 0.9rem + 0.25vw, 1.0625rem);
+  line-height: 1.55;
+}
+
+.plist li {
+  position: relative;
+  padding-left: 2.25rem;
+  text-wrap: pretty;
+}
+
+.plist li::before {
+  counter-increment: item;
+  content: counter(item);
+  position: absolute;
+  left: 0;
+  top: 0.05em;
+  display: grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border: 1px solid color-mix(in srgb, var(--brand-glow) 55%, transparent);
+  border-radius: 50%;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--brand-glow);
+}
+
+.note {
+  margin: 0;
+  max-width: 44ch;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--info);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--info) 8%, var(--bg-raised));
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.term {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dotted var(--brand-glow);
+  background: none;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  cursor: help;
+}
+
+.term:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.hb .tooltip {
+  left: 0;
+  transform: none;
+  max-width: min(16rem, calc(100vw - 4rem));
+  text-align: left;
+}
+
+/* Images panel */
+.shots {
+  display: flex;
+  gap: var(--space-4);
+  height: 100%;
+  align-items: center;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+
+.shot {
+  position: relative;
+  flex: 0 0 min(80%, 22rem);
+  margin: 0;
+  scroll-snap-align: start;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--bg-raised);
+}
+
+.shot img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.shot figcaption {
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.lens {
+  position: absolute;
+  z-index: 2;
+  width: 150px;
+  height: 150px;
+  margin: -75px 0 0 -75px;
+  border: 2px solid var(--brand-glow);
+  border-radius: 50%;
+  background-repeat: no-repeat;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.4);
+  pointer-events: none;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .lens {
+    display: none;
+  }
+}
+
+/* Footer call to action */
+.hb__cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--gutter) var(--space-4);
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.hb__cta p {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 500;
+}
+
+@media (max-width: 720px) {
+  /* Phones: names only on cards and no eyebrow, so a 2 by 2 page fits without scrolling. */
+  .hb__titles .eyebrow,
+  .pcard__sci,
+  .pcard__meta {
+    display: none;
+  }
+
+  .hb__title {
+    font-size: 1.5rem;
+  }
+
+  .pcard__body {
+    padding-block: var(--space-2);
+  }
+
+  .facts > div {
+    grid-template-columns: minmax(5.5rem, 7rem) minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .hb__lede {
+    display: none;
+  }
+}
+
+.hb-count {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* ---- Plant overview ---- */
+.conditions {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 720px) {
+  .conditions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+}
+
+.condition {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  height: 100%;
+  padding: var(--space-3) var(--space-4);
+}
+
+@media (min-width: 720px) {
+  .condition {
+    padding: var(--space-4) var(--space-6);
+  }
+}
+
+.condition__icon {
+  margin-top: 2px;
+  color: var(--brand-glow);
+}
+
+.condition__label {
+  margin: 0 0 2px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.condition__text {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.plant-photo {
+  height: clamp(200px, 46vh, 560px);
+  max-width: 100%;
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border);
+}
+
+.plant-photo .plant-photo__accent {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 3;
+}
+
+.hb__sci {
+  margin: 0;
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: clamp(0.9375rem, 0.9rem + 0.2vw, 1.0625rem);
+}
+
+.leaf-accent__view {
+  width: 100%;
+  height: 100%;
+}
+
+@media (min-width: 1100px) {
+  .ccard__link {
+    min-height: 104px;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-6);
+  }
+
+  .ccard__icon {
+    width: 52px;
+    height: 52px;
+  }
+
+  .ccard__title {
+    font-size: 1.1875rem;
+  }
+}
+
+.chip--plain {
+  text-transform: none;
+}
+
+/* Many panels (long disease pages) must never push the page sideways on a phone. */
+.hb .panels__dots {
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+}
+
+@media (max-width: 720px) {
+  .hb .panels__dots:has(li:nth-child(8)) {
+    gap: 0;
+  }
+
+  .hb .panels__dots:has(li:nth-child(8)) .panels__dot {
+    min-width: 40px;
+    padding: 0;
+  }
+
+  /* Plant overview: four condition tiles must fit without scrolling. */
+  .dp__main > .h2 {
+    font-size: 1.25rem;
+  }
+
+  .condition {
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .condition__text {
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+}
+
+/* Tablet and phone: the lede gives way to the search so a page of cards fits. */
+@media (max-width: 1099px) {
+  .hb__lede {
+    display: none;
+  }
+}
+
+/* A long severity sentence sits under the badge in a quieter size. */
+.facts__detail {
+  display: block;
+  max-width: var(--measure);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+@media (min-width: 700px) and (max-width: 1099px) {
+  .hb .pcard__body {
+    padding-block: 6px;
+  }
+
+  /*
+   * Tablet plant pages show two rows of three. The rows share the stage height and the photo
+   * takes what the text leaves, so two rows always fit whatever the screen height is.
+   */
+  .rail-grid:not([data-variant="compact"]) {
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+
+  .rail-grid:not([data-variant="compact"]) > li {
+    display: flex;
+    min-height: 0;
+  }
+
+  .rail-grid:not([data-variant="compact"]) .pcard {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .rail-grid:not([data-variant="compact"]) .pcard__link {
+    min-height: 0;
+  }
+
+  .rail-grid:not([data-variant="compact"]) .duotone {
+    flex: 1 1 0;
+    min-height: 0;
+    aspect-ratio: auto;
+  }
+}
+
+/* Phones: tighter rhythm so a panel of four steps and a note fit on a 360 wide screen. */
+@media (max-width: 720px) {
+  .hb .panels__panel {
+    padding-block: var(--space-2);
+  }
+
+  .hb .panels__controls {
+    padding-block: var(--space-2) var(--space-3);
+  }
+
+  .dp,
+  .dp__main {
+    gap: var(--space-3);
+  }
+
+  .plist {
+    gap: var(--space-2);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  .facts {
+    gap: var(--space-2);
+  }
+
+  .facts > div {
+    padding-bottom: var(--space-2);
+  }
+
+  .note {
+    padding: var(--space-2) var(--space-3);
+    font-size: 0.8125rem;
+  }
+
+  /* A long severity sentence and a long "Also affects" list must still fit a phone panel. */
+  .facts__detail {
+    font-size: 0.8125rem;
+    line-height: 1.35;
+  }
+
+  .dp__main ul.flex {
+    gap: 6px;
+  }
+
+  .chip {
+    min-height: 22px;
+  }
+
+  .hb__head {
+    gap: var(--space-2);
+  }
+
+  .hb__cta {
+    padding-bottom: var(--space-3);
+  }
+}

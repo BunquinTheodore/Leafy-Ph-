@@ -13,7 +13,7 @@ import {
 import { usePrefersReducedMotion } from "../interaction/hooks";
 import { clamp } from "../interaction/math";
 import { useSfx } from "../sfx/SfxProvider";
-import { indexForHash, indexForScroll } from "./panel-math";
+import { indexForHash, indexForScroll, isNearActive } from "./panel-math";
 
 export interface Panel {
   /** Used for the URL hash deep link, e.g. "treatment" gives #treatment. */
@@ -98,6 +98,8 @@ export function SlidePanels({
     const apply = (behavior: ScrollBehavior) => {
       const index = indexForHash(window.location.hash, ids);
       if (index === null || index === activeRef.current) return;
+      // Scroll events from this animation must not flip the active panel back on the way.
+      lockUntil.current = performance.now() + (behavior === "smooth" ? SMOOTH_SCROLL_LOCK_MS : 60);
       viewportRef.current?.scrollTo({
         left: index * (viewportRef.current?.clientWidth ?? 0),
         behavior,
@@ -123,6 +125,23 @@ export function SlidePanels({
   };
 
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
+  // A panel taller than the screen scrolls, so keyboard users must be able to focus it.
+  useEffect(() => {
+    const panel = viewportRef.current?.children[active];
+    if (!(panel instanceof HTMLElement)) return;
+    const update = () => {
+      if (panel.scrollHeight > panel.clientHeight + 1) panel.tabIndex = 0;
+      else panel.removeAttribute("tabindex");
+    };
+    update();
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(update) : null;
+    observer?.observe(panel);
+    return () => {
+      observer?.disconnect();
+      panel.removeAttribute("tabindex");
+    };
+  }, [active, count]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     const target = event.target as HTMLElement;
@@ -189,6 +208,8 @@ export function SlidePanels({
       <div
         ref={viewportRef}
         className="panels__viewport"
+        // A scrollable region must be reachable by keyboard (arrow keys then move between panels).
+        tabIndex={0}
         data-cursor="grab"
         onScroll={onScroll}
         onPointerDown={onPointerDown}
@@ -205,6 +226,7 @@ export function SlidePanels({
             aria-label={`${index + 1} of ${count}: ${panel.title}`}
             className="panels__panel"
             data-active={index === active}
+            data-near={isNearActive(index, active)}
             inert={index !== active}
           >
             {panel.content}

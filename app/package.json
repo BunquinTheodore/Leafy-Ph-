@@ -6,6 +6,13 @@
   "engines": {
     "node": ">=20"
   },
+  "browserslist": [
+    "chrome >= 109",
+    "edge >= 109",
+    "firefox >= 109",
+    "safari >= 16",
+    "ios_saf >= 16"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -15,12 +22,24 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:auth": "playwright test -c playwright.auth.config.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lhci": "lhci autorun",
     "api:types": "openapi-typescript ../api/openapi.json -o src/lib/api/schema.d.ts",
     "brand:assets": "node scripts/build-brand-assets.mjs",
-    "brand:checkpoint": "node scripts/brand-checkpoint.mjs"
+    "brand:checkpoint": "node scripts/brand-checkpoint.mjs",
+    "test:e2e:full": "playwright test -c playwright.full.config.ts",
+    "test:e2e:member": "playwright test -c playwright.member.config.ts",
+    "test:e2e:scan": "playwright test -c playwright.scan.config.ts",
+    "e2e:all": "node scripts/e2e-all.mjs",
+    "screens:audit": "node scripts/screens-audit.mjs",
+    "lhci:desktop": "lhci autorun --config=./lighthouserc.desktop.json",
+    "lhci:member": "lhci autorun --config=./lighthouserc.member.json",
+    "lh:serve": "node scripts/lh-serve.mjs",
+    "budget": "node scripts/check-bundle-budget.mjs",
+    "perf:audit": "node scripts/perf-audit.mjs",
+    "a11y:axe": "node scripts/axe-audit.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -37,6 +56,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/eslintrc": "^3.3.7",
     "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.63.0",
@@ -49,12 +69,15 @@
     "@types/react-dom": "^19.3.0",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "chrome-launcher": "1.2.2",
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.5.27",
     "jsdom": "^30.1.1",
+    "lighthouse": "12.6.1",
     "opentype.js": "^2.0.0",
     "postcss": "^8.5.28",
     "prettier": "^3.9.9",
+    "selfsigned": "^5.5.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vitest": "^5.0.3"

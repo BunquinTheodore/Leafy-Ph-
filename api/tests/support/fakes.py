@@ -37,12 +37,18 @@ class FakeStorage:
     def __init__(self) -> None:
         self.objects: dict[tuple[str, str], bytes] = {}
         self.down = False
+        self.fail_puts = False
+        self.fail_gets = False
         self.delete_calls = 0
 
     async def put_object(self, bucket: str, key: str, data: bytes, content_type: str) -> None:
+        if self.fail_puts:
+            raise StorageError("simulated outage")
         self.objects[(bucket, key)] = data
 
     async def get_object(self, bucket: str, key: str) -> bytes:
+        if self.fail_gets:
+            raise StorageError("simulated outage")
         try:
             return self.objects[(bucket, key)]
         except KeyError as exc:

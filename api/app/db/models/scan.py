@@ -11,6 +11,7 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     Index,
+    Integer,
     String,
     Text,
     desc,
@@ -87,6 +88,8 @@ class Scan(Base):
         Enum(ScanStage, name="scan_stage", values_callable=_enum_values)
     )
     failure_code: Mapped[str | None] = mapped_column(String(40))
+    # Run identity: bumped on every retry so a stale worker can never touch a newer run.
+    attempt: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     verdict: Mapped[ScanVerdict | None] = mapped_column(
         Enum(ScanVerdict, name="scan_verdict", values_callable=_enum_values)
     )

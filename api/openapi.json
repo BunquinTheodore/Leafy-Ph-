@@ -50,6 +50,20 @@
         "title": "AuthSessionOut",
         "type": "object"
       },
+      "Body_create_scan_api_v1_scans_post": {
+        "properties": {
+          "image": {
+            "contentMediaType": "application/octet-stream",
+            "title": "Image",
+            "type": "string"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "title": "Body_create_scan_api_v1_scans_post",
+        "type": "object"
+      },
       "ChangePasswordIn": {
         "additionalProperties": false,
         "properties": {
@@ -715,6 +729,204 @@
           "success"
         ],
         "title": "Envelope[RefreshOut]",
+        "type": "object"
+      },
+      "Envelope_ScanCreatedOut_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanCreatedOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "title": "Envelope[ScanCreatedOut]",
+        "type": "object"
+      },
+      "Envelope_ScanDeletedOut_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanDeletedOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "title": "Envelope[ScanDeletedOut]",
+        "type": "object"
+      },
+      "Envelope_ScanDetailOut_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanDetailOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "title": "Envelope[ScanDetailOut]",
+        "type": "object"
+      },
+      "Envelope_ScanFeedbackOut_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanFeedbackOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "title": "Envelope[ScanFeedbackOut]",
+        "type": "object"
+      },
+      "Envelope_ScanListOut_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanListOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "title": "Envelope[ScanListOut]",
+        "type": "object"
+      },
+      "Envelope_ScanStatsOut_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanStatsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "title": "Envelope[ScanStatsOut]",
         "type": "object"
       },
       "Envelope_SentOut_": {
@@ -1414,6 +1626,512 @@
         "title": "ResetPasswordIn",
         "type": "object"
       },
+      "ScanCreatedOut": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanStage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScanStatus"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "stage"
+        ],
+        "title": "ScanCreatedOut",
+        "type": "object"
+      },
+      "ScanDeletedOut": {
+        "properties": {
+          "deleted": {
+            "title": "Deleted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "title": "ScanDeletedOut",
+        "type": "object"
+      },
+      "ScanDetailOut": {
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "disease": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanDiseaseOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "disease_detail": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiseaseDetailOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failure_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Code"
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanFeedbackOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image_expires_at": {
+            "format": "date-time",
+            "title": "Image Expires At",
+            "type": "string"
+          },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "plant": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlantRefOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanStage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScanStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanVerdict"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "stage",
+          "failure_code",
+          "verdict",
+          "confidence",
+          "plant",
+          "disease",
+          "image_url",
+          "image_expires_at",
+          "created_at",
+          "updated_at",
+          "disease_detail",
+          "feedback"
+        ],
+        "title": "ScanDetailOut",
+        "type": "object"
+      },
+      "ScanDiseaseOut": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Severity"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "display_name",
+          "severity"
+        ],
+        "title": "ScanDiseaseOut",
+        "type": "object"
+      },
+      "ScanFeedbackIn": {
+        "properties": {
+          "comment": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "correct_disease": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correct Disease"
+          },
+          "correct_plant": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correct Plant"
+          },
+          "is_correct": {
+            "title": "Is Correct",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "is_correct"
+        ],
+        "title": "ScanFeedbackIn",
+        "type": "object"
+      },
+      "ScanFeedbackOut": {
+        "properties": {
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "correct_disease": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correct Disease"
+          },
+          "correct_plant": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correct Plant"
+          },
+          "is_correct": {
+            "title": "Is Correct",
+            "type": "boolean"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "is_correct",
+          "correct_plant",
+          "correct_disease",
+          "comment",
+          "updated_at"
+        ],
+        "title": "ScanFeedbackOut",
+        "type": "object"
+      },
+      "ScanListOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScanSummaryOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "ScanListOut",
+        "type": "object"
+      },
+      "ScanStage": {
+        "enum": [
+          "validating",
+          "analyzing",
+          "saving"
+        ],
+        "title": "ScanStage",
+        "type": "string"
+      },
+      "ScanStatsOut": {
+        "properties": {
+          "by_verdict": {
+            "$ref": "#/components/schemas/VerdictCountsOut"
+          },
+          "last_30_days": {
+            "title": "Last 30 Days",
+            "type": "integer"
+          },
+          "top_diseases": {
+            "items": {
+              "$ref": "#/components/schemas/TopDiseaseOut"
+            },
+            "title": "Top Diseases",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "last_30_days",
+          "by_verdict",
+          "top_diseases"
+        ],
+        "title": "ScanStatsOut",
+        "type": "object"
+      },
+      "ScanStatus": {
+        "enum": [
+          "processing",
+          "completed",
+          "failed"
+        ],
+        "title": "ScanStatus",
+        "type": "string"
+      },
+      "ScanSummaryOut": {
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "disease": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanDiseaseOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failure_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image_expires_at": {
+            "format": "date-time",
+            "title": "Image Expires At",
+            "type": "string"
+          },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "plant": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlantRefOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanStage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScanStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScanVerdict"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "stage",
+          "failure_code",
+          "verdict",
+          "confidence",
+          "plant",
+          "disease",
+          "image_url",
+          "image_expires_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ScanSummaryOut",
+        "type": "object"
+      },
+      "ScanVerdict": {
+        "enum": [
+          "disease",
+          "healthy",
+          "unknown"
+        ],
+        "title": "ScanVerdict",
+        "type": "string"
+      },
       "SentOut": {
         "properties": {
           "sent": {
@@ -1423,6 +2141,44 @@
           }
         },
         "title": "SentOut",
+        "type": "object"
+      },
+      "TopDiseaseOut": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "disease_name": {
+            "title": "Disease Name",
+            "type": "string"
+          },
+          "disease_slug": {
+            "title": "Disease Slug",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "plant_name": {
+            "title": "Plant Name",
+            "type": "string"
+          },
+          "plant_slug": {
+            "title": "Plant Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plant_slug",
+          "plant_name",
+          "disease_slug",
+          "disease_name",
+          "display_name",
+          "count"
+        ],
+        "title": "TopDiseaseOut",
         "type": "object"
       },
       "UpdateProfileIn": {
@@ -1556,6 +2312,29 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "VerdictCountsOut": {
+        "properties": {
+          "disease": {
+            "title": "Disease",
+            "type": "integer"
+          },
+          "healthy": {
+            "title": "Healthy",
+            "type": "integer"
+          },
+          "unknown": {
+            "title": "Unknown",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "disease",
+          "healthy",
+          "unknown"
+        ],
+        "title": "VerdictCountsOut",
         "type": "object"
       },
       "VerifiedOut": {
@@ -2208,6 +2987,438 @@
         "summary": "Readyz",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/scans": {
+      "get": {
+        "operationId": "list_scans_api_v1_scans_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 300,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ScanStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "verdict",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ScanVerdict"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Verdict"
+            }
+          },
+          {
+            "in": "query",
+            "name": "plant",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Plant"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ScanListOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Scans",
+        "tags": [
+          "scans"
+        ]
+      },
+      "post": {
+        "operationId": "create_scan_api_v1_scans_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_create_scan_api_v1_scans_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ScanCreatedOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Scan",
+        "tags": [
+          "scans"
+        ]
+      }
+    },
+    "/api/v1/scans/stats": {
+      "get": {
+        "operationId": "scan_stats_api_v1_scans_stats_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ScanStatsOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Scan Stats",
+        "tags": [
+          "scans"
+        ]
+      }
+    },
+    "/api/v1/scans/{scan_id}": {
+      "delete": {
+        "operationId": "delete_scan_api_v1_scans__scan_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ScanDeletedOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Scan",
+        "tags": [
+          "scans"
+        ]
+      },
+      "get": {
+        "operationId": "read_scan_api_v1_scans__scan_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ScanDetailOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Scan",
+        "tags": [
+          "scans"
+        ]
+      }
+    },
+    "/api/v1/scans/{scan_id}/feedback": {
+      "delete": {
+        "operationId": "delete_feedback_api_v1_scans__scan_id__feedback_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ScanDeletedOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Feedback",
+        "tags": [
+          "scans"
+        ]
+      },
+      "put": {
+        "operationId": "put_feedback_api_v1_scans__scan_id__feedback_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanFeedbackIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ScanFeedbackOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Feedback",
+        "tags": [
+          "scans"
+        ]
+      }
+    },
+    "/api/v1/scans/{scan_id}/retry": {
+      "post": {
+        "operationId": "retry_scan_api_v1_scans__scan_id__retry_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ScanCreatedOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Retry Scan",
+        "tags": [
+          "scans"
         ]
       }
     },

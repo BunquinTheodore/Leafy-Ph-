@@ -41,7 +41,9 @@ def _pg_ctl_kwargs() -> dict[str, str]:
 
 
 pg_proc = factories.postgresql_proc(
-    port=None, password="throwaway-test-password", **_pg_ctl_kwargs()
+    port=None,
+    password="throwaway-test-password",
+    **_pg_ctl_kwargs(),  # type: ignore[arg-type]
 )
 pg = factories.postgresql("pg_proc")
 

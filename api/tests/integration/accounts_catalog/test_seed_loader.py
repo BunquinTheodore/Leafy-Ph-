@@ -66,7 +66,13 @@ async def test_pathogen_types_use_the_database_enum_values(session_factory: Fact
                 select(Disease.pathogen_type).where(Disease.pathogen_type.is_not(None)).distinct()
             )
         ).scalars()
-        assert {v.value for v in values} <= {"fungus", "bacterium", "virus", "oomycete", "pest"}
+        assert {v.value for v in values if v is not None} <= {
+            "fungus",
+            "bacterium",
+            "virus",
+            "oomycete",
+            "pest",
+        }
         late = (
             await session.execute(
                 select(Disease.pathogen_type)
@@ -74,6 +80,7 @@ async def test_pathogen_types_use_the_database_enum_values(session_factory: Fact
                 .where(Plant.slug == "tomato", Disease.slug == "late-blight")
             )
         ).scalar_one()
+        assert late is not None
         assert late.value == "oomycete"
 
 

@@ -18,7 +18,7 @@ def test_secret_is_not_exposed_in_repr() -> None:
 
 def test_missing_required_values_fail_fast() -> None:
     with pytest.raises(ValidationError):
-        Settings(_env_file=None)  # type: ignore[call-arg]
+        Settings(_env_file=None)
 
 
 def test_short_jwt_secret_is_rejected() -> None:

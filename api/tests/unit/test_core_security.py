@@ -87,7 +87,7 @@ def test_token_with_wrong_secret_issuer_or_audience_is_rejected(
     overrides: dict[str, str],
 ) -> None:
     with pytest.raises(AppError) as caught:
-        _decode(_token(), **overrides)
+        _decode(_token(), **overrides)  # type: ignore[arg-type]
     assert caught.value.code is ErrorCode.INVALID_TOKEN
 
 

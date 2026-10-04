@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import pytest
 from tools.seed_build import CatalogError, RawTables, build_catalog, build_labels
 from tools.seed_config import SeedConfig, parse_config
@@ -22,7 +24,7 @@ def _config(**source_overrides: object) -> SeedConfig:
     return parse_config({"source": source})
 
 
-def _tables(**overrides: list[tuple[object, ...]]) -> RawTables:
+def _tables(**overrides: Sequence[tuple[object, ...]]) -> RawTables:
     base: dict[str, list[tuple[object, ...]]] = {
         "plant": [
             (2, "Tomato", "Solanum lycopersicum", "Solanaceae", "Fruit"),
@@ -53,7 +55,7 @@ def _tables(**overrides: list[tuple[object, ...]]) -> RawTables:
         ],
         "species_affected": [(1, 1, "Solanum lycopersicum"), (2, 1, "Solanum lycopersicum")],
     }
-    base.update(overrides)
+    base.update({name: list(rows) for name, rows in overrides.items()})
     return RawTables(**base)  # type: ignore[arg-type]
 
 

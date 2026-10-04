@@ -51,7 +51,8 @@ GOLDEN_LABELS: dict[str, Any] = {
 
 
 def _load(name: str) -> list[dict[str, Any]]:
-    return json.loads((DATA / name).read_text(encoding="utf-8"))
+    loaded: list[dict[str, Any]] = json.loads((DATA / name).read_text(encoding="utf-8"))
+    return loaded
 
 
 @pytest.fixture(scope="module")

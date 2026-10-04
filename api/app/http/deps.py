@@ -11,6 +11,7 @@ from app.controllers.account_controller import AccountController
 from app.controllers.auth_controller import AuthController
 from app.controllers.catalog_controller import CatalogController
 from app.controllers.google_controller import GoogleController
+from app.controllers.scan_controller import ScanController
 from app.controllers.user_controller import UserController
 from app.core.background import BackgroundRunner
 from app.core.clock import Clock
@@ -30,6 +31,8 @@ from app.services.google_auth_service import GoogleAuthService
 from app.services.infra.google_client import GoogleBackend
 from app.services.infra.storage_service import StorageService
 from app.services.purge_service import PurgeService
+from app.services.scan_service import ScanService
+from app.services.scan_worker import ScanQueue
 from app.services.token_service import TokenService
 
 _bearer = HTTPBearer(auto_error=False)
@@ -179,6 +182,34 @@ def get_catalog_controller(
     uow: UowDep, storage: Annotated[StorageService, Depends(get_storage)]
 ) -> CatalogController:
     return CatalogController(CatalogService(uow, storage.public_catalog_url))
+
+
+def get_scan_queue(request: Request) -> ScanQueue:
+    queue: ScanQueue = request.app.state.scan_queue
+    return queue
+
+
+def get_scan_controller(
+    uow: UowDep,
+    settings: SettingsDep,
+    clock: ClockDep,
+    limiter: LimiterDep,
+    storage: Annotated[StorageService, Depends(get_storage)],
+    queue: Annotated[ScanQueue, Depends(get_scan_queue)],
+    runner: Annotated[BackgroundRunner, Depends(get_background_runner)],
+    session_factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
+) -> ScanController:
+    service = ScanService(
+        uow=uow,
+        storage=storage,
+        queue=queue,
+        runner=runner,
+        purge=PurgeService(session_factory, storage, clock),
+        public_url=storage.public_catalog_url,
+        settings=settings,
+        clock=clock,
+    )
+    return ScanController(service, limiter, settings.max_upload_bytes)
 
 
 def get_user_controller(uow: UowDep) -> UserController:

@@ -2,6 +2,7 @@
 
 import asyncio
 import uuid
+from collections.abc import Sequence
 
 import pytest
 from app.core.clock import FixedClock
@@ -112,7 +113,7 @@ async def test_a_partial_s3_failure_retries_only_the_failed_keys(
     session_factory: Factory, engine: AsyncEngine, clock: FixedClock
 ) -> None:
     class PartialStorage(FakeStorage):
-        async def delete_objects(self, bucket: str, keys: list[str]) -> list[str]:  # type: ignore[override]
+        async def delete_objects(self, bucket: str, keys: Sequence[str]) -> list[str]:
             self.delete_calls += 1
             return [key for key in keys if key == "stuck.jpg"]
 

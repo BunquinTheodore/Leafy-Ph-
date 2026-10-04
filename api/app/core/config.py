@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     ml_service: str = "stub"
     max_upload_bytes: int = Field(default=8_388_608, ge=1)
     scan_quota: int = Field(default=500, ge=1)
+    ml_timeout: float = Field(default=30.0, ge=0.1, le=600.0)
+    scan_workers: int = Field(default=2, ge=1, le=16)
+    scan_stuck_seconds: int = Field(default=300, ge=30, le=86400)
+    scan_janitor_interval_seconds: int = Field(default=60, ge=5, le=3600)
 
     rate_limit_enabled: bool = True
     trusted_proxy_hops: int = Field(default=0, ge=0, le=5)
@@ -87,6 +91,12 @@ class Settings(BaseSettings):
     def _forbid_mock_google_in_prod(self) -> Self:
         if self.google_mock and self.env == "prod":
             raise ValueError("GOOGLE_MOCK must not be enabled in prod")
+        return self
+
+    @model_validator(mode="after")
+    def _forbid_dev_fake_ml_in_prod(self) -> Self:
+        if self.ml_service.strip() == "dev-fake" and self.env == "prod":
+            raise ValueError("ML_SERVICE=dev-fake must not be used in prod")
         return self
 
 

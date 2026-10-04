@@ -7,9 +7,9 @@ ARG PNPM_VERSION=12.8.1
 # ---- deps: install from the lockfile, cached until it changes ----
 FROM node:${NODE_VERSION}-slim AS deps
 ARG PNPM_VERSION
-ENV CI=true \
-    COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+ENV CI=true
+# corepack could not run pnpm 12 in CI (missing pnpm.cjs), so install it from npm instead.
+RUN npm install --global --no-fund --no-audit pnpm@${PNPM_VERSION}
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \

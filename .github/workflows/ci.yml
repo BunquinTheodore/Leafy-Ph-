@@ -157,6 +157,13 @@ jobs:
           pnpm exec playwright install --with-deps chromium
           pnpm a11y:axe
           pkill -f "next start" || true
+      - name: Chrome wrapper that accepts the local self signed certificate
+        run: |
+          REAL="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          WRAP="$RUNNER_TEMP/chrome-lh"
+          printf '#!/bin/sh\nexec "%s" --ignore-certificate-errors --no-sandbox --disable-gpu "$@"\n' "$REAL" > "$WRAP"
+          chmod +x "$WRAP"
+          echo "CHROME_PATH=$WRAP" >> "$GITHUB_ENV"
       - name: Lighthouse, public pages, mobile
         working-directory: app
         env:

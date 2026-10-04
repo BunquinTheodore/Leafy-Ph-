@@ -1,0 +1,9 @@
+title = "Leafy gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fake token used as a unit test fixture, not a secret"
+paths = ['''api/tests/unit/accounts_catalog/test_email_composition\.py''']
+regexes = ['''tok_abc-123_XYZ''']

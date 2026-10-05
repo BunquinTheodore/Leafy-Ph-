@@ -27,3 +27,20 @@ function snapshot(): ViewportSize {
 export function useViewportSize(initial: ViewportSize = "desktop"): ViewportSize {
   return useSyncExternalStore(subscribe, snapshot, () => initial);
 }
+
+const ULTRA_QUERY = "(min-width: 1900px)";
+
+function subscribeUltra(onChange: () => void): () => void {
+  const list = window.matchMedia(ULTRA_QUERY);
+  list.addEventListener("change", onChange);
+  return () => list.removeEventListener("change", onChange);
+}
+
+/** True on screens 1900px and wider, where the plant catalog shows six cards per page. */
+export function useUltraWide(): boolean {
+  return useSyncExternalStore(
+    subscribeUltra,
+    () => window.matchMedia(ULTRA_QUERY).matches,
+    () => false,
+  );
+}

@@ -21,8 +21,21 @@ describe("causeSentence", () => {
 
   it("falls back to a plain sentence for an unknown cause type", () => {
     expect(causeSentence("Leaf Scorch", "Strawberry", null, null)).toBe(
-      "Leaf Scorch on Strawberry is a known problem for Strawberry.",
+      "Leaf Scorch on Strawberry is a known disease.",
     );
+  });
+
+  it("does not repeat the plant name when the disease already carries it", () => {
+    expect(causeSentence("Tomato Mosaic", "Tomato", null, null)).toBe(
+      "Tomato Mosaic is a known disease of Tomato.",
+    );
+  });
+
+  it("reads the cause types the API sends (fungus, virus)", () => {
+    expect(causeSentence("Early Blight", "Tomato", "fungus", "Alternaria solani")).toContain(
+      "caused by a fungus",
+    );
+    expect(causeSentence("Mosaic", "Tomato", "Virus", null)).toContain("caused by a virus");
   });
 
   it("explains oomycetes in plain words", () => {

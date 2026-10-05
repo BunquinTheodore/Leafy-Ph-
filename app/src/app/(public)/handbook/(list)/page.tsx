@@ -24,7 +24,7 @@ export default async function HandbookPage({
   const index = buildSearchIndex(plants, diseases);
   return (
     <HandbookStage>
-      <div className="hb">
+      <div className="hb" data-layout="catalog">
         <HandbookBrowser
           index={index}
           initialQuery={typeof q === "string" ? q : ""}

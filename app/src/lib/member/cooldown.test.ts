@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { RESEND_COOLDOWN_SECONDS, cooldownDeadline, secondsRemaining } from "./cooldown";
+import { cooldownDeadline, secondsRemaining } from "./cooldown";
 
-describe("resend cooldown", () => {
-  it("uses a 60 second window", () => {
-    expect(RESEND_COOLDOWN_SECONDS).toBe(60);
-  });
-
+describe("cooldown", () => {
   it("computes a deadline from now", () => {
     expect(cooldownDeadline(1_000, 60)).toBe(61_000);
   });

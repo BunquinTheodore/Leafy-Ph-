@@ -22,19 +22,10 @@ export const member = {
     signingOut: "Signing out",
     signOutFailed: "We could not sign you out. Check your connection and try again.",
   },
-  banner: {
-    message: "Check your email to verify your account.",
-    resend: "Resend email",
-    resendIn: (seconds: number) => `Resend in ${seconds}s`,
-    sent: "We sent a new link. It can take a minute to arrive.",
-    already: "Your email is already verified.",
-    label: "Email verification",
-  },
   dashboard: {
     title: "Dashboard",
     greeting: (name: string) => (name ? `Welcome back, ${name}` : "Welcome back"),
     scanCta: "Scan a leaf",
-    verifyToScan: "Verify your email to scan",
     totalScans: "Total scans",
     last30Days: "Last 30 days",
     splitTitle: "Results",
@@ -77,7 +68,7 @@ export const member = {
     panels: { profile: "Profile", password: "Password", danger: "Danger zone" },
     profile: {
       title: "Profile",
-      blurb: "Your name appears in your account and in emails from Leafy.",
+      blurb: "Your name appears in your account.",
       firstName: "First name",
       lastName: "Last name",
       email: "Email",
@@ -101,6 +92,8 @@ export const member = {
       set: "Set password",
       changed: "Password changed.",
       wasSet: "Password set. You can now sign in with your email too.",
+      recentGoogle:
+        "You signed in with Google a moment ago, so you can choose a new password without the old one.",
       currentRequired: "Enter your current password.",
       newRequired: "Enter a new password.",
     },

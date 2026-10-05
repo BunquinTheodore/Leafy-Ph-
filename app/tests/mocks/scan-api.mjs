@@ -141,7 +141,6 @@ const freshState = () => ({
   minValidToken: 0,
   listFail: false,
   deleteFail: false,
-  resendOk: true,
   calls: [],
 });
 
@@ -357,9 +356,6 @@ async function createRoute(req, res) {
     const headers = retryAfter ? { "retry-after": String(retryAfter) } : {};
     return send(res, status, failure(code, message), headers);
   }
-  if (!state.user.email_verified) {
-    return send(res, 403, failure("email_not_verified", "Verify your email to scan."));
-  }
   if (size > MAX_UPLOAD) return send(res, 413, failure("payload_too_large", "Too large."));
   const scan = createScan();
   return send(res, 202, envelope({ id: scan.id, status: "processing", stage: "validating" }));
@@ -478,13 +474,6 @@ async function route(req, res) {
     return send(res, 401, failure("not_authenticated", "Please sign in to continue."));
   }
   if (api === "/users/me" && req.method === "GET") return send(res, 200, envelope(state.user));
-  if (api === "/auth/resend-verification" && req.method === "POST") {
-    if (state.user.email_verified)
-      return send(res, 409, failure("already_verified", "Already verified."));
-    return state.resendOk
-      ? send(res, 200, envelope({ sent: true }))
-      : send(res, 429, failure("rate_limited", "Too many attempts."), { "retry-after": "30" });
-  }
   if (isUpload) return createRoute(req, res);
   if (api === "/scans" && req.method === "GET") {
     if (state.listFail)

@@ -107,16 +107,16 @@ export function ProfilePanel({ user }: { user: AccountUser }) {
             value={lastName}
             onChange={(event) => setLastName(event.target.value)}
           />
+          <Input
+            label={copy.email}
+            name="email"
+            type="email"
+            value={user.email}
+            readOnly
+            aria-readonly="true"
+            hint={copy.emailHint}
+          />
         </div>
-        <Input
-          label={copy.email}
-          name="email"
-          type="email"
-          value={user.email}
-          readOnly
-          aria-readonly="true"
-          hint={copy.emailHint}
-        />
         {formError ? <Alert tone="error">{formError}</Alert> : null}
         <Button
           type="submit"

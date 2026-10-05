@@ -5,12 +5,21 @@
   --duo-b: #7be495;
   display: flex;
   flex-direction: column;
+  /* Catalog pages: the container is exactly four plant cards wide (see LAYOUT.md). */
+  --hb-gap: clamp(12px, 1.4vw, 32px);
+  --hb-card: calc(300px * var(--ui-scale));
+  --hb-grid-w: calc(4 * var(--hb-card) + 3 * var(--hb-gap));
+  --container-max: var(--hb-grid-w);
   width: 100%;
-  max-width: 1760px;
   margin-inline: auto;
   height: calc(100vh - var(--header-h) - var(--chrome-extra, 0px) - var(--footer-h, 0px));
   height: calc(100dvh - var(--header-h) - var(--chrome-extra, 0px) - var(--footer-h, 0px));
   min-height: 0;
+}
+
+/* Reading pages (plant and disease): one narrower column group, scaled up on big screens. */
+.hb[data-layout="reading"] {
+  --container-max: calc(1200px * var(--ui-scale));
 }
 
 [data-theme="light"] .hb {
@@ -29,9 +38,11 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-3) var(--space-8);
-  padding: var(--space-3) var(--gutter) 0;
+  justify-content: flex-start;
+  gap: var(--space-3) var(--split-gap);
+  width: min(100% - 2 * var(--gutter), var(--container-max));
+  margin-inline: auto;
+  padding: var(--space-3) 0 0;
 }
 
 .hb__titles {
@@ -39,11 +50,11 @@
   flex-direction: column;
   gap: var(--space-2);
   min-width: 0;
-  flex: 1 1 22rem;
+  flex: 0 1 auto;
 }
 
 .hb__title {
-  font-size: clamp(1.5rem, 1rem + 2.2vw, 3rem);
+  font-size: calc(clamp(1.5rem, 1rem + 2.2vw, 3rem) * var(--ui-scale));
   max-width: 34ch;
 }
 
@@ -51,7 +62,7 @@
   margin: 0;
   max-width: 52ch;
   color: var(--text-muted);
-  font-size: clamp(0.9375rem, 0.9rem + 0.2vw, 1.0625rem);
+  font-size: calc(clamp(0.9375rem, 0.9rem + 0.2vw, 1.0625rem) * var(--ui-scale));
   text-wrap: balance;
 }
 
@@ -116,7 +127,7 @@
 .hb-search {
   position: relative;
   flex: 1 1 18rem;
-  max-width: 30rem;
+  max-width: calc(30rem * var(--ui-scale));
 }
 
 .hb-search svg {
@@ -162,42 +173,72 @@
   color: var(--text);
 }
 
-/* ---- Card grids (one grid per panel) ---- */
+/* ---- Card grids (one grid per panel) ----
+ * A centered, wrapping row: a page with fewer cards than columns stays centered, cards never
+ * stretch to fill a half empty row, and the tracks match the container so edges line up. */
 .rail-grid {
-  display: grid;
-  gap: var(--space-3);
-  height: 100%;
+  --cols: 2;
+  --rows: 2;
+  --card-h: calc((100% - (var(--rows) - 1) * var(--hb-gap)) / var(--rows));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   align-content: center;
-  max-width: 1600px;
-  margin-inline: auto;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: flex-start;
+  gap: var(--hb-gap);
+  height: 100%;
+}
+
+.rail-grid > li {
+  flex: 0 0 calc((100% - (var(--cols) - 1) * var(--hb-gap)) / var(--cols));
+  min-width: 0;
+}
+
+/* Plant cards: the photo takes the height the stage leaves, up to a tall portrait. */
+.rail-grid:not([data-variant="compact"]) > li {
+  display: flex;
+  height: min(var(--card-h), calc(var(--hb-card) * 1.75));
+  min-height: 0;
+}
+
+.rail-grid:not([data-variant="compact"]) .pcard {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.rail-grid:not([data-variant="compact"]) .pcard__link {
+  min-height: 0;
+}
+
+.rail-grid:not([data-variant="compact"]) .duotone {
+  flex: 1 1 0;
+  min-height: 0;
+  aspect-ratio: auto;
 }
 
 .rail-grid[data-variant="compact"] {
-  grid-template-columns: minmax(0, 1fr);
+  --cols: 1;
 }
 
 @media (min-width: 700px) {
   .rail-grid {
-    gap: var(--space-4);
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    --cols: 3;
+    --rows: 2;
   }
 
   .rail-grid[data-variant="compact"] {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-content: center;
-    grid-auto-rows: min-content;
+    --cols: 2;
   }
 }
 
 @media (min-width: 1100px) {
   .rail-grid {
-    gap: var(--space-6);
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    --cols: 4;
+    --rows: 1;
   }
 
   .rail-grid[data-variant="compact"] {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    --cols: 3;
   }
 }
 
@@ -323,9 +364,10 @@
 
 .ccard__link {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
+  font-size: calc(1rem * var(--ui-scale));
   min-height: 72px;
   padding: var(--space-3) var(--space-4);
   color: var(--text);
@@ -334,6 +376,17 @@
 
 .ccard__link:focus-visible {
   outline: none;
+}
+
+.ccard__go {
+  color: var(--brand-glow);
+  opacity: 0.8;
+  transition: transform var(--dur-panel) var(--ease);
+}
+
+.ccard:hover .ccard__go,
+.ccard:focus-within .ccard__go {
+  transform: translateX(4px);
 }
 
 .ccard__thumb {
@@ -422,26 +475,96 @@
 }
 
 /* ---- Detail panels ---- */
-.dp {
+/* Empty states fill the container as one calm card instead of floating in the middle. */
+.dp-empty {
   display: grid;
-  gap: var(--space-6) var(--space-8);
+  align-content: center;
+  height: 100%;
+}
+
+.hb .panels__panel .empty {
+  width: 100%;
+  box-sizing: border-box;
+  padding: calc(var(--space-8) * var(--ui-scale)) var(--space-6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--bg-raised);
+  font-size: calc(1rem * var(--ui-scale));
+}
+
+.hb .panels__panel .empty {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-6);
+  row-gap: var(--space-1);
+  text-align: left;
+}
+
+.hb .panels__panel .empty .empty__icon {
+  grid-area: 1 / 1 / 3 / 2;
+  width: 2.5em;
+  height: 2.5em;
+}
+
+.hb .panels__panel .empty > h3 {
+  grid-area: 1 / 2;
+  font-size: 1.5em;
+}
+
+.hb .panels__panel .empty > .blurb {
+  grid-area: 2 / 2;
+  max-width: none;
+}
+
+.hb .panels__panel .empty > a,
+.hb .panels__panel .empty > button {
+  grid-area: 1 / 3 / 3 / 4;
+}
+
+@media (max-width: 1099px) {
+  .hb .panels__panel .empty {
+    display: flex;
+    text-align: center;
+  }
+}
+
+.dp {
+  --dp-aside: calc(230px * var(--ui-scale));
+  display: grid;
+  gap: var(--space-6) clamp(24px, 2.5vw, 48px);
   align-items: center;
   /* "safe" keeps the top of the content reachable if a panel is ever taller than its stage. */
   align-content: safe center;
   height: 100%;
-  max-width: 1400px;
-  margin-inline: auto;
+  font-size: calc(1rem * var(--ui-scale));
   grid-template-columns: minmax(0, 1fr);
 }
 
-@media (min-width: 900px) {
+/* The leaf aside of the disease pages needs room; the plant photo aside shows from 900px. */
+@media (min-width: 1100px) {
   .dp {
-    grid-template-columns: minmax(0, 1fr) minmax(220px, 360px);
+    grid-template-columns: minmax(0, 1fr) var(--dp-aside);
+  }
+}
+
+@media (min-width: 900px) {
+  .dp--fill {
+    grid-template-columns: minmax(0, 1fr) var(--dp-aside);
   }
 
   .dp--wide {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.dp .prose {
+  max-width: none;
+  font-size: 1.0625em;
+}
+
+.dp .h2 {
+  font-size: calc(clamp(1.375rem, 1.1rem + 0.9vw, 1.875rem) * var(--ui-scale));
 }
 
 .dp__main {
@@ -458,20 +581,30 @@
   text-align: center;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 1100px) {
   .dp__aside {
     display: flex;
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+@media (min-width: 900px) {
+  .dp--fill .dp__aside {
+    display: flex;
+    align-items: center;
+    text-align: center;
   }
 }
 
 .dp__aside .leaf-accent {
-  --accent-size: clamp(180px, 24vh, 280px);
+  --accent-size: min(calc(clamp(160px, 22vh, 260px) * var(--ui-scale)), var(--dp-aside));
 }
 
 .dp__caption {
   margin: 0;
   max-width: 28ch;
-  font-size: 0.875rem;
+  font-size: 1em;
   color: var(--text-muted);
   text-wrap: balance;
 }
@@ -493,7 +626,7 @@
 
 .facts dt {
   font-family: var(--font-heading);
-  font-size: 0.8125rem;
+  font-size: 0.8125em;
   font-weight: 500;
   color: var(--text-muted);
 }
@@ -510,8 +643,7 @@
   padding: 0;
   list-style: none;
   counter-reset: item;
-  max-width: var(--measure);
-  font-size: clamp(0.9375rem, 0.9rem + 0.25vw, 1.0625rem);
+  font-size: calc(clamp(0.9375rem, 0.9rem + 0.25vw, 1.0625rem) * var(--ui-scale));
   line-height: 1.55;
 }
 
@@ -541,13 +673,13 @@
 
 .note {
   margin: 0;
-  max-width: 44ch;
+  max-width: 52ch;
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
   border-left: 3px solid var(--info);
   border-radius: var(--radius-card);
   background: color-mix(in srgb, var(--info) 8%, var(--bg-raised));
-  font-size: 0.875rem;
+  font-size: 0.875em;
   color: var(--text-muted);
 }
 
@@ -717,20 +849,20 @@
   margin: 0 0 2px;
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 0.9375rem;
+  font-size: 0.9375em;
 }
 
 .condition__text {
   margin: 0;
   color: var(--text-muted);
-  font-size: 0.9375rem;
+  font-size: 0.9375em;
   line-height: 1.5;
   text-wrap: pretty;
 }
 
 .plant-photo {
-  height: clamp(200px, 46vh, 560px);
-  max-width: 100%;
+  width: min(100%, calc(clamp(200px, 46vh, 560px) * 0.8));
+  margin-inline: auto;
   border-radius: var(--radius-panel);
   border: 1px solid var(--border);
 }
@@ -756,18 +888,22 @@
 
 @media (min-width: 1100px) {
   .ccard__link {
-    min-height: 104px;
+    min-height: 6.5em;
     gap: var(--space-4);
     padding: var(--space-4) var(--space-6);
   }
 
   .ccard__icon {
-    width: 52px;
-    height: 52px;
+    width: 3.25em;
+    height: 3.25em;
   }
 
   .ccard__title {
-    font-size: 1.1875rem;
+    font-size: 1.1875em;
+  }
+
+  .ccard__sub {
+    font-size: 0.9375em;
   }
 }
 
@@ -829,34 +965,6 @@
   .hb .pcard__body {
     padding-block: 6px;
   }
-
-  /*
-   * Tablet plant pages show two rows of three. The rows share the stage height and the photo
-   * takes what the text leaves, so two rows always fit whatever the screen height is.
-   */
-  .rail-grid:not([data-variant="compact"]) {
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-  }
-
-  .rail-grid:not([data-variant="compact"]) > li {
-    display: flex;
-    min-height: 0;
-  }
-
-  .rail-grid:not([data-variant="compact"]) .pcard {
-    flex: 1 1 auto;
-    min-height: 0;
-  }
-
-  .rail-grid:not([data-variant="compact"]) .pcard__link {
-    min-height: 0;
-  }
-
-  .rail-grid:not([data-variant="compact"]) .duotone {
-    flex: 1 1 0;
-    min-height: 0;
-    aspect-ratio: auto;
-  }
 }
 
 /* Phones: tighter rhythm so a panel of four steps and a note fit on a 360 wide screen. */
@@ -913,5 +1021,388 @@
 
   .hb__cta {
     padding-bottom: var(--space-3);
+  }
+}
+
+/* ---- Wide screens: blocks sit side by side so the text fills its column ---- */
+.suggest {
+  height: auto;
+  margin-top: var(--space-4);
+}
+
+.dp-empty {
+  gap: var(--space-4);
+  align-content: center;
+}
+
+.dp-empty .suggest {
+  margin-top: 0;
+}
+
+@media (min-width: 1100px) {
+  .dp__main--cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(24px, 4vw, 72px);
+    align-items: start;
+  }
+
+  .dp__main--cols > .h2 {
+    grid-column: 1 / -1;
+  }
+
+  /* Numbered steps run in two columns, reading left column first. */
+  .dp:not(.dp--wide) .plist:has(li:nth-child(4)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: column;
+    grid-template-rows: repeat(3, auto);
+    column-gap: clamp(24px, 3vw, 56px);
+    row-gap: var(--space-4);
+  }
+
+  /* Facts become tiles that fill the row. */
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+
+  .facts > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+    padding: var(--space-4) var(--space-6);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    background: var(--bg-raised);
+  }
+}
+
+@media (min-width: 1100px) {
+  .dp__main--cols {
+    grid-template-columns: minmax(0, 1fr) fit-content(32em);
+  }
+
+  .dp__main--cols .prose {
+    font-size: 1.45em;
+  }
+
+  .dp__main--cols .chip {
+    min-height: 2em;
+    padding-inline: var(--space-3);
+    font-size: 1em;
+  }
+}
+
+@media (min-width: 1100px) {
+  .condition__label {
+    font-size: 1.0625em;
+  }
+
+  .condition__text {
+    font-size: 1.0625em;
+  }
+
+  .ccard__title {
+    font-size: 1.3em;
+  }
+}
+
+@media (min-width: 1100px) {
+  .ccard__go {
+    width: 2.25em;
+    height: 2.25em;
+  }
+}
+
+/* ===== Wide layout pass =====
+ * One group per page: heading, content and pager sit together and are centered in the stage;
+ * the search sits on the right edge of the card grid; photos share the height of the cards. */
+
+/* Catalog: six cards per page from 1900px, so the grid fills about 70 percent of the width. */
+.hb {
+  --hb-cols: 4;
+}
+
+@media (min-width: 1900px) {
+  .hb[data-layout="catalog"] {
+    --hb-cols: 6;
+    --hb-card: calc(190px * var(--ui-scale));
+  }
+}
+
+.hb {
+  --hb-grid-w: calc(var(--hb-cols) * var(--hb-card) + (var(--hb-cols) - 1) * var(--hb-gap));
+}
+
+@media (min-width: 1100px) {
+  .rail-grid:not([data-variant="compact"]) {
+    --cols: var(--hb-cols);
+  }
+}
+
+/* Catalog head: title, lede and search stack in one column on the grid's left edge. */
+.hb[data-layout="catalog"] .hb__head {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.hb-search {
+  flex: 0 1 auto;
+  width: min(100%, calc(30rem * var(--ui-scale)));
+}
+
+.hb__titlerow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+}
+
+.hb-count {
+  margin: 0;
+  font-size: calc(1rem * var(--ui-scale));
+  color: var(--text-muted);
+}
+
+/* Lighter duotone: the photos read as plants, not as murky green. */
+.duotone::before {
+  opacity: 0.74;
+}
+
+.duotone::after {
+  background: radial-gradient(120% 100% at 50% 35%, transparent 60%, rgb(0 0 0 / 0.22));
+}
+
+/* Reading pages: the whole group is centered, panels take the height of their content. */
+.hb[data-layout="reading"] {
+  justify-content: center;
+}
+
+.hb[data-layout="reading"] .hb__head {
+  padding-top: 0;
+}
+
+.hb[data-layout="reading"] .panels,
+.hb[data-layout="reading"] .panels__viewport {
+  flex: 0 1 auto;
+}
+
+.hb[data-layout="reading"] .panels__panel {
+  padding-block: var(--space-4) var(--space-2);
+}
+
+.hb[data-layout="reading"] .dp,
+.hb[data-layout="reading"] .dp-empty,
+.hb[data-layout="reading"] .shots {
+  height: auto;
+}
+
+.dp {
+  --dp-aside: calc(260px * var(--ui-scale));
+  align-items: stretch;
+}
+
+/* The photo column is as tall as the content next to it and shares its top edge. */
+.dp--fill {
+  --dp-aside: calc(340px * var(--ui-scale));
+}
+
+.dp__aside--photo,
+.dp--fill .dp__aside {
+  align-self: stretch;
+  align-items: stretch;
+  text-align: left;
+}
+
+.dp .plant-photo {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 200px;
+  margin: 0;
+  aspect-ratio: auto;
+}
+
+.dp__aside--photo .dp__caption {
+  max-width: none;
+  font-size: 0.875em;
+}
+
+/* Fact tiles: content on top, values aligned, an odd last tile spans the row. */
+.facts > div {
+  align-content: start;
+}
+
+@media (min-width: 1100px) {
+  .facts > div:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  /* Numbered steps balance across two columns (3 + 3, 2 + 2, 3 + 2). */
+  .dp:not(.dp--wide) .plist:has(li:nth-child(4)) {
+    display: block;
+    columns: 2;
+    column-gap: clamp(24px, 3vw, 56px);
+  }
+
+  .plist:has(li:nth-child(4)) li {
+    break-inside: avoid;
+    margin-bottom: var(--space-4);
+  }
+
+  /* Causes: text first, then "Also affects" underneath. */
+  .dp__main--cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dp__main--cols .prose {
+    font-size: 1.25em;
+    max-width: 52ch;
+  }
+}
+
+/* Empty state: icon, text and button as one compact group. */
+.hb .panels__panel .empty {
+  grid-template-columns: auto minmax(0, 48ch) auto;
+  justify-content: start;
+  padding-block: calc(var(--space-6) * var(--ui-scale));
+}
+
+/* Disease and result cards: severity on the title row, equal row heights, left aligned. */
+.rail-grid[data-variant="compact"] {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  align-content: start;
+  align-items: stretch;
+  height: auto;
+}
+
+.rail-grid[data-variant="compact"] > li {
+  display: flex;
+}
+
+.rail-grid[data-variant="compact"] .ccard {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ccard__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  min-width: 0;
+}
+
+.ccard__head .ccard__title {
+  min-width: 0;
+}
+
+.dp-list {
+  display: grid;
+  gap: var(--space-4);
+  font-size: calc(1rem * var(--ui-scale));
+}
+
+.dp-list .h2 {
+  font-size: calc(clamp(1.25rem, 1.1rem + 0.9vw, 1.875rem) * var(--ui-scale));
+}
+
+@media (max-width: 720px) {
+  .dp-list {
+    gap: var(--space-2);
+  }
+
+  .dp-list .h2 {
+    font-size: 1.25rem;
+  }
+}
+
+/* Text hugs its content and the photo takes the rest of the row, so they stay together. */
+/* Plant overview: the photo sits left, under the title, and the growth cards follow it. */
+@media (min-width: 900px) {
+  .dp--fill {
+    grid-template-columns: minmax(var(--dp-aside), 1fr) minmax(0, calc(640px * var(--ui-scale)));
+  }
+
+  /* One column of growth rows: label on the left, value beside it, so the rows are full. */
+  .dp--fill .conditions {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .dp--fill .condition {
+    align-items: center;
+  }
+
+  .dp--fill .condition > div {
+    display: grid;
+    grid-template-columns: 9em minmax(0, 1fr);
+    gap: var(--space-3);
+    align-items: baseline;
+  }
+
+  .dp--fill .condition__label {
+    margin: 0;
+  }
+
+  .dp--fill .dp__aside {
+    order: -1;
+  }
+}
+
+@media (min-width: 1100px) {
+  .dp:not(.dp--wide):not(.dp--fill) {
+    grid-template-columns: minmax(0, max-content) minmax(var(--dp-aside), 1fr);
+  }
+}
+
+/* Short screens: tighter empty state and cards so the related row is never cut off. */
+@media (max-height: 800px) and (min-width: 700px) {
+  .hb .panels__panel .empty {
+    padding-block: var(--space-3);
+  }
+
+  .hb .ccard__link {
+    min-height: 4.5em;
+    padding-block: var(--space-2);
+  }
+
+  .hb .suggest {
+    margin-top: var(--space-2);
+  }
+}
+
+@media (min-width: 700px) {
+  .rail-grid.suggest {
+    --cols: 3;
+  }
+}
+
+@media (max-height: 800px) and (min-width: 700px) {
+  .hb .panels__panel .empty {
+    display: grid;
+    text-align: left;
+  }
+}
+
+/* Phones: the related list under an empty state would push the panel into an inner scroll. */
+@media (max-width: 699px) {
+  .dp-empty .suggest,
+  .dp__main > .suggest {
+    display: none;
+  }
+}
+
+/* Phones: long severity notes stay inside the overview panel instead of scrolling it. */
+@media (max-width: 639px) {
+  .facts > div {
+    grid-template-columns: minmax(4.5rem, 5.5rem) minmax(0, 1fr);
+  }
+
+  .facts dd {
+    font-size: 0.9375rem;
+    line-height: 1.45;
   }
 }

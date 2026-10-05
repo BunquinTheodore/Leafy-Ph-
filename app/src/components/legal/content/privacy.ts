@@ -5,7 +5,7 @@ export const privacyContent: LegalDocumentContent = {
   title: "Privacy Policy",
   draftNote: DRAFT_NOTE,
   intro:
-    "Leafy helps you understand plant leaf diseases. This page explains, in plain words, what we keep about you and why. Use the contents list to jump to a section, or move sideways with the arrows.",
+    "This page explains, in plain words, what we keep about you and why. Jump to any section below.",
   sections: [
     {
       id: "summary",
@@ -48,7 +48,7 @@ export const privacyContent: LegalDocumentContent = {
       title: "Google sign in",
       paragraphs: [
         "If you choose Continue with Google, Google tells us your name and your verified email address. We never see your Google password.",
-        "If you already have a Leafy account with the same email, we link the two so you can use either way to sign in. Google handles your data on its side under its own policy.",
+        "If you already have a Leafy account with the same email, we link the two so you can use either way to sign in. Google, through its Firebase Authentication service, handles the sign in on its side under its own policy.",
       ],
     },
     {
@@ -63,9 +63,9 @@ export const privacyContent: LegalDocumentContent = {
     },
     {
       id: "contact",
-      title: "Emails and contact",
+      title: "Contact",
       paragraphs: [
-        "We send only account emails: to verify your address, to reset a password and to tell you a password was changed.",
+        "Leafy does not send you any email. There are no verification, reset or notice emails, so your address is only used to sign you in.",
         `Questions about privacy can go to ${CONTACT_PLACEHOLDER}. We will update this page when the policy changes.`,
       ],
     },

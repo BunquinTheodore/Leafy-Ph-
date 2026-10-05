@@ -21,7 +21,7 @@ export default function LeafOrbitCanvas({ fallback, onReady, ...scene }: LeafOrb
     <SceneCanvas
       className="scan-canvas"
       fallback={fallback}
-      camera={{ position: [0, 0, 3.8], fov: 35 }}
+      camera={{ position: [0, 0, 3.3], fov: 35 }}
     >
       <LeafOrbitScene {...scene} />
       <Ready onReady={onReady} />

@@ -4,23 +4,6 @@
  */
 
 export interface paths {
-    "/api/v1/auth/forgot-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Forgot Password */
-        post: operations["forgot_password_api_v1_auth_forgot_password_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/auth/google": {
         parameters: {
             query?: never;
@@ -100,57 +83,6 @@ export interface paths {
         put?: never;
         /** Register */
         post: operations["register_api_v1_auth_register_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/resend-verification": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Resend Verification */
-        post: operations["resend_verification_api_v1_auth_resend_verification_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/reset-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Reset Password */
-        post: operations["reset_password_api_v1_auth_reset_password_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/verify-email": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Verify Email */
-        post: operations["verify_email_api_v1_auth_verify_email_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -547,13 +479,6 @@ export interface components {
             /** Success */
             success: boolean;
         };
-        /** Envelope[PasswordResetOut] */
-        Envelope_PasswordResetOut_: {
-            data?: components["schemas"]["PasswordResetOut"] | null;
-            error?: components["schemas"]["ErrorBody"] | null;
-            /** Success */
-            success: boolean;
-        };
         /** Envelope[PlantDetailOut] */
         Envelope_PlantDetailOut_: {
             data?: components["schemas"]["PlantDetailOut"] | null;
@@ -617,23 +542,9 @@ export interface components {
             /** Success */
             success: boolean;
         };
-        /** Envelope[SentOut] */
-        Envelope_SentOut_: {
-            data?: components["schemas"]["SentOut"] | null;
-            error?: components["schemas"]["ErrorBody"] | null;
-            /** Success */
-            success: boolean;
-        };
         /** Envelope[UserOut] */
         Envelope_UserOut_: {
             data?: components["schemas"]["UserOut"] | null;
-            error?: components["schemas"]["ErrorBody"] | null;
-            /** Success */
-            success: boolean;
-        };
-        /** Envelope[VerifiedOut] */
-        Envelope_VerifiedOut_: {
-            data?: components["schemas"]["VerifiedOut"] | null;
             error?: components["schemas"]["ErrorBody"] | null;
             /** Success */
             success: boolean;
@@ -650,11 +561,6 @@ export interface components {
             message: string;
             /** Request Id */
             request_id?: string | null;
-        };
-        /** ForgotPasswordIn */
-        ForgotPasswordIn: {
-            /** Email */
-            email: string;
         };
         /** GoogleSessionOut */
         GoogleSessionOut: {
@@ -682,14 +588,8 @@ export interface components {
         };
         /** GoogleSignInIn */
         GoogleSignInIn: {
-            /** Code */
-            code: string;
-            /** Code Verifier */
-            code_verifier: string;
-            /** Nonce */
-            nonce: string;
-            /** Redirect Uri */
-            redirect_uri: string;
+            /** Id Token */
+            id_token: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -716,21 +616,32 @@ export interface components {
              */
             revoked: boolean;
         };
-        /** PasswordChangedOut */
+        /**
+         * PasswordChangedOut
+         * @description Every older session is revoked, so the caller continues on this fresh one.
+         */
         PasswordChangedOut: {
+            /** Access Token */
+            access_token: string;
             /**
              * Changed
              * @default true
              */
             changed: boolean;
-        };
-        /** PasswordResetOut */
-        PasswordResetOut: {
+            /** Expires In */
+            expires_in: number;
             /**
-             * Reset
-             * @default true
+             * Refresh Expires At
+             * Format: date-time
              */
-            reset: boolean;
+            refresh_expires_at: string;
+            /** Refresh Token */
+            refresh_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
         };
         /** PlantDetailOut */
         PlantDetailOut: {
@@ -826,13 +737,6 @@ export interface components {
             last_name: string;
             /** Password */
             password: string;
-        };
-        /** ResetPasswordIn */
-        ResetPasswordIn: {
-            /** New Password */
-            new_password: string;
-            /** Token */
-            token: string;
         };
         /** ScanCreatedOut */
         ScanCreatedOut: {
@@ -989,14 +893,6 @@ export interface components {
          * @enum {string}
          */
         ScanVerdict: "disease" | "healthy" | "unknown";
-        /** SentOut */
-        SentOut: {
-            /**
-             * Sent
-             * @default true
-             */
-            sent: boolean;
-        };
         /** TopDiseaseOut */
         TopDiseaseOut: {
             /** Count */
@@ -1066,19 +962,6 @@ export interface components {
             /** Unknown */
             unknown: number;
         };
-        /** VerifiedOut */
-        VerifiedOut: {
-            /**
-             * Verified
-             * @default true
-             */
-            verified: boolean;
-        };
-        /** VerifyEmailIn */
-        VerifyEmailIn: {
-            /** Token */
-            token: string;
-        };
     };
     responses: never;
     parameters: never;
@@ -1088,39 +971,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    forgot_password_api_v1_auth_forgot_password_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ForgotPasswordIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope_SentOut_"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     google_sign_in_api_v1_auth_google_post: {
         parameters: {
             query?: never;
@@ -1273,92 +1123,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope_AuthSessionOut_"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    resend_verification_api_v1_auth_resend_verification_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope_SentOut_"];
-                };
-            };
-        };
-    };
-    reset_password_api_v1_auth_reset_password_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResetPasswordIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope_PasswordResetOut_"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    verify_email_api_v1_auth_verify_email_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VerifyEmailIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope_VerifiedOut_"];
                 };
             };
             /** @description Validation Error */

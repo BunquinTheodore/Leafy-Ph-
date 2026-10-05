@@ -1,7 +1,6 @@
 /** Single source for brand strings. Copy lives here so Filipino can be added later. */
 export const BRAND_NAME = "Leafy";
 export const BRAND_WORDMARK = "LEAFY";
-export const BRAND_ORIGIN_NOTE = "Dahon means leaf in Filipino.";
 export const BRAND_POSITIONING = "A plant doctor in your pocket.";
 
 export const TAGLINES = [

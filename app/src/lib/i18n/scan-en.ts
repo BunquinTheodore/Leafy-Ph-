@@ -149,12 +149,6 @@ export const scanCopy = {
     photoAlt: "The photo from this scan",
     savedNote: "Your photo is saved, so you do not need to upload it again.",
   },
-  unverified: {
-    resend: "Resend email",
-    resendIn: (seconds: number) => `Resend in ${seconds}s`,
-    sent: "We sent a new link. It can take a minute to arrive.",
-    already: "Your email is already verified. Reload this page.",
-  },
   limits: {
     waitIn: (seconds: number) => `You can scan again in ${seconds} seconds.`,
     ready: "You can scan again now.",

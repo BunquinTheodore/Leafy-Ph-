@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { errorFromEnvelope, readJson } from "../api/envelope";
 import { ApiError } from "../api/errors";
-import { authSessionSchema, type SessionTokens } from "../api/types";
+import { authSessionSchema, sessionTokensSchema, type SessionTokens } from "../api/types";
 import { clearSessionCookies, cookieNames, setSessionCookies } from "../auth/cookies";
 import { isExpiringSoon } from "../auth/jwt-exp";
 import { refreshSession, type Refresher } from "../auth/refresh";
@@ -31,6 +31,11 @@ export interface JsonRouteOptions {
   clearCookiesOnSuccess?: boolean;
   /** Defaults to true for non safe methods. */
   csrf?: boolean;
+  /**
+   * The API answers with a replacement session (a password change revokes the old ones): store
+   * it in the cookies and return only `{ changed: true }` to the browser.
+   */
+  adoptSession?: boolean;
 }
 
 export interface SessionRouteOptions {
@@ -197,6 +202,30 @@ export function createProxy(deps: ProxyDeps) {
     return new NextResponse(text, { status: upstream.status, headers });
   }
 
+  function adoptReplacementSession(upstream: Response, text: string): NextResponse {
+    const parsed = sessionTokensSchema.safeParse(parseEnvelopeData(text));
+    if (!parsed.success)
+      return simpleError(
+        502,
+        "invalid_response",
+        "Leafy sent an unexpected reply. Please sign in again.",
+      );
+    const response = NextResponse.json(
+      { success: true, data: { changed: true }, error: null },
+      { status: upstream.status, headers: NO_STORE },
+    );
+    setSessionCookies(response.cookies, parsed.data, env);
+    return response;
+  }
+
+  function parseEnvelopeData(text: string): unknown {
+    try {
+      return (JSON.parse(text) as { data?: unknown } | null)?.data;
+    } catch {
+      return undefined;
+    }
+  }
+
   async function readJsonBody(request: NextRequest): Promise<{ text: string } | ApiError> {
     if (SAFE_METHODS.has(request.method)) return { text: "" };
     const declared = Number.parseInt(request.headers.get("content-length") ?? "0", 10);
@@ -274,6 +303,7 @@ export function createProxy(deps: ProxyDeps) {
       });
       if (result instanceof ApiError) return finalize(errorResponse(result), auth);
       const text = await result.text();
+      if (result.ok && options.adoptSession) return adoptReplacementSession(result, text);
       const response = passThrough(result, text);
       const success = result.ok && options.clearCookiesOnSuccess === true;
       return finalize(response, success ? { rotated: null, clear: true } : auth);

@@ -27,6 +27,7 @@ export const userSchema = z.object({
   email: z.string(),
   first_name: z.string(),
   last_name: z.string(),
+  /** Informational only: Leafy sends no email, and nothing is gated on it. */
   email_verified: z.boolean(),
   email_verified_at: z.string().nullable().optional(),
   created_at: z.string().optional(),

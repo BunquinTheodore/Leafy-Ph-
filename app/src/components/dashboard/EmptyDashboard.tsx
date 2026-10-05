@@ -1,11 +1,11 @@
 import { Camera, ScanLine } from "lucide-react";
 import { member } from "@/lib/i18n/member-en";
-import { Button, LinkButton } from "../ui/Button";
+import { LinkButton } from "../ui/Button";
 
 const copy = member.dashboard;
 
 /** Guided first scan for an account with no scans yet. One next action. */
-export function EmptyDashboard({ verified }: { verified: boolean }) {
+export function EmptyDashboard() {
   return (
     <section className="dash-empty card card-glass card-vein" aria-labelledby="dash-empty-title">
       <Camera className="dash-empty__icon" size={44} strokeWidth={1.5} aria-hidden="true" />
@@ -23,21 +23,10 @@ export function EmptyDashboard({ verified }: { verified: boolean }) {
           </li>
         ))}
       </ol>
-      {verified ? (
-        <LinkButton href="/scan" size="lg">
-          <ScanLine size={20} strokeWidth={1.5} aria-hidden="true" />
-          {copy.scanCta}
-        </LinkButton>
-      ) : (
-        <>
-          <Button size="lg" disabled aria-describedby="dash-verify-note">
-            {copy.scanCta}
-          </Button>
-          <p id="dash-verify-note" className="m-0 text-[var(--text-muted)]">
-            {copy.verifyToScan}
-          </p>
-        </>
-      )}
+      <LinkButton href="/scan" size="lg">
+        <ScanLine size={20} strokeWidth={1.5} aria-hidden="true" />
+        {copy.scanCta}
+      </LinkButton>
     </section>
   );
 }

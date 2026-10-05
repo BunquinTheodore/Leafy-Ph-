@@ -35,7 +35,43 @@ describe("buildCsp", () => {
   });
 });
 
+describe("buildCsp with Firebase sign in", () => {
+  const host = "leafy-8ecd6.firebaseapp.com";
+  const csp = buildCsp({ nonce: "abc", dev: false, imgOrigins: [], firebaseAuthDomain: host });
+  const directive = (name: string) =>
+    csp.split("; ").find((part) => part.startsWith(`${name} `)) ?? "";
+
+  it("allows only the Firebase token endpoints in connect-src", () => {
+    expect(directive("connect-src")).toBe(
+      "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com",
+    );
+  });
+
+  it("allows only the auth domain and Google accounts as frames", () => {
+    expect(directive("frame-src")).toBe(`frame-src https://${host} https://accounts.google.com`);
+  });
+
+  it("adds the gapi host to script-src and keeps the nonce and strict-dynamic", () => {
+    expect(directive("script-src")).toBe(
+      "script-src 'self' 'nonce-abc' 'strict-dynamic' https://apis.google.com",
+    );
+  });
+
+  it("adds nothing without a configured domain", () => {
+    const plain = buildCsp({ nonce: "abc", dev: false, imgOrigins: [] });
+    expect(plain).not.toContain("googleapis.com");
+    expect(plain).not.toContain("frame-src");
+    expect(plain).not.toContain("apis.google.com");
+    expect(plain).toContain("default-src 'self'");
+  });
+});
+
 describe("securityHeaders", () => {
+  it("lets the sign in popup reach its opener without dropping isolation", () => {
+    const headers = securityHeaders({ nonce: "n", dev: false, imgOrigins: [], hsts: false });
+    expect(headers["Cross-Origin-Opener-Policy"]).toBe("same-origin-allow-popups");
+  });
+
   it("includes the baseline hardening headers", () => {
     const headers = securityHeaders({ nonce: "n", dev: false, imgOrigins: [], hsts: true });
     expect(headers["Content-Security-Policy"]).toContain("'nonce-n'");

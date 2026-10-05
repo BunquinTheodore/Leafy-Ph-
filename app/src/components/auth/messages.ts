@@ -24,7 +24,6 @@ const NOTE_TONES: Record<keyof typeof enAuth.notes, AuthNote["tone"]> = {
   google_auth_failed: "error",
   google_email_unverified: "error",
   google_unavailable: "warning",
-  invalid_state: "warning",
   rate_limited: "warning",
 };
 

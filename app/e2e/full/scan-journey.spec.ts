@@ -101,14 +101,12 @@ test.describe("register to scan to delete, against the real stack", () => {
     }
   });
 
-  test("an unverified member cannot scan and is asked to verify", async ({ page, baseURL }) => {
-    await registerViaUi(page, { email: uniqueEmail("unverified") });
+  test("a new member can scan straight away, with no email step", async ({ page, baseURL }) => {
+    await registerViaUi(page, { email: uniqueEmail("nogate") });
     await page.goto("/scan");
-    await expect(page.getByTestId("unverified-prompt")).toBeVisible();
-    await expect(page.getByTestId("photo-input")).toHaveCount(0);
-    await expect(page.getByTestId("resend-verification")).toBeVisible();
+    await expect(page.getByTestId("photo-input")).toHaveCount(1);
+    await expect(page.getByTestId("unverified-prompt")).toHaveCount(0);
 
-    // The API refuses too, so a hand made request cannot get around the page.
     const reply = await page.request.post("/api/scans", {
       headers: { origin: baseURL ?? "" },
       multipart: {
@@ -119,8 +117,6 @@ test.describe("register to scan to delete, against the real stack", () => {
         },
       },
     });
-    expect(reply.status()).toBe(403);
-    const body = (await reply.json()) as { error: { code: string } };
-    expect(body.error.code).toBe("email_not_verified");
+    expect(reply.status()).toBe(202);
   });
 });

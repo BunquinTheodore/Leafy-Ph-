@@ -6,13 +6,14 @@ import { useMemo } from "react";
 import { handbookCopy } from "@/lib/handbook/copy";
 import type { ViewportSize } from "@/lib/handbook/device";
 import { plantPhotoSrc } from "@/lib/handbook/photos";
-import { buildSearchIndex } from "@/lib/handbook/search";
+import { buildSearchIndex, type SearchEntry } from "@/lib/handbook/search";
 import type { PlantDetail } from "@/lib/handbook/types";
 import { LinkButton } from "../ui/Button";
 import { Card, EmptyState } from "../ui/Display";
 import { SlidePanels, type Panel } from "../slide-panels/SlidePanels";
 import { chunk, usePerPanel } from "./CatalogRail";
 import { CompactCard } from "./CompactCard";
+import { Suggestions } from "./Suggestions";
 import { LeafAccent } from "./LeafAccent";
 
 interface Condition {
@@ -34,7 +35,7 @@ function Overview({ plant }: { plant: PlantDetail }) {
   const src = plantPhotoSrc(plant.slug);
   const shown = CONDITIONS.filter((condition) => plant[condition.key]);
   return (
-    <div className="dp">
+    <div className="dp dp--fill">
       <div className="dp__main">
         <h2 className="h2">{copy.growth}</h2>
         {shown.length > 0 ? (
@@ -68,7 +69,7 @@ function Overview({ plant }: { plant: PlantDetail }) {
               alt={plant.image_alt ?? `${plant.name} plant`}
               fill
               priority
-              sizes="(min-width: 900px) 30vw, 0px"
+              sizes="(min-width: 900px) 24vw, 0px"
             />
           ) : null}
           <LeafAccent size="72px" className="plant-photo__accent" />
@@ -86,17 +87,20 @@ function DiseasePage({
   plant: PlantDetail;
 }) {
   return (
-    <ul
-      className="rail-grid m-0 list-none p-0"
-      data-variant="compact"
-      aria-label={`${plant.name} diseases`}
-    >
-      {index.map((entry) => (
-        <li key={entry.href} className="min-w-0">
-          <CompactCard entry={entry} />
-        </li>
-      ))}
-    </ul>
+    <div className="dp-list">
+      <h2 className="h2">{`${copy.diseases} of ${plant.name}`}</h2>
+      <ul
+        className="rail-grid m-0 list-none p-0"
+        data-variant="compact"
+        aria-label={`${plant.name} diseases`}
+      >
+        {index.map((entry) => (
+          <li key={entry.href} className="min-w-0">
+            <CompactCard entry={entry} />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -104,9 +108,12 @@ function DiseasePage({
 export function PlantPanels({
   plant,
   initialSize = "desktop",
+  otherPlants = [],
 }: {
   plant: PlantDetail;
   initialSize?: ViewportSize;
+  /** Plants offered under the empty state when this plant has no diseases yet. */
+  otherPlants?: SearchEntry[];
 }) {
   const perPanel = usePerPanel("compact", initialSize);
   const panels = useMemo<Panel[]>(() => {
@@ -122,7 +129,7 @@ export function PlantPanels({
           id: "diseases",
           title: copy.diseases,
           content: (
-            <div className="grid h-full place-items-center">
+            <div className="dp-empty">
               <EmptyState
                 title={copy.noDiseasesTitle}
                 action={
@@ -133,6 +140,7 @@ export function PlantPanels({
               >
                 {copy.noDiseasesBody}
               </EmptyState>
+              <Suggestions entries={otherPlants} label="Other plants" />
             </div>
           ),
         },
@@ -148,7 +156,7 @@ export function PlantPanels({
         content: <DiseasePage index={page} plant={plant} />,
       })),
     ];
-  }, [perPanel, plant]);
+  }, [otherPlants, perPanel, plant]);
 
   return (
     <SlidePanels

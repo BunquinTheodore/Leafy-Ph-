@@ -1,6 +1,7 @@
 /* Account panels: an intro column beside a form card, one column on phones. */
 
 .acct-stage {
+  --container-max: var(--container-standard);
   position: relative;
   isolation: isolate;
   display: flex;
@@ -20,25 +21,17 @@
     );
 }
 
-/* A large, faint leaf mark fills the empty side of the stage on wide screens. */
-.acct-stage__mark {
-  position: absolute;
-  z-index: -1;
-  right: clamp(24px, 6vw, 120px);
-  bottom: 12%;
-  opacity: 0.1;
-  pointer-events: none;
-}
-
-@media (max-width: 900px) {
-  .acct-stage__mark {
-    display: none;
-  }
-}
-
+/* Same width and left edge as the slides below. */
 .acct-stage__head {
   flex: none;
-  padding: var(--space-6) var(--gutter) 0;
+  box-sizing: border-box;
+  width: min(100% - 2 * var(--gutter), var(--container-max));
+  margin-inline: auto;
+  padding: var(--space-6) 0 0;
+}
+
+.display.acct-stage__title {
+  font-size: calc(clamp(1.5rem, 1rem + 1.8vw, 2.75rem) * min(var(--ui-scale), 1.2));
 }
 
 .acct-stage__panels {
@@ -48,17 +41,15 @@
 
 .acct {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   align-content: center;
   align-items: start;
-  gap: var(--space-8) clamp(24px, 5vw, 80px);
-  width: 100%;
-  min-height: 100%;
-  max-width: 84rem;
-  margin: 0 auto;
+  gap: var(--space-8) var(--split-gap);
+  font-size: calc(1rem * var(--ui-scale));
 }
 
 .acct__intro {
+  max-width: 22em;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -95,7 +86,7 @@
 
 .acct__row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14em), 1fr));
   gap: var(--space-4);
 }
 
@@ -168,7 +159,7 @@
 @media (max-width: 480px) {
   /* The footer and the bottom nav take a strip of a phone: tighter header and intro so the form card fits. */
   .acct-stage__head {
-    padding-top: var(--space-3);
+    padding-top: var(--space-4);
   }
 
   .acct__intro {
@@ -178,5 +169,37 @@
   .acct__row {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
+  }
+}
+
+.acct__note {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* Nothing to save yet: still the filled brand button, only dimmed. */
+.acct__submit:disabled {
+  opacity: 0.55;
+}
+
+/* The form sits close under the page title; the slide keeps a little air above it. */
+.acct-stage .panels__panel {
+  padding-top: var(--space-4);
+}
+
+.acct-stage .panels__panel > :first-child {
+  margin-top: 0;
+}
+
+/* Desktop: title and panels form one group centered in the stage (controls stay under the panels). */
+@media (min-width: 901px) {
+  .acct-stage {
+    justify-content: center;
+  }
+
+  .acct-stage__panels {
+    flex: 0 0 auto;
+    height: clamp(430px, 60vh, 680px);
   }
 }

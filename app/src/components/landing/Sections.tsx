@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { plantPhotoSrc } from "@/lib/handbook/photos";
 import type { PlantSummary } from "@/lib/handbook/types";
 import { Card, EmptyState } from "../ui/Display";
@@ -38,31 +38,29 @@ export function HowItWorks() {
   const copy = landingCopy.how;
   return (
     <section className="lp-body" aria-labelledby="how-title">
-      <AccentScene variant="beam" />
-      <div className="lp-split">
-        <div className="grid gap-6">
-          <Head eyebrow={copy.eyebrow} title={copy.title} id="how-title" />
-          <ol className="steps">
-            {copy.steps.map((step, index) => {
-              const Icon = STEP_ICONS[index] ?? Camera;
-              return (
-                <li key={step.title}>
-                  <Card glass tilt className="step">
-                    <span className="step__icon" aria-hidden="true">
-                      <Icon size={24} strokeWidth={1.5} />
-                      <span className="step__num">{index + 1}</span>
-                    </span>
-                    <div>
-                      <h3>{step.title}</h3>
-                      <p>{step.body}</p>
-                    </div>
-                  </Card>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
+      <div className="lp-row">
+        <Head eyebrow={copy.eyebrow} title={copy.title} id="how-title" />
+        <AccentScene variant="beam" />
       </div>
+      <ol className="steps">
+        {copy.steps.map((step, index) => {
+          const Icon = STEP_ICONS[index] ?? Camera;
+          return (
+            <li key={step.title}>
+              <Card glass tilt className="step">
+                <span className="step__icon" aria-hidden="true">
+                  <Icon size={24} strokeWidth={1.5} />
+                  <span className="step__num">{index + 1}</span>
+                </span>
+                <div>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                </div>
+              </Card>
+            </li>
+          );
+        })}
+      </ol>
     </section>
   );
 }
@@ -106,7 +104,7 @@ export function PlantsWeCover({
       : "A handbook of common plant diseases";
   return (
     <section className="lp-body" aria-labelledby="plants-title">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="lp-headrow">
         <Head eyebrow={copy.eyebrow} title={title} id="plants-title" />
         <LinkButton href="/handbook" variant="secondary">
           {copy.openHandbook}
@@ -114,10 +112,23 @@ export function PlantsWeCover({
         </LinkButton>
       </div>
       {plants && plants.length > 0 ? (
-        <ul className="lp-plants">
+        <ul
+          className="lp-plants"
+          style={
+            { "--cols-wide": Math.max(4, Math.ceil((plants.length + 1) / 2)) } as CSSProperties
+          }
+        >
           {plants.map((plant) => (
             <PlantThumb key={plant.slug} plant={plant} />
           ))}
+          <li>
+            <Link href="/handbook" className="thumb thumb--all pressable">
+              <span className="thumb__all">
+                <ArrowRight size={24} strokeWidth={1.5} aria-hidden="true" />
+              </span>
+              <span className="thumb__name title-line">All plants</span>
+            </Link>
+          </li>
         </ul>
       ) : (
         <EmptyState
@@ -139,24 +150,24 @@ export function WhyLeafy() {
   const copy = landingCopy.why;
   return (
     <section className="lp-body" aria-labelledby="why-title">
-      <AccentScene variant="leaves" />
-      <div className="lp-split">
+      <div className="lp-row">
         <Head eyebrow={copy.eyebrow} title={copy.title} id="why-title" />
-        <ul className="reasons">
-          {copy.reasons.map((reason, index) => {
-            const Icon = REASON_ICONS[index] ?? Sprout;
-            return (
-              <li key={reason.title}>
-                <Card glass tilt className="reason">
-                  <Icon className="reason__icon" size={26} strokeWidth={1.5} aria-hidden="true" />
-                  <h3>{reason.title}</h3>
-                  <p>{reason.body}</p>
-                </Card>
-              </li>
-            );
-          })}
-        </ul>
+        <AccentScene variant="leaves" />
       </div>
+      <ul className="reasons">
+        {copy.reasons.map((reason, index) => {
+          const Icon = REASON_ICONS[index] ?? Sprout;
+          return (
+            <li key={reason.title}>
+              <Card glass tilt className="reason">
+                <Icon className="reason__icon" size={26} strokeWidth={1.5} aria-hidden="true" />
+                <h3>{reason.title}</h3>
+                <p>{reason.body}</p>
+              </Card>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }
@@ -167,8 +178,8 @@ export function Faq({ items }: { items: FaqItem[] }) {
     <section className="lp-body" aria-labelledby="faq-title">
       <Head eyebrow={copy.eyebrow} title={copy.title} id="faq-title" />
       <SpotlightSurface className="faq">
-        {items.map((item) => (
-          <details key={item.question} name="faq">
+        {items.map((item, index) => (
+          <details key={item.question} name="faq" open={index === 0}>
             <summary>
               {item.question}
               <ChevronDown size={20} strokeWidth={1.5} aria-hidden="true" />
@@ -185,8 +196,7 @@ export function FinalCta(): ReactNode {
   const copy = landingCopy.start;
   return (
     <section className="lp-cta" aria-labelledby="start-title">
-      <AccentScene variant="drift" />
-      <h2 id="start-title" className="display">
+      <h2 id="start-title" className="display lp-cta__title">
         {copy.title}
       </h2>
       <div className="lp-cta__actions">
@@ -197,6 +207,7 @@ export function FinalCta(): ReactNode {
           {copy.secondary}
         </LinkButton>
       </div>
+      <AccentScene variant="drift" />
     </section>
   );
 }

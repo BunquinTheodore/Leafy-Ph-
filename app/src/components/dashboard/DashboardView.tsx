@@ -1,6 +1,6 @@
 import { ScanLine } from "lucide-react";
 import { member } from "@/lib/i18n/member-en";
-import { Button, LinkButton } from "../ui/Button";
+import { LinkButton } from "../ui/Button";
 import { Alert, Card } from "../ui/Display";
 import type { DashboardStats, ScanSummary } from "./data";
 import { EmptyDashboard } from "./EmptyDashboard";
@@ -20,7 +20,6 @@ const SECTIONS = [
 
 interface DashboardViewProps {
   firstName: string;
-  verified: boolean;
   /** Null when the summary could not be loaded. */
   stats: DashboardStats | null;
   scans: readonly ScanSummary[];
@@ -35,24 +34,12 @@ function StatTile({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ScanAction({ verified }: { verified: boolean }) {
-  if (verified) {
-    return (
-      <LinkButton href="/scan" size="lg" className="dash__cta">
-        <ScanLine size={20} strokeWidth={1.5} aria-hidden="true" />
-        {copy.scanCta}
-      </LinkButton>
-    );
-  }
+function ScanAction() {
   return (
-    <div className="dash__verify">
-      <Button size="lg" disabled aria-describedby="dash-verify-note" className="dash__cta">
-        {copy.scanCta}
-      </Button>
-      <p id="dash-verify-note" className="m-0">
-        {copy.verifyToScan}
-      </p>
-    </div>
+    <LinkButton href="/scan" size="lg" className="dash__cta">
+      <ScanLine size={20} strokeWidth={1.5} aria-hidden="true" />
+      {copy.scanCta}
+    </LinkButton>
   );
 }
 
@@ -73,59 +60,61 @@ function Unavailable() {
  * One viewport stage. Desktop: a fixed grid (tiles and result ring, top diseases, recent rail).
  * Phones: the same three sections slide sideways, so nothing needs vertical scrolling.
  */
-export function DashboardView({ firstName, verified, stats, scans }: DashboardViewProps) {
+export function DashboardView({ firstName, stats, scans }: DashboardViewProps) {
   const isEmpty = stats !== null && stats.total === 0 && scans.length === 0;
   return (
-    <div className="dash stage-fill">
-      <header className="dash__head">
-        <div className="dash__titles">
-          <p className="eyebrow m-0">{copy.greeting(firstName)}</p>
-          <h1 className="display display-sm">{copy.title}</h1>
-        </div>
-        {isEmpty ? null : <ScanAction verified={verified} />}
-      </header>
-
-      {stats === null ? (
-        <Unavailable />
-      ) : isEmpty ? (
-        <EmptyDashboard verified={verified} />
-      ) : (
-        <>
-          <div
-            id={SECTIONS_ID}
-            className="dash__sections"
-            role="region"
-            aria-label={copy.sectionsLabel}
-          >
-            <section
-              id="overview"
-              className="dash__sec dash__sec--overview"
-              aria-label={copy.sections.overview}
-            >
-              <div className="dash__tiles">
-                <StatTile label={copy.totalScans} value={stats.total} />
-                <StatTile label={copy.last30Days} value={stats.last30Days} />
-              </div>
-              <ResultSplit stats={stats} />
-            </section>
-            <section
-              id="diseases"
-              className="dash__sec dash__sec--diseases"
-              aria-label={copy.sections.diseases}
-            >
-              <TopDiseases diseases={stats.topDiseases} />
-            </section>
-            <section
-              id="recent"
-              className="dash__sec dash__sec--recent"
-              aria-label={copy.sections.recent}
-            >
-              <RecentScans initial={scans} />
-            </section>
+    <div className="dash stage-fill wide-stage" data-width="standard">
+      <div className="wide-container dash__wrap ui-scaled">
+        <header className="dash__head">
+          <div className="dash__titles">
+            <p className="eyebrow m-0">{copy.greeting(firstName)}</p>
+            <h1 className="display display-sm dash__title">{copy.title}</h1>
           </div>
-          <SectionDots targetId={SECTIONS_ID} sections={SECTIONS} />
-        </>
-      )}
+          {isEmpty ? null : <ScanAction />}
+        </header>
+
+        {stats === null ? (
+          <Unavailable />
+        ) : isEmpty ? (
+          <EmptyDashboard />
+        ) : (
+          <>
+            <div
+              id={SECTIONS_ID}
+              className="dash__sections"
+              role="region"
+              aria-label={copy.sectionsLabel}
+            >
+              <section
+                id="overview"
+                className="dash__sec dash__sec--overview"
+                aria-label={copy.sections.overview}
+              >
+                <div className="dash__tiles">
+                  <StatTile label={copy.totalScans} value={stats.total} />
+                  <StatTile label={copy.last30Days} value={stats.last30Days} />
+                </div>
+                <ResultSplit stats={stats} />
+              </section>
+              <section
+                id="diseases"
+                className="dash__sec dash__sec--diseases"
+                aria-label={copy.sections.diseases}
+              >
+                <TopDiseases diseases={stats.topDiseases} />
+              </section>
+              <section
+                id="recent"
+                className="dash__sec dash__sec--recent"
+                aria-label={copy.sections.recent}
+              >
+                <RecentScans initial={scans} />
+              </section>
+            </div>
+            <SectionDots targetId={SECTIONS_ID} sections={SECTIONS} />
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Leaf, Sprout } from "lucide-react";
+import { ChevronRight, Leaf, Sprout } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { plantPhotoSrc } from "@/lib/handbook/photos";
@@ -29,11 +29,15 @@ export function CompactCard({ entry }: { entry: SearchEntry }) {
           </span>
         )}
         <span className="ccard__text">
-          <span className="ccard__title title-line">{entry.title}</span>
+          <span className="ccard__head">
+            <span className="ccard__title title-line">{entry.title}</span>
+            {isPlant ? null : <SeverityBadge severity={entry.severity} withPrefix={false} />}
+          </span>
           <span className="ccard__sub">
             {isPlant ? (
               <>
                 <span>Plant</span>
+                {entry.subtitle ? <em>{entry.subtitle}</em> : null}
                 <span>
                   {entry.diseaseCount === 0
                     ? "No diseases catalogued yet"
@@ -44,11 +48,11 @@ export function CompactCard({ entry }: { entry: SearchEntry }) {
               <>
                 <span>{entry.subtitle}</span>
                 {entry.pathogenType ? <span className="chip">{entry.pathogenType}</span> : null}
-                <SeverityBadge severity={entry.severity} withPrefix={false} />
               </>
             )}
           </span>
         </span>
+        <ChevronRight className="ccard__go" size={22} strokeWidth={1.5} aria-hidden="true" />
       </Link>
     </TiltCard>
   );

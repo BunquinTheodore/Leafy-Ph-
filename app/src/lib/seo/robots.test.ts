@@ -13,16 +13,7 @@ describe("robotsConfig", () => {
 
   it("disallows private routes, token pages, the brand guide and the API", () => {
     const disallow = rule?.disallow as string[];
-    for (const path of [
-      "/api/",
-      "/brand",
-      "/dashboard",
-      "/scan",
-      "/scans",
-      "/account",
-      "/reset-password",
-      "/verify-email",
-    ]) {
+    for (const path of ["/api/", "/brand", "/dashboard", "/scan", "/scans", "/account"]) {
       expect(disallow).toContain(path);
     }
   });

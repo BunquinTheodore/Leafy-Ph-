@@ -57,10 +57,10 @@ describe("site config placeholders", () => {
 });
 
 describe("about content", () => {
-  it("credits DAHON and explains the word dahon", () => {
+  it("has no origin story and no separate name section", () => {
     const text = JSON.stringify(aboutSections);
-    expect(text).toContain("DAHON");
-    expect(text).toMatch(/Dahon means leaf in Filipino/);
+    expect(text).not.toMatch(/DAHON|Dahon/);
+    expect(aboutSections.find((section) => section.id === "the-name")).toBeUndefined();
   });
 
   it("shows every team name as a visible TODO placeholder, never an invented name", () => {

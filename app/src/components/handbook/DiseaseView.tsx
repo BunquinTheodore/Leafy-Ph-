@@ -1,18 +1,21 @@
 "use client";
 
 import { ImageOff } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, type ReactNode } from "react";
 import { causeSentence, handbookCopy } from "@/lib/handbook/copy";
 import type { ViewportSize } from "@/lib/handbook/device";
-import { severityBrief, severityLevel } from "@/lib/handbook/severity";
+import { plantPhotoSrc } from "@/lib/handbook/photos";
+import { severityLevel } from "@/lib/handbook/severity";
+import type { SearchEntry } from "@/lib/handbook/search";
 import type { DiseaseDetail } from "@/lib/handbook/types";
 import { SlidePanels, type Panel } from "../slide-panels/SlidePanels";
 import { LinkButton } from "../ui/Button";
 import { EmptyState, SEVERITY_LABELS } from "../ui/Display";
 import { LeafAccent } from "./LeafAccent";
+import { Suggestions } from "./Suggestions";
 import { MagnifierImage } from "./MagnifierImage";
-import { SeverityBadge } from "./SeverityBadge";
 import { TermText } from "./TermText";
 import { useViewportSize } from "./useViewportSize";
 
@@ -32,27 +35,46 @@ export function chunkItems<T>(items: readonly T[], size: number): T[][] {
 
 const captionFor = (disease: DiseaseDetail) => `${disease.plant.name}, ${disease.display_name}`;
 
+/** The plant photo when the catalog has one, with a small leaf accent; the large leaf otherwise. */
 function Aside({ disease, caption }: { disease: DiseaseDetail; caption: string }) {
+  const src = plantPhotoSrc(disease.plant.slug);
+  const tone = severityLevel(disease.severity) ?? "brand";
   return (
-    <div className="dp__aside">
-      <LeafAccent tone={severityLevel(disease.severity) ?? "brand"} />
+    <div className="dp__aside dp__aside--photo">
+      {src ? (
+        <div className="duotone plant-photo">
+          <Image src={src} alt="" fill sizes="(min-width: 1100px) 22vw, 0px" />
+          <LeafAccent tone={tone} size="64px" className="plant-photo__accent" />
+        </div>
+      ) : (
+        <LeafAccent tone={tone} />
+      )}
       <p className="dp__caption">{caption}</p>
     </div>
   );
+}
+
+/** Prevention that repeats the treatment word for word adds nothing; the panel is left out. */
+export function samePlan(a: readonly string[], b: readonly string[]): boolean {
+  const norm = (items: readonly string[]) => items.map((item) => item.trim().toLowerCase());
+  return a.length > 0 && JSON.stringify(norm(a)) === JSON.stringify(norm(b));
 }
 
 function Shell({
   title,
   children,
   aside,
+  columns = false,
 }: {
   title: string;
   children: ReactNode;
   aside?: ReactNode;
+  /** Lay the blocks under the title side by side on wide screens. */
+  columns?: boolean;
 }) {
   return (
     <div className={aside ? "dp" : "dp dp--wide"}>
-      <div className="dp__main">
+      <div className={columns ? "dp__main dp__main--cols" : "dp__main"}>
         <h2 className="h2">{title}</h2>
         {children}
       </div>
@@ -78,19 +100,11 @@ function Facts({ disease }: { disease: DiseaseDetail }) {
       </span>,
     ]);
   if (disease.pathogen_name) rows.push(["Pathogen", <em key="name">{disease.pathogen_name}</em>]);
-  if (disease.severity)
-    rows.push([
-      "Severity",
-      <div key="sev" className="grid gap-2">
-        <span className="inline-flex flex-wrap items-center gap-2">
-          <SeverityBadge severity={disease.severity} withPrefix={false} />
-          {severityBrief(disease.severity) ? <span>{disease.severity}</span> : null}
-        </span>
-        {severityBrief(disease.severity) ? null : (
-          <span className="facts__detail">{disease.severity}</span>
-        )}
-      </div>,
-    ]);
+  const level = severityLevel(disease.severity);
+  const label = level ? SEVERITY_LABELS[level].toLowerCase() : "";
+  const text = disease.severity?.trim() ?? "";
+  // The header badge already names the level, so the row keeps only a longer explanation.
+  if (text && text.toLowerCase() !== label) rows.push(["Severity", <span key="sev">{text}</span>]);
   return (
     <dl className="facts">
       {rows.map(([label, value]) => (
@@ -145,9 +159,26 @@ function listPanels({ id, title, items, size, disease, note }: ListSpec): Panel[
   });
 }
 
-function CausesPanel({ disease, phone }: { disease: DiseaseDetail; phone: boolean }) {
+/** The recorded cause often only restates the pathogen the sentence above already names. */
+function repeatsPathogen(disease: DiseaseDetail): boolean {
+  const name = disease.pathogen_name?.toLowerCase();
+  return Boolean(name && disease.cause?.toLowerCase().includes(name));
+}
+
+function CausesPanel({
+  disease,
+  phone,
+  speciesNames,
+}: {
+  disease: DiseaseDetail;
+  phone: boolean;
+  speciesNames: Record<string, string>;
+}) {
   const seen = new Set<string>();
-  const species = disease.affected_species.slice(0, phone ? MAX_SPECIES_PHONE : MAX_SPECIES);
+  const species = disease.affected_species
+    .map((name) => speciesNames[name.toLowerCase()] ?? name)
+    .filter((name) => name.toLowerCase() !== disease.plant.name.toLowerCase())
+    .slice(0, phone ? MAX_SPECIES_PHONE : MAX_SPECIES);
   const sentence = causeSentence(
     disease.name,
     disease.plant.name,
@@ -155,12 +186,16 @@ function CausesPanel({ disease, phone }: { disease: DiseaseDetail; phone: boolea
     disease.pathogen_name,
   );
   return (
-    <Shell title="What causes it" aside={<Aside disease={disease} caption={captionFor(disease)} />}>
+    <Shell
+      columns
+      title="What causes it"
+      aside={<Aside disease={disease} caption={captionFor(disease)} />}
+    >
       <div className="prose">
         <p>
           <TermText text={sentence} seen={seen} />
         </p>
-        {disease.cause ? (
+        {disease.cause && !repeatsPathogen(disease) ? (
           <p>
             Recorded cause: <TermText text={disease.cause} seen={seen} />
           </p>
@@ -182,7 +217,7 @@ function CausesPanel({ disease, phone }: { disease: DiseaseDetail; phone: boolea
   );
 }
 
-function ImagesPanel({ disease }: { disease: DiseaseDetail }) {
+function ImagesPanel({ disease, related }: { disease: DiseaseDetail; related: SearchEntry[] }) {
   if (disease.images.length === 0) {
     return (
       <Shell title="Images">
@@ -197,6 +232,7 @@ function ImagesPanel({ disease }: { disease: DiseaseDetail }) {
         >
           {copy.imagesBody}
         </EmptyState>
+        <Suggestions entries={related} label={`More on ${disease.plant.name}`} />
       </Shell>
     );
   }
@@ -220,9 +256,15 @@ function ImagesPanel({ disease }: { disease: DiseaseDetail }) {
 export function DiseaseView({
   disease,
   initialSize = "desktop",
+  related = [],
+  speciesNames = {},
 }: {
   disease: DiseaseDetail;
+  /** Common names keyed by lowercase scientific name, so "Also affects" reads in plain words. */
+  speciesNames?: Record<string, string>;
   initialSize?: ViewportSize;
+  /** Other diseases of the same plant, offered while there are no reference photos. */
+  related?: SearchEntry[];
 }) {
   const viewport = useViewportSize(initialSize);
   const phone = viewport === "phone";
@@ -234,24 +276,16 @@ export function DiseaseView({
         id: "overview",
         title: "Overview",
         content: (
-          <Shell
-            title="Overview"
-            aside={
-              <Aside
-                disease={disease}
-                caption={
-                  severityLevel(disease.severity)
-                    ? `Severity: ${SEVERITY_LABELS[severityLevel(disease.severity)!]}`
-                    : captionFor(disease)
-                }
-              />
-            }
-          >
+          <Shell title="Overview" aside={<Aside disease={disease} caption={captionFor(disease)} />}>
             <Facts disease={disease} />
           </Shell>
         ),
       },
-      { id: "causes", title: "Causes", content: <CausesPanel disease={disease} phone={phone} /> },
+      {
+        id: "causes",
+        title: "Causes",
+        content: <CausesPanel disease={disease} phone={phone} speciesNames={speciesNames} />,
+      },
       ...listPanels({ id: "symptoms", title: "Symptoms", items: disease.symptoms, size, disease }),
       ...listPanels({
         id: "treatment",
@@ -261,16 +295,22 @@ export function DiseaseView({
         disease,
         note: copy.treatmentNote,
       }),
-      ...listPanels({
-        id: "prevention",
-        title: "Prevention",
-        items: disease.preventions,
-        size,
-        disease,
-      }),
-      { id: "images", title: "Images", content: <ImagesPanel disease={disease} /> },
+      ...(samePlan(disease.preventions, disease.treatments)
+        ? []
+        : listPanels({
+            id: "prevention",
+            title: "Prevention",
+            items: disease.preventions,
+            size,
+            disease,
+          })),
+      {
+        id: "images",
+        title: "Images",
+        content: <ImagesPanel disease={disease} related={related} />,
+      },
     ],
-    [disease, phone, size],
+    [disease, phone, related, size, speciesNames],
   );
 
   return (

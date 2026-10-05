@@ -40,7 +40,7 @@ describe("callApi", () => {
         ),
       ),
     );
-    const result = await callApi("/api/auth/resend-verification", { method: "POST" });
+    const result = await callApi("/api/scans", { method: "POST" });
     expect(result).toEqual({
       ok: false,
       error: {

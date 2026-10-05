@@ -1,8 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Full stack tests: the real Next production build, the real FastAPI, Postgres, an S3 server and
- * Mailpit. Start everything first with `scripts/dev/run-all.ps1 -E2E` (see README). The `stub`
+ * Full stack tests: the real Next production build, the real FastAPI, Postgres, and an S3 server.
+ * Start everything first with `scripts/dev/run-all.ps1 -E2E` (see README). The `stub`
  * project talks to a second stack whose API runs ML_SERVICE=stub.
  */
 const MAIN = process.env.FULL_APP_URL ?? "http://127.0.0.1:3000";

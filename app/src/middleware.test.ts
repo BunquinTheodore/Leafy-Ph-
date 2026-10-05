@@ -54,15 +54,6 @@ describe("middleware", () => {
     expect(setCookies).toContain("leafy_at=");
   });
 
-  it.each(["/reset-password?token=abc", "/verify-email?token=abc"])(
-    "sends Referrer-Policy: no-referrer on the token page %s",
-    async (path) => {
-      const res = await run(path);
-      expect(res.status).toBe(200);
-      expect(res.headers.get("referrer-policy")).toBe("no-referrer");
-    },
-  );
-
   it("keeps the normal referrer policy elsewhere", async () => {
     const res = await run("/about");
     expect(res.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");

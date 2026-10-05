@@ -252,6 +252,51 @@ describe("proxy.json (authenticated)", () => {
     expect(res.headers.getSetCookie().join("\n")).toContain("leafy_rt=;");
   });
 
+  it("stores the fresh session of a password change in cookies and hides the tokens", async () => {
+    const session = mockSession();
+    const { proxy } = setup({
+      "POST /users/me/password": () =>
+        ok({
+          changed: true,
+          access_token: session.access_token,
+          refresh_token: "new-refresh-token",
+          expires_in: session.expires_in,
+          refresh_expires_at: session.refresh_expires_at,
+        }),
+    });
+    const res = await proxy.json(
+      request("/api/me/password", {
+        method: "POST",
+        body: JSON.stringify({ current_password: "old", new_password: "a brand new meadow" }),
+        headers: { "content-type": "application/json" },
+        cookie: `leafy_at=${freshAt()}; leafy_rt=old-rt`,
+      }),
+      { apiPath: "/users/me/password", auth: "required", adoptSession: true },
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true, data: { changed: true }, error: null });
+    const cookies = res.headers.getSetCookie().join("\n");
+    expect(cookies).toContain("leafy_rt=new-refresh-token");
+    expect(cookies).toContain(`leafy_at=${session.access_token}`);
+  });
+
+  it("leaves the cookies alone when a password change is refused", async () => {
+    const { proxy } = setup({
+      "POST /users/me/password": () => fail(403, "password_incorrect"),
+    });
+    const res = await proxy.json(
+      request("/api/me/password", {
+        method: "POST",
+        body: JSON.stringify({ current_password: "x", new_password: "a brand new meadow" }),
+        headers: { "content-type": "application/json" },
+        cookie: `leafy_at=${freshAt()}; leafy_rt=old-rt`,
+      }),
+      { apiPath: "/users/me/password", auth: "required", adoptSession: true },
+    );
+    expect(res.status).toBe(403);
+    expect(res.headers.getSetCookie().join("\n")).not.toContain("leafy_rt=");
+  });
+
   it("requires same origin on mutating methods but not on GET", async () => {
     const { proxy } = setup({ "GET /scans": () => ok([]) });
     const get = await proxy.json(

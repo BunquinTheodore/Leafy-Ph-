@@ -13,18 +13,28 @@ import "./account.css";
 const copy = member.account;
 
 /** Account as sideways panels: Profile, Password and Danger zone (deep links #profile and so on). */
-export function AccountPanels({ user }: { user: AccountUser }) {
+export function AccountPanels({
+  user,
+  recentGoogle = false,
+}: {
+  user: AccountUser;
+  recentGoogle?: boolean;
+}) {
   const [deleted, setDeleted] = useState(false);
   if (deleted) return <Goodbye />;
 
   const panels: Panel[] = [
     { id: "profile", title: copy.panels.profile, content: <ProfilePanel user={user} /> },
-    { id: "password", title: copy.panels.password, content: <PasswordPanel user={user} /> },
+    {
+      id: "password",
+      title: copy.panels.password,
+      content: <PasswordPanel user={user} recentGoogle={recentGoogle} />,
+    },
     {
       id: "danger",
       title: copy.panels.danger,
       content: <DangerPanel user={user} onDeleted={() => setDeleted(true)} />,
     },
   ];
-  return <SlidePanels label={copy.panelsLabel} panels={panels} />;
+  return <SlidePanels label={copy.panelsLabel} panels={panels} width="standard" />;
 }

@@ -7,6 +7,6 @@ export const metadata: Metadata = { title: "Scan a leaf" };
 export const dynamic = "force-dynamic";
 
 export default async function ScanPage() {
-  const [user, labels] = await Promise.all([requireUser(), loadLabelOptionsOrNull()]);
-  return <ScanFlow verified={user.email_verified} labels={labels} />;
+  const [, labels] = await Promise.all([requireUser(), loadLabelOptionsOrNull()]);
+  return <ScanFlow labels={labels} />;
 }

@@ -99,10 +99,9 @@ function AccentLeaf({
         : { base: colors.brand, vein: "#e6f7e9", glow: colors.glow },
     [colors],
   );
-  const scale = Math.min(viewport.height * 0.36, viewport.width * 0.3);
-  const x = viewport.width * (variant === "beam" ? 0.24 : 0.27);
+  const scale = Math.min(viewport.height * 0.27, viewport.width * 0.25);
   return (
-    <group position={[x, 0, 0]}>
+    <group>
       <LeafModel
         palette={palette}
         scale={scale}
@@ -126,7 +125,7 @@ export default function AccentSceneCanvas({
 }) {
   const colors = useSceneColors();
   const mobile = useIsMobile();
-  const wide = useMediaQuery("(min-width: 900px)");
+  const wide = useMediaQuery("(min-width: 960px)");
   const reducedMotion = useReducedMotion();
   const animated = !reducedMotion;
 

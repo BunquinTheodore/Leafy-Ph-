@@ -1,4 +1,3 @@
-export const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_COOLDOWN_SECONDS = 3600;
 
 /** Timestamp (ms) at which a cooldown that starts now ends. Caps server supplied waits. */

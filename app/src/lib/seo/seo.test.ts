@@ -34,9 +34,9 @@ describe("pageMetadata", () => {
   it("is indexable by default and can be marked noindex", () => {
     expect(meta.robots).toBeUndefined();
     const hidden = pageMetadata({
-      title: "Reset",
+      title: "Account",
       description: "x",
-      path: "/reset-password",
+      path: "/account",
       noindex: true,
     });
     expect(hidden.robots).toEqual({ index: false, follow: false });

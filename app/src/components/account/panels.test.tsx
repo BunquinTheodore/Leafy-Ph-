@@ -15,6 +15,13 @@ import type { AccountUser } from "./types";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+// The re-sign in button needs Google sign in to be available; the SDK itself is never loaded here.
+vi.mock("@/lib/firebase/config", () => ({ isGoogleSignInAvailable: () => true }));
+vi.mock("@/lib/firebase/client", () => ({
+  signInWithGoogle: vi.fn(),
+  completeRedirectSignIn: vi.fn().mockResolvedValue(null),
+  preloadFirebase: vi.fn(),
+}));
 
 const passwordUser: AccountUser = {
   email: "ada@example.com",
@@ -154,6 +161,52 @@ describe("PasswordPanel", () => {
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
     expect(calls[0]?.body).toEqual({ new_password: "a much longer phrase 42" });
   });
+
+  it("lets a recent Google sign in set a new password without the current one", async () => {
+    const { calls } = stubFetch(() => okEnvelope({ changed: true }));
+    render(
+      <PasswordPanel
+        user={{ ...passwordUser, auth_methods: ["password", "google"] }}
+        recentGoogle
+      />,
+    );
+    expect(screen.queryByLabelText("Current password")).not.toBeInTheDocument();
+    expect(screen.getByText(/You signed in with Google a moment ago/)).toBeInTheDocument();
+
+    type("New password", "a much longer phrase 42");
+    fireEvent.click(screen.getByRole("button", { name: "Change password" }));
+
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0]?.body).toEqual({ new_password: "a much longer phrase 42" });
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("asks for the current password after all when the API says the sign in is no longer recent", async () => {
+    stubFetch(() =>
+      errorEnvelope(422, "validation_error", "Invalid", [
+        { field: "current_password", type: "missing" },
+      ]),
+    );
+    render(
+      <PasswordPanel
+        user={{ ...passwordUser, auth_methods: ["password", "google"] }}
+        recentGoogle
+      />,
+    );
+    type("New password", "a much longer phrase 42");
+    fireEvent.click(screen.getByRole("button", { name: "Change password" }));
+
+    expect(await screen.findByLabelText("Current password")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(screen.queryByText(/You signed in with Google a moment ago/)).not.toBeInTheDocument();
+  });
+
+  it("still requires the current password for a password session", () => {
+    render(<PasswordPanel user={passwordUser} recentGoogle={false} />);
+    expect(screen.getByLabelText("Current password")).toBeInTheDocument();
+  });
 });
 
 describe("DangerPanel", () => {
@@ -249,8 +302,8 @@ describe("DangerPanel", () => {
       within(await screen.findByRole("dialog")).getByRole("button", { name: "Delete account" }),
     );
 
-    const link = await screen.findByRole("link", { name: "Sign in with Google again" });
-    expect(link).toHaveAttribute("href", "/api/auth/google?next=%2Faccount%23danger");
+    const button = await screen.findByRole("button", { name: "Sign in with Google again" });
+    expect(button).toBeEnabled();
     expect(screen.getByText(/has not been deleted/i)).toBeInTheDocument();
     expect(onDeleted).not.toHaveBeenCalled();
   });

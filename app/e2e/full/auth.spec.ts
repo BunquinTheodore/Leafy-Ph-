@@ -1,14 +1,4 @@
-import {
-  expect,
-  linkFrom,
-  PASSWORD,
-  registerViaUi,
-  signInViaUi,
-  test,
-  uniqueEmail,
-  verifyViaMail,
-  waitForMail,
-} from "./support";
+import { expect, googleSignInViaUi, PASSWORD, registerViaUi, test, uniqueEmail } from "./support";
 
 test.describe("sign in and out", () => {
   test("login, protected pages, logout, and a wrong password", async ({ page, context }) => {
@@ -45,102 +35,58 @@ test.describe("sign in and out", () => {
     await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
     await page.getByRole("button", { name: "Create account" }).click();
     await expect(page.getByText("That email already has an account.")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Reset password" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Reset password" })).toHaveCount(0);
   });
 });
 
-test.describe("verify email", () => {
-  test("a used or invalid link shows the expired state, and resend sends a new mail", async ({
+test.describe("password recovery without email", () => {
+  const NEW_PASSWORD = "a fresh passphrase 2026";
+
+  // Leafy sends no email, so no password account is ever verified. A Google sign in with the same
+  // address proves ownership: the API drops the earlier, unproven password and its sessions, and
+  // the member sets a new one without any old password.
+  test("a fresh Google sign in sets a new password without the old one", async ({
     page,
-    request,
+    context,
   }) => {
-    const email = uniqueEmail("verify");
+    const email = uniqueEmail("recover");
     await registerViaUi(page, { email });
-    const first = await waitForMail(request, email, "Verify your Leafy email");
-    const link = linkFrom(first.text, "/verify-email");
-    await page.goto(link);
-    await expect(page.getByRole("heading", { name: "Email verified" })).toBeVisible();
+    await context.clearCookies();
 
-    await page.goto("/verify-email?token=not-a-real-token-0123456789abcdefghijklmnop");
-    await expect(page.getByRole("heading", { name: "This link has expired" })).toBeVisible();
-  });
+    await googleSignInViaUi(page, email, "/account");
+    await page.waitForURL("**/account");
+    await page.goto("/account#password");
+    await expect(page.getByLabel("Current password")).toHaveCount(0);
+    await page.getByLabel("New password", { exact: true }).fill(NEW_PASSWORD);
+    await page.getByRole("button", { name: "Set password" }).click();
+    await expect(page.getByText("Password set.")).toBeVisible();
 
-  test("the banner resend delivers a second mail", async ({ page, request }) => {
-    const email = uniqueEmail("resend");
-    await registerViaUi(page, { email });
-    await waitForMail(request, email, "Verify your Leafy email");
-    // The stack runs with a 1 second resend cooldown (60 seconds by default).
-    await page.waitForTimeout(1500);
-    await page.getByRole("button", { name: "Resend email" }).first().click();
-    await waitForMail(request, email, "Verify your Leafy email", 2);
-  });
-});
-
-test.describe("forgot and reset password", () => {
-  test("the mailed link sets a new password, signs other sessions out and old password fails", async ({
-    page,
-    request,
-    browser,
-    baseURL,
-  }) => {
-    const email = uniqueEmail("reset");
-    await registerViaUi(page, { email });
-    await verifyViaMail(page, request, email);
-
-    // A second device signed in with the old password.
-    const other = await browser.newContext({ baseURL });
-    const otherPage = await other.newPage();
-    await signInViaUi(otherPage, email);
-
-    await page.context().clearCookies();
-    await page.goto("/forgot-password");
-    await page.getByLabel("Email").fill(email);
-    await page.getByRole("button", { name: "Send reset link" }).click();
-    await expect(page.getByRole("heading", { name: "Check your inbox" })).toBeVisible();
-
-    const mail = await waitForMail(request, email, "Reset your Leafy password");
-    await page.goto(linkFrom(mail.text, "/reset-password"));
-    await expect(page.getByRole("heading", { level: 1, name: "New password" })).toBeVisible();
-    await page.waitForFunction(() => !location.search.includes("token="));
-    const newPassword = "a fresh passphrase 2026";
-    await page.getByLabel("New password", { exact: true }).fill(newPassword);
-    await page.getByRole("button", { name: "Update password" }).click();
-    await expect(page.getByRole("heading", { name: "Password updated" })).toBeVisible();
-
-    // The link works once.
-    await page.goto(linkFrom(mail.text, "/reset-password"));
-    await page.getByLabel("New password", { exact: true }).fill("yet another passphrase 77");
-    await page.getByRole("button", { name: "Update password" }).click();
-    await expect(page.getByRole("heading", { name: "This link has expired" })).toBeVisible();
-
-    // Old password no longer works, the new one does.
+    await context.clearCookies();
     await page.goto("/login");
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page.locator("form").getByRole("alert")).toContainText(/do not match/);
-    await page.getByLabel("Password", { exact: true }).fill(newPassword);
+    await page.getByLabel("Password", { exact: true }).fill(NEW_PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();
     await page.waitForURL("**/dashboard");
-
-    // The other device lost its refresh token: once its short lived access cookie is gone it is
-    // asked to sign in again instead of being renewed.
-    await other.clearCookies({ name: "leafy_at" });
-    await otherPage.goto("/account");
-    await expect(otherPage).toHaveURL(/\/login/);
-    await other.close();
   });
 
-  test("an unknown email gets the same calm answer and no mail", async ({ page, request }) => {
-    const email = uniqueEmail("nobody");
-    await page.goto("/forgot-password");
-    await page.getByLabel("Email").fill(email);
-    await page.getByRole("button", { name: "Send reset link" }).click();
-    await expect(page.getByRole("heading", { name: "Check your inbox" })).toBeVisible();
-    await page.waitForTimeout(1500);
-    const reply = await request.get(
-      `http://127.0.0.1:8025/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`,
-    );
-    expect(((await reply.json()) as { messages_count: number }).messages_count).toBe(0);
+  test("a password session cannot skip the current password", async ({ page, baseURL }) => {
+    await registerViaUi(page, { email: uniqueEmail("pwonly") });
+    const reply = await page.request.post("/api/me/password", {
+      headers: { origin: baseURL ?? "" },
+      data: { new_password: NEW_PASSWORD },
+    });
+    expect(reply.status()).toBe(422);
+  });
+
+  test("the login page explains the way back in and there is no reset page", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/login");
+    await expect(page.getByTestId("forgot-help")).toContainText("Sign in with Google");
+    expect((await request.get("/forgot-password")).status()).toBe(404);
   });
 });

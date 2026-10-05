@@ -36,6 +36,7 @@ export function LeafAccent({
       ref={host}
       className={["leaf-accent", className ?? ""].filter(Boolean).join(" ")}
       style={style}
+      data-decor
       aria-hidden="true"
     >
       {live ? <AccentView tone={tone} /> : <LogoMark height={40} tone="mono" />}

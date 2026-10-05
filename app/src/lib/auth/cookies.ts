@@ -3,7 +3,6 @@ import type { SessionTokens } from "../api/types";
 
 export const ACCESS_MAX_AGE_SECONDS = 900;
 export const REFRESH_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
-export const OAUTH_MAX_AGE_SECONDS = 600;
 
 export interface CookieOptions {
   httpOnly: boolean;
@@ -24,7 +23,6 @@ export function cookieNames(prefix: string) {
   return {
     access: `${prefix}leafy_at`,
     refresh: `${prefix}leafy_rt`,
-    oauth: `${prefix}leafy_oauth`,
   } as const;
 }
 
@@ -47,12 +45,4 @@ export function clearSessionCookies(writer: CookieWriter, env: CookieEnv): void 
   const names = cookieNames(env.cookiePrefix);
   writer.set(names.access, "", cookieOptions(env, 0));
   writer.set(names.refresh, "", cookieOptions(env, 0));
-}
-
-export function setOauthCookie(writer: CookieWriter, value: string, env: CookieEnv): void {
-  writer.set(cookieNames(env.cookiePrefix).oauth, value, cookieOptions(env, OAUTH_MAX_AGE_SECONDS));
-}
-
-export function clearOauthCookie(writer: CookieWriter, env: CookieEnv): void {
-  writer.set(cookieNames(env.cookiePrefix).oauth, "", cookieOptions(env, 0));
 }

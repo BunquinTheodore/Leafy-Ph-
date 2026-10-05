@@ -2,6 +2,11 @@ export interface CspOptions {
   nonce: string;
   dev: boolean;
   imgOrigins: readonly string[];
+  /**
+   * Host of the Firebase auth domain (e.g. leafy-8ecd6.firebaseapp.com). When set, the CSP gains
+   * exactly what Firebase popup sign in needs and nothing broader. Empty or missing adds nothing.
+   */
+  firebaseAuthDomain?: string;
   /** Add upgrade-insecure-requests (production behind HTTPS). Defaults to !dev. */
   upgradeInsecure?: boolean;
 }
@@ -19,11 +24,29 @@ export function createNonce(): string {
   return btoa(binary);
 }
 
-export function buildCsp({ nonce, dev, imgOrigins, upgradeInsecure = !dev }: CspOptions): string {
+/** Firebase popup sign in: token endpoints, the helper iframe and the gapi loader. */
+const FIREBASE_CONNECT = [
+  "https://identitytoolkit.googleapis.com",
+  "https://securetoken.googleapis.com",
+  "https://www.googleapis.com",
+] as const;
+const FIREBASE_FRAME = "https://accounts.google.com";
+/** Loaded by the SDK for popups. Explicit for CSP2 browsers; strict-dynamic covers the rest. */
+const FIREBASE_SCRIPT = "https://apis.google.com";
+
+export function buildCsp({
+  nonce,
+  dev,
+  imgOrigins,
+  firebaseAuthDomain = "",
+  upgradeInsecure = !dev,
+}: CspOptions): string {
+  const firebase = firebaseAuthDomain !== "";
   const scriptSrc = [
     "'self'",
     `'nonce-${nonce}'`,
     "'strict-dynamic'",
+    ...(firebase ? [FIREBASE_SCRIPT] : []),
     ...(dev ? ["'unsafe-eval'"] : []),
   ];
   const directives: Array<[string, string[]]> = [
@@ -32,7 +55,15 @@ export function buildCsp({ nonce, dev, imgOrigins, upgradeInsecure = !dev }: Csp
     ["style-src", ["'self'", "'unsafe-inline'"]],
     ["img-src", ["'self'", "data:", "blob:", ...imgOrigins]],
     ["font-src", ["'self'"]],
-    ["connect-src", ["'self'", ...(dev ? ["ws:", "wss:"] : [])]],
+    [
+      "connect-src",
+      ["'self'", ...(firebase ? FIREBASE_CONNECT : []), ...(dev ? ["ws:", "wss:"] : [])],
+    ],
+    ...(firebase
+      ? ([["frame-src", [`https://${firebaseAuthDomain}`, FIREBASE_FRAME]]] as Array<
+          [string, string[]]
+        >)
+      : []),
     ["worker-src", ["'self'", "blob:"]],
     ["manifest-src", ["'self'"]],
     ["media-src", ["'self'"]],
@@ -52,24 +83,12 @@ export function securityHeaders(options: SecurityHeaderOptions): Record<string, 
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(self), microphone=(), geolocation=(), payment=()",
-    "Cross-Origin-Opener-Policy": "same-origin",
+    // allow-popups keeps isolation but lets the Firebase sign in popup talk back to this page.
+    "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
   };
   if (options.hsts) {
     headers["Strict-Transport-Security"] =
       `max-age=${HSTS_MAX_AGE_SECONDS}; includeSubDomains; preload`;
   }
   return headers;
-}
-
-const NO_REFERRER_PATHS = ["/reset-password", "/verify-email"] as const;
-
-/** Pages whose URL carries a one time secret must never leak it through a Referer header. */
-export function withReferrerPolicyFor(
-  pathname: string,
-  headers: Record<string, string>,
-): Record<string, string> {
-  const secret = NO_REFERRER_PATHS.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`),
-  );
-  return secret ? { ...headers, "Referrer-Policy": "no-referrer" } : headers;
 }

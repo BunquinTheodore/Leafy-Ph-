@@ -72,6 +72,6 @@ describe("DocumentPage", () => {
       />,
     );
     expect(screen.queryByText("Draft for review")).not.toBeInTheDocument();
-    expect(screen.getAllByText(/Dahon means leaf in Filipino/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Dahon means leaf in Filipino/)).not.toBeInTheDocument();
   });
 });

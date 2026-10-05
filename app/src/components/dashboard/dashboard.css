@@ -1,20 +1,19 @@
-/* Dashboard: one viewport stage on desktop, three sideways sections on phones. */
+/* Dashboard: a centered wide composition on desktop, three sideways sections on phones. */
 
-.dash {
+.dash__wrap {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: clamp(12px, 2vh, 24px);
   min-height: 0;
-  overflow: hidden;
-  padding: var(--space-6) var(--gutter) var(--space-4);
 }
 
+/* Title block and the scan button sit together (never pinned to opposite edges). */
 .dash__head {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
   align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-3) var(--space-8);
 }
 
 .dash__titles {
@@ -24,17 +23,16 @@
   min-width: 0;
 }
 
+.display.dash__title {
+  font-size: calc(clamp(1.5rem, 1rem + 1.8vw, 2.75rem) * min(var(--ui-scale), 1.2));
+}
+
 .dash__cta {
   flex: none;
 }
 
-.dash__verify {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-1);
-  font-size: 0.875rem;
-  color: var(--text-muted);
+.dash__wrap .h3 {
+  font-size: calc(clamp(1.125rem, 1rem + 0.5vw, 1.5rem) * var(--ui-scale));
 }
 
 .dash__alert {
@@ -45,56 +43,23 @@
   display: none;
 }
 
-/* ---- Sections: desktop grid ---- */
-.dash__sections {
-  display: grid;
-  flex: 1 1 auto;
-  min-height: 0;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: var(--space-6);
-}
-
 .dash__sec {
   min-width: 0;
   min-height: 0;
 }
 
-.dash__sec--overview {
-  grid-column: 1;
-  grid-row: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.dash__sec--diseases {
-  grid-column: 2;
-  grid-row: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.dash__sec--recent {
-  grid-column: 1 / -1;
-  grid-row: 2;
-}
-
-.dash__tiles {
-  display: grid;
-  flex: none;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-}
-
 .tile {
-  padding: var(--space-4) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-6);
 }
 
 .tile__label {
   font-family: var(--font-heading);
   font-weight: 500;
-  font-size: 0.875rem;
+  font-size: 0.875em;
   color: var(--text-muted);
 }
 
@@ -103,8 +68,81 @@
   line-height: 1.1;
 }
 
+/* ---- Desktop: tiles, result ring and top diseases on one row, the recent scans below ---- */
+@media (min-width: 901px) {
+  .dash__sections {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: clamp(12px, 1.4vw, 24px);
+    align-items: stretch;
+  }
+
+  .dash__sec--overview {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(12px, 1.4vw, 24px);
+  }
+
+  .dash__sec--diseases {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dash__sec--recent {
+    grid-column: 1 / -1;
+  }
+
+  /* Two small stats become one compact strip: label left, number right. */
+  .dash__tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(12px, 1.4vw, 24px);
+  }
+
+  .tile {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  .tile__value {
+    font-size: calc(2rem * var(--ui-scale));
+  }
+}
+
+/* Wide enough for three columns: the stat tiles stack in a slim first column. */
+@media (min-width: 1200px) {
+  .dash__sections {
+    grid-template-columns: minmax(0, 1.85fr) minmax(0, 1.15fr);
+  }
+
+  .dash__sec--overview {
+    display: grid;
+    grid-template-columns: minmax(7em, 0.34fr) minmax(0, 1.5fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .dash__tiles {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+
+  .tile {
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: var(--space-1);
+    text-align: left;
+  }
+
+  .tile__value {
+    font-size: calc(2.75rem * var(--ui-scale));
+  }
+}
+
 /* ---- Result split ---- */
-.split {
+.rsplit {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
@@ -113,17 +151,20 @@
   padding: var(--space-4) var(--space-6);
 }
 
-.split__body {
-  display: grid;
+/* Ring and legend are one group, centered in the card. */
+.rsplit__body {
+  display: flex;
   flex: 1 1 auto;
   min-height: 0;
-  grid-template-columns: minmax(120px, 1fr) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
-  gap: var(--space-6);
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
+  gap: var(--space-4) clamp(20px, 3vw, 56px);
+  padding-bottom: var(--space-2);
 }
 
-.split__legend {
+.rsplit__legend {
+  width: min(100%, 18em);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -132,7 +173,7 @@
   list-style: none;
 }
 
-.split__row {
+.rsplit__row {
   display: grid;
   grid-template-columns: 16px minmax(0, 1fr) auto auto;
   align-items: center;
@@ -142,29 +183,29 @@
   font-size: 0.9375rem;
 }
 
-.split__row:last-child {
+.rsplit__row:last-child {
   border-bottom: 0;
 }
 
-.split__row[data-key="healthy"] .split__shape {
+.rsplit__row[data-key="healthy"] .rsplit__shape {
   color: var(--sev-healthy);
 }
-.split__row[data-key="diseased"] .split__shape {
+.rsplit__row[data-key="diseased"] .rsplit__shape {
   color: var(--sev-high);
 }
-.split__row[data-key="unknown"] .split__shape {
+.rsplit__row[data-key="unknown"] .rsplit__shape {
   color: var(--info);
 }
 
-.split__name {
+.rsplit__name {
   min-width: 0;
 }
 
-.split__count {
+.rsplit__count {
   font-size: 1.125rem;
 }
 
-.split__pct {
+.rsplit__pct {
   min-width: 3ch;
   text-align: right;
   color: var(--text-muted);
@@ -173,9 +214,11 @@
 
 /* ---- Orb (donut poster plus the three.js ring) ---- */
 .orb {
+  --orb-size: clamp(120px, 30vh, calc(300px * var(--ui-scale)));
   position: relative;
-  width: 100%;
-  height: 100%;
+  flex: none;
+  width: var(--orb-size);
+  height: var(--orb-size);
   min-height: 0;
 }
 
@@ -254,8 +297,8 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: var(--space-3);
+  justify-content: space-between;
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -263,10 +306,11 @@
 
 .top__row {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) minmax(48px, 30%) 3ch;
+  grid-template-columns: 1.75em minmax(0, 1fr) minmax(48px, 28%) 3ch;
+  flex: 1 1 0;
   align-items: center;
   gap: var(--space-3);
-  min-height: 52px;
+  min-height: 2.6em;
   border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
 }
 
@@ -354,22 +398,65 @@
   }
 }
 
+/* One row of equal columns: its right edge lines up with the cards above. The rest is in "View all". */
 .recent__rail {
-  display: flex;
-  gap: var(--space-4);
+  --recent-cols: 3;
+  display: grid;
+  grid-template-columns: repeat(var(--recent-cols), minmax(0, 1fr));
+  gap: clamp(12px, 1.4vw, 24px);
   margin: 0;
-  padding: 0 0 var(--space-2);
+  padding: 0;
   list-style: none;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity;
-  scrollbar-width: thin;
+}
+
+.recent__rail > .scan-card-item:nth-child(n + 4) {
+  display: none;
+}
+
+@media (min-width: 1200px) {
+  .recent__rail {
+    --recent-cols: 4;
+  }
+
+  .recent__rail > .scan-card-item:nth-child(n + 4) {
+    display: block;
+  }
+
+  .recent__rail > .scan-card-item:nth-child(n + 5) {
+    display: none;
+  }
+}
+
+@media (min-width: 1900px) {
+  .recent__rail {
+    --recent-cols: 5;
+  }
+
+  .recent__rail > .scan-card-item:nth-child(5) {
+    display: block;
+  }
+
+  .recent__rail > .scan-card-item:nth-child(n + 6) {
+    display: none;
+  }
+}
+
+@media (min-width: 2300px) {
+  .recent__rail {
+    --recent-cols: 6;
+  }
+
+  .recent__rail > .scan-card-item:nth-child(6) {
+    display: block;
+  }
+
+  .recent__rail > .scan-card-item:nth-child(n + 7) {
+    display: none;
+  }
 }
 
 .scan-card-item {
-  flex: 0 0 clamp(260px, 22vw, 330px);
   min-width: 0;
-  scroll-snap-align: start;
 }
 
 .scan-card {
@@ -385,8 +472,8 @@
   display: grid;
   flex: none;
   place-items: center;
-  width: 76px;
-  height: 76px;
+  width: 6em;
+  height: 6em;
   overflow: hidden;
   border-radius: 10px;
   background: var(--surface);
@@ -410,11 +497,11 @@
 .scan-card__title {
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 1em;
 }
 
 .scan-card__detail {
-  font-size: 0.8125rem;
+  font-size: 0.8125em;
   color: var(--text-muted);
 }
 
@@ -428,7 +515,7 @@
 }
 
 .scan-card__date {
-  font-size: 0.8125rem;
+  font-size: 0.8125em;
   color: var(--text-muted);
 }
 
@@ -443,10 +530,12 @@
   flex: 1 1 auto;
   min-height: 0;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   gap: var(--space-4);
   max-width: 44rem;
+  margin-inline: auto;
+  text-align: center;
   padding: var(--space-8);
 }
 
@@ -480,76 +569,12 @@
   font-size: 0.875rem;
 }
 
-/*
- * Short desktops (laptops around 720 to 800px tall): the tiles stack beside the result ring so the
- * ring keeps a useful size, and the rail cards and header get tighter.
- */
-@media (min-width: 901px) and (max-height: 820px) {
-  .dash {
-    gap: var(--space-3);
-    padding-top: var(--space-4);
-  }
-
-  .dash__titles {
-    gap: var(--space-1);
-  }
-
-  .dash__sections {
-    gap: var(--space-4);
-  }
-
-  .dash__sec--overview {
-    display: grid;
-    grid-template-columns: minmax(150px, 0.42fr) minmax(0, 1.5fr);
-    grid-template-rows: minmax(0, 1fr);
-    gap: var(--space-4);
-  }
-
-  .dash__tiles {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-    gap: var(--space-4);
-  }
-
-  .tile {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: var(--space-3) var(--space-4);
-  }
-
-  .tile__value {
-    font-size: 2rem;
-  }
-
-  .split {
-    min-height: 0;
-    padding: var(--space-3) var(--space-4);
-  }
-
-  .scan-card {
-    padding: var(--space-2) var(--space-3);
-  }
-
-  .scan-card__thumb {
-    width: 56px;
-    height: 56px;
-  }
-
-  .recent {
-    gap: var(--space-1);
-  }
-
-  .recent__all {
-    min-height: 36px;
-  }
-}
-
 /* ---- Phones and small tablets: sideways sections ---- */
 @media (max-width: 900px) {
-  .dash {
+  .dash__wrap {
+    height: 100%;
+    margin: 0;
     gap: var(--space-3);
-    padding-top: var(--space-4);
   }
 
   .dash__head {
@@ -558,12 +583,25 @@
     gap: var(--space-3);
   }
 
-  .dash__cta {
-    width: 100%;
+  .dash__sections {
+    flex: 1 1 auto;
   }
 
-  .dash__verify {
-    align-items: stretch;
+  .dash__sec--overview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .dash__tiles {
+    display: grid;
+    flex: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+
+  .dash__cta {
+    width: 100%;
   }
 
   .dash__sections {
@@ -607,14 +645,27 @@
     font-size: 1.75rem;
   }
 
-  .split {
-    padding: var(--space-3) var(--space-4);
+  .rsplit {
+    padding: var(--space-3) var(--space-4) var(--space-4);
   }
 
-  .split__body {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: clamp(110px, 20dvh, 170px) auto;
+  .rsplit__row {
+    min-height: 32px;
+  }
+
+  .rsplit__body {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
     gap: var(--space-3);
+  }
+
+  .orb {
+    --orb-size: clamp(96px, 15dvh, 150px);
+  }
+
+  .rsplit__legend {
+    width: 100%;
   }
 
   .top {
@@ -622,27 +673,20 @@
   }
 
   .recent__rail {
+    display: flex;
     flex-direction: column;
-    overflow: visible;
     gap: var(--space-3);
   }
 
-  .scan-card-item {
-    flex: none;
-  }
-
   /* Three fit comfortably on a phone; a taller screen shows a fourth. */
-  .scan-card-item:nth-child(n + 4) {
-    display: none;
-  }
 
   .scan-card {
     padding: var(--space-2) var(--space-3);
   }
 
   .scan-card__thumb {
-    width: 56px;
-    height: 56px;
+    width: 3.5em;
+    height: 3.5em;
   }
 
   .dash-empty {
@@ -652,7 +696,7 @@
 }
 
 @media (max-width: 900px) and (min-height: 940px) {
-  .scan-card-item:nth-child(4) {
+  .recent__rail > .scan-card-item:nth-child(4) {
     display: block;
   }
 }
@@ -662,4 +706,51 @@
   .orb__canvas {
     transition: none;
   }
+}
+
+/* Short desktops (laptops around 720 to 780px tall): tighter cards so the recent row stays in view. */
+@media (min-width: 901px) and (max-height: 780px) {
+  .dash__wrap {
+    gap: var(--space-2);
+  }
+
+  .display.dash__title {
+    font-size: 2rem;
+  }
+
+  .tile {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .rsplit,
+  .top {
+    padding: var(--space-3) var(--space-4);
+    gap: var(--space-2);
+  }
+
+  .top__row {
+    min-height: 2.6em;
+  }
+
+  .scan-card {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .scan-card__thumb {
+    width: 4.5em;
+    height: 4.5em;
+  }
+
+  .recent {
+    gap: 0;
+  }
+
+  .recent__all {
+    min-height: 36px;
+  }
+}
+
+.top__name,
+.top__plant {
+  line-height: 1.2;
 }

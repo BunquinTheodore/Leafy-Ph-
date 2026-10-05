@@ -19,7 +19,7 @@ export default function AboutPage() {
       <JsonLd data={aboutJsonLd(siteOrigin())} />
       <DocumentPage
         label="About Leafy sections"
-        eyebrow="About"
+        eyebrow="Our story"
         title="About Leafy"
         sections={aboutSections}
         decorate

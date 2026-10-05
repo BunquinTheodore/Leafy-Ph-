@@ -61,7 +61,15 @@ export function HandbookBrowser({
         <div className="hb__titles">
           <p className="eyebrow m-0">{copy.eyebrow}</p>
           <h1 className="display hb__title">{copy.title}</h1>
-          <p className="hb__lede">{copy.lede}</p>
+          {trimmed && results.length > 0 ? (
+            <p className="hb-count">
+              {results.length} {results.length === 1 ? "result" : "results"} for {"“"}
+              {trimmed}
+              {"”"}
+            </p>
+          ) : (
+            <p className="hb__lede">{copy.lede}</p>
+          )}
         </div>
         <div className="hb-search" role="search">
           <label htmlFor="hb-search-input" className="sr-only">

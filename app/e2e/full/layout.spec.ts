@@ -25,7 +25,6 @@ const PUBLIC_PATHS = [
   "/terms",
   "/login",
   "/register",
-  "/forgot-password",
 ];
 const MEMBER_PATHS = ["/dashboard", "/scan", "/scans", "/account"];
 

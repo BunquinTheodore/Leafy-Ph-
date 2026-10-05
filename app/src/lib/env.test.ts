@@ -54,10 +54,34 @@ describe("parseEnv", () => {
     expect(() => parseEnv({ ...base, MAX_UPLOAD_BYTES: "-1" })).toThrow();
   });
 
-  it("reads google settings as optional", () => {
-    const env = parseEnv({ ...base, GOOGLE_CLIENT_ID: "abc", GOOGLE_MOCK: "1" });
-    expect(env.googleClientId).toBe("abc");
-    expect(env.googleMock).toBe(true);
-    expect(env.googleRedirectUri).toBe("http://localhost:3000/api/auth/google/callback");
+  it("refuses the mock sign in flag in production too", () => {
+    expect(() => parseEnv({ ...base, NEXT_PUBLIC_AUTH_MOCK: "1", ENV: "prod" })).toThrow(
+      /AUTH_MOCK/,
+    );
+    expect(() => parseEnv({ ...base, NEXT_PUBLIC_AUTH_MOCK: "1", COOKIE_SECURE: "true" })).toThrow(
+      /AUTH_MOCK/,
+    );
+    expect(parseEnv({ ...base, NEXT_PUBLIC_AUTH_MOCK: "1" }).googleMock).toBe(true);
+  });
+
+  it("reads the Firebase auth domain as a bare lowercase host", () => {
+    expect(parseEnv(base).firebaseAuthDomain).toBe("");
+    const env = parseEnv({
+      ...base,
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "Leafy-8ecd6.firebaseapp.com",
+    });
+    expect(env.firebaseAuthDomain).toBe("leafy-8ecd6.firebaseapp.com");
+  });
+
+  it("rejects an auth domain that could widen the CSP", () => {
+    for (const bad of [
+      "https://x.firebaseapp.com",
+      "x.com/path",
+      "x.com; script-src *",
+      "*.com",
+      "x",
+    ]) {
+      expect(() => parseEnv({ ...base, NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: bad })).toThrow();
+    }
   });
 });

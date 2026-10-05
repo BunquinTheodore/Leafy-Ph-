@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 import { createMockFetch, fail, mockSession, ok } from "../../../tests/mocks/api";
 import { createRefresher } from "../auth/refresh";
-import { createGoogleFlow } from "../auth/google";
+import { createGoogleSignIn } from "../auth/google";
 import { parseEnv } from "../env";
 import { createProxy } from "./proxy";
 
@@ -11,7 +11,6 @@ const ORIGIN = "http://localhost:3000";
 const env = parseEnv({
   API_INTERNAL_URL: "http://api.test",
   APP_ORIGIN: ORIGIN,
-  GOOGLE_CLIENT_ID: "client-123",
 });
 
 const post = (path: string, body: unknown) =>
@@ -79,24 +78,16 @@ describe("register and login against the published AuthSessionOut", () => {
   });
 });
 
-describe("google callback against GoogleSessionOut", () => {
+describe("google sign in against GoogleSessionOut", () => {
   it("accepts the extra flags and sets the session cookies", async () => {
     const fetchMock = createMockFetch({
       "POST /auth/google": () =>
         ok({ ...mockSession(), is_new_user: true, linked_existing_account: false }),
     });
-    const flow = createGoogleFlow({ env, fetch: fetchMock });
-    const start = await flow.start(new NextRequest(`${ORIGIN}/api/auth/google?next=/scan`));
-    const cookie = (
-      start.headers.getSetCookie().find((c) => c.startsWith("leafy_oauth=")) ?? ""
-    ).split(";")[0];
-    const state = new URL(start.headers.get("location") ?? "").searchParams.get("state");
-    const res = await flow.callback(
-      new NextRequest(`${ORIGIN}/api/auth/google/callback?code=abc&state=${state}`, {
-        headers: { cookie: cookie ?? "" },
-      }),
-    );
-    expect(res.headers.get("location")).toBe(`${ORIGIN}/scan`);
-    expect(res.headers.getSetCookie().join("\n")).toContain("leafy_at=");
+    const handler = createGoogleSignIn({ env, fetch: fetchMock });
+    const res = await handler.handle(post("/api/auth/google", { idToken: "x".repeat(40) }));
+    expect(res.status).toBe(200);
+    expect(res.headers.getSetCookie().join(";")).toContain("leafy_at=");
+    expect((await res.json()).data.is_new_user).toBe(true);
   });
 });

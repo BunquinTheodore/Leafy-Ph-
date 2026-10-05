@@ -58,9 +58,6 @@ describe("buildSitemap", () => {
       "/brand",
       "/login",
       "/register",
-      "/reset-password",
-      "/verify-email",
-      "/forgot-password",
       "/api",
     ]) {
       expect(joined).not.toContain(`${ORIGIN}${path}`);

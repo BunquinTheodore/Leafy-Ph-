@@ -3,7 +3,7 @@ import { lineCount } from "./support/helpers";
 
 test.describe("about, privacy and terms", () => {
   const pages = [
-    { path: "/about", h1: "About Leafy", first: "what-leafy-is", panels: 4 },
+    { path: "/about", h1: "About Leafy", first: "what-leafy-is", panels: 3 },
     { path: "/privacy", h1: "Privacy Policy", first: "contents", panels: 8 },
     { path: "/terms", h1: "Terms of Use", first: "contents", panels: 7 },
   ];
@@ -48,10 +48,10 @@ test.describe("about, privacy and terms", () => {
     await expect(page.locator('#results-and-limits[data-active="true"]')).toBeAttached();
   });
 
-  test("about credits DAHON and explains the name", async ({ page }) => {
-    await page.goto("/about?nosplash#the-name");
-    await expect(page.getByText(/Dahon means leaf in Filipino/).first()).toBeVisible();
-    await expect(page.locator(".site-footer")).toContainText("DAHON");
+  test("about and the footer carry no origin story", async ({ page }) => {
+    await page.goto("/about?nosplash");
+    await expect(page.getByText(/Dahon means leaf in Filipino/)).toHaveCount(0);
+    await expect(page.locator(".site-footer")).not.toContainText("DAHON");
   });
 
   test("panel titles stay within two lines at phone, tablet and desktop widths", async ({
@@ -142,10 +142,9 @@ test.describe("SEO", () => {
     expect(types).toEqual(expect.arrayContaining(["WebSite", "Organization", "AboutPage"]));
   });
 
-  test("auth and token pages are kept out of search results", async ({ page }) => {
+  test("the removed email pages are gone and login stays indexable", async ({ request, page }) => {
     for (const path of ["/forgot-password", "/reset-password", "/verify-email"]) {
-      await page.goto(`${path}?nosplash`);
-      await expect(page.locator('meta[name="robots"]'), path).toHaveAttribute("content", /noindex/);
+      expect((await request.get(path)).status(), path).toBe(404);
     }
     await page.goto("/login?nosplash");
     await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
@@ -158,7 +157,7 @@ test.describe("SEO", () => {
     const response = await request.get("/robots.txt");
     expect(response.status()).toBe(200);
     const text = await response.text();
-    for (const path of ["/api/", "/brand", "/dashboard", "/scan", "/account", "/reset-password"]) {
+    for (const path of ["/api/", "/brand", "/dashboard", "/scan", "/account"]) {
       expect(text).toContain(`Disallow: ${path}`);
     }
     expect(text).toContain("Allow: /");
@@ -184,7 +183,7 @@ test.describe("SEO", () => {
     ]) {
       expect(xml, path).toContain(`<loc>${baseURL}${path}</loc>`);
     }
-    for (const path of ["/dashboard", "/login", "/brand", "/reset-password", "/api"]) {
+    for (const path of ["/dashboard", "/login", "/brand", "/api"]) {
       expect(xml, path).not.toContain(`<loc>${baseURL}${path}`);
     }
   });

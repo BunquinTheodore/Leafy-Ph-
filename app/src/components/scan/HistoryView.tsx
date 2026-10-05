@@ -264,104 +264,106 @@ export function HistoryView({ initial, plants }: HistoryViewProps) {
   }
 
   return (
-    <div className="hist stage-fill" data-testid="history-view">
-      <header className="hist__head">
-        <div className="hist__titles">
-          <p className="eyebrow m-0">{copy.eyebrow}</p>
-          <h1 className="display display-sm">{copy.title}</h1>
-        </div>
-        <LinkButton href="/scan" size="md" className="hist__cta">
-          <ScanLine size={20} strokeWidth={1.5} aria-hidden="true" />
-          {scanCopy.page.title}
-        </LinkButton>
-      </header>
+    <div className="hist stage-fill wide-stage" data-width="standard" data-testid="history-view">
+      <div className="wide-container hist__inner">
+        <header className="hist__head">
+          <div className="hist__titles">
+            <p className="eyebrow m-0">{copy.eyebrow}</p>
+            <h1 className="display display-sm">{copy.title}</h1>
+          </div>
+          <LinkButton href="/scan" size="md" className="hist__cta">
+            <ScanLine size={20} strokeWidth={1.5} aria-hidden="true" />
+            {scanCopy.page.title}
+          </LinkButton>
+        </header>
 
-      <div className="hist__toolbar" role="group" aria-label={copy.filtersLabel}>
-        <label className="pick pick--inline">
-          <span className="pick__label">{copy.plant}</span>
-          <select
-            className="pick__select"
-            value={filters.plant}
-            onChange={(event) => setFilters({ ...filters, plant: event.target.value })}
-            data-testid="filter-plant"
-          >
-            <option value="">{copy.all}</option>
-            {plants.map((plant) => (
-              <option key={plant.slug} value={plant.slug}>
-                {plant.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="pick pick--inline">
-          <span className="pick__label">{copy.verdict}</span>
-          <select
-            className="pick__select"
-            value={filters.verdict}
-            onChange={(event) =>
-              setFilters({ ...filters, verdict: event.target.value as Filters["verdict"] })
-            }
-            data-testid="filter-verdict"
-          >
-            <option value="">{copy.all}</option>
-            {SCAN_VERDICTS.map((verdict) => (
-              <option key={verdict} value={verdict}>
-                {copy.verdicts[verdict]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="hist__toggle" role="group" aria-label={copy.viewLabel}>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm pressable"
-            aria-pressed={view === "rail"}
-            onClick={() => chooseView("rail")}
-            data-sfx="toggle"
-          >
-            <Rows3 size={16} strokeWidth={1.5} aria-hidden="true" />
-            {copy.rail}
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm pressable"
-            aria-pressed={view === "grid"}
-            onClick={() => chooseView("grid")}
-            data-sfx="toggle"
-          >
-            <LayoutGrid size={16} strokeWidth={1.5} aria-hidden="true" />
-            {copy.grid}
-          </button>
+        <div className="hist__toolbar" role="group" aria-label={copy.filtersLabel}>
+          <label className="pick pick--inline">
+            <span className="pick__label">{copy.plant}</span>
+            <select
+              className="pick__select"
+              value={filters.plant}
+              onChange={(event) => setFilters({ ...filters, plant: event.target.value })}
+              data-testid="filter-plant"
+            >
+              <option value="">{copy.all}</option>
+              {plants.map((plant) => (
+                <option key={plant.slug} value={plant.slug}>
+                  {plant.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="pick pick--inline">
+            <span className="pick__label">{copy.verdict}</span>
+            <select
+              className="pick__select"
+              value={filters.verdict}
+              onChange={(event) =>
+                setFilters({ ...filters, verdict: event.target.value as Filters["verdict"] })
+              }
+              data-testid="filter-verdict"
+            >
+              <option value="">{copy.all}</option>
+              {SCAN_VERDICTS.map((verdict) => (
+                <option key={verdict} value={verdict}>
+                  {copy.verdicts[verdict]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="hist__toggle" role="group" aria-label={copy.viewLabel}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm pressable"
+              aria-pressed={view === "rail"}
+              onClick={() => chooseView("rail")}
+              data-sfx="toggle"
+            >
+              <Rows3 size={16} strokeWidth={1.5} aria-hidden="true" />
+              {copy.rail}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm pressable"
+              aria-pressed={view === "grid"}
+              onClick={() => chooseView("grid")}
+              data-sfx="toggle"
+            >
+              <LayoutGrid size={16} strokeWidth={1.5} aria-hidden="true" />
+              {copy.grid}
+            </button>
+          </div>
+          <p className="hist__count m-0" role="status">
+            {copy.count(visible.length)}
+          </p>
         </div>
-        <p className="hist__count m-0" role="status">
-          {copy.count(visible.length)}
-        </p>
+
+        {body}
+
+        {view === "rail" && visible.length > 0 ? (
+          <div className="hist__pager">
+            <button
+              type="button"
+              className="btn btn-secondary btn-icon pressable"
+              aria-label={copy.prev}
+              onClick={() => page(-1)}
+              data-sfx="none"
+            >
+              <ChevronLeft size={20} strokeWidth={1.5} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-icon pressable"
+              aria-label={copy.next}
+              onClick={() => page(1)}
+              data-sfx="none"
+            >
+              <ChevronRight size={20} strokeWidth={1.5} aria-hidden="true" />
+            </button>
+          </div>
+        ) : null}
       </div>
-
-      {body}
-
-      {view === "rail" && visible.length > 0 ? (
-        <div className="hist__pager">
-          <button
-            type="button"
-            className="btn btn-secondary btn-icon pressable"
-            aria-label={copy.prev}
-            onClick={() => page(-1)}
-            data-sfx="none"
-          >
-            <ChevronLeft size={20} strokeWidth={1.5} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-icon pressable"
-            aria-label={copy.next}
-            onClick={() => page(1)}
-            data-sfx="none"
-          >
-            <ChevronRight size={20} strokeWidth={1.5} aria-hidden="true" />
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }

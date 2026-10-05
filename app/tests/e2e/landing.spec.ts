@@ -49,8 +49,7 @@ test.describe("landing journey", () => {
 
   test("opens one FAQ answer at a time", async ({ page }) => {
     await page.goto("/?nosplash#faq");
-    const first = page.getByText("What can Leafy tell me?");
-    await first.click();
+    // The first answer starts open so the panel is not a bare list of questions.
     await expect(page.getByText(/known disease, looks healthy/)).toBeVisible();
     await page.getByText("Do I need an account?").click();
     await expect(page.getByText(/known disease, looks healthy/)).toBeHidden();
@@ -59,7 +58,7 @@ test.describe("landing journey", () => {
 
   test("lists the plants and links to the handbook", async ({ page }) => {
     await page.goto("/?nosplash#plants");
-    await expect(page.locator("#plants .thumb")).toHaveCount(13);
+    await expect(page.locator("#plants .thumb:not(.thumb--all)")).toHaveCount(13);
     await page.getByRole("link", { name: "Tomato" }).first().click();
     await expect(page).toHaveURL(/\/handbook\/tomato$/);
   });

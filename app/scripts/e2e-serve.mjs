@@ -25,6 +25,15 @@ const env = {
   NEXT_DIST_DIR: distDir,
   COOKIE_SECURE: process.env.COOKIE_SECURE ?? "false",
   NEXT_TELEMETRY_DISABLED: "1",
+  // NEXT_PUBLIC values are inlined at build time. Tests use the fake Google sign in and made up
+  // Firebase identifiers, never the real project (a local .env.local must not leak into a test build).
+  NEXT_PUBLIC_AUTH_MOCK: process.env.NEXT_PUBLIC_AUTH_MOCK ?? "1",
+  NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "e2e-placeholder-key",
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:
+    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "leafy-e2e.firebaseapp.com",
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "leafy-e2e",
+  NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "",
+  GOOGLE_MOCK: process.env.GOOGLE_MOCK ?? "1",
 };
 
 if (!existsSync(join(root, distDir, "BUILD_ID"))) {

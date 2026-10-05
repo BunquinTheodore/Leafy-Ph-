@@ -3,9 +3,11 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { buildSearchIndex } from "@/lib/handbook/search";
 import type { DiseaseDetail, DiseaseSummary, PlantSummary } from "@/lib/handbook/types";
 import { chunk } from "./CatalogRail";
-import { chunkItems, DiseaseView } from "./DiseaseView";
+import { chunkItems, DiseaseView, samePlan } from "./DiseaseView";
 import { HandbookBrowser } from "./HandbookBrowser";
 import { MagnifierImage } from "./MagnifierImage";
+import { SeverityBadge } from "./SeverityBadge";
+import { Suggestions } from "./Suggestions";
 import { TermText } from "./TermText";
 
 beforeAll(() => {
@@ -169,7 +171,49 @@ describe("DiseaseView", () => {
   });
 
   it("labels severity with words and an icon, never color alone", () => {
-    render(<DiseaseView disease={detail()} />);
-    expect(screen.getAllByText("High").length).toBeGreaterThan(0);
+    render(<SeverityBadge severity="High; can cause losses" />);
+    expect(screen.getByText("Severity: High")).toBeInTheDocument();
+  });
+
+  it("states the severity once: the overview row keeps only the explanation", () => {
+    const { container } = render(<DiseaseView disease={detail()} />);
+    const overview = within(container.querySelector("#overview") as HTMLElement);
+    expect(overview.getByText("High; can cause losses")).toBeInTheDocument();
+    expect(overview.queryByText("High")).toBeNull();
+    expect(overview.queryByText("Severity: High")).toBeNull();
+  });
+
+  it("leaves out a prevention panel that repeats the treatment", () => {
+    const steps = ["Remove infected leaves", "Water at the base"];
+    const { container } = render(
+      <DiseaseView disease={detail({ treatments: steps, preventions: [...steps] })} />,
+    );
+    const ids = [...container.querySelectorAll(".panels__panel")].map((node) => node.id);
+    expect(ids).toContain("treatment");
+    expect(ids).not.toContain("prevention");
+    expect(samePlan(steps, ["Other"])).toBe(false);
+  });
+});
+
+describe("Suggestions", () => {
+  it("offers related cards as links under an empty state", () => {
+    const entries = buildSearchIndex([plant("apple", "Apple", 3)], []);
+    render(<Suggestions entries={entries} label="Other plants" />);
+    const list = screen.getByRole("list", { name: "Other plants" });
+    expect(within(list).getByRole("link", { name: /Apple/ })).toHaveAttribute(
+      "href",
+      "/handbook/apple",
+    );
+  });
+
+  it("renders nothing when there is nothing to suggest", () => {
+    const { container } = render(<Suggestions entries={[]} label="Other plants" />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("shows related diseases when a disease has no photos", () => {
+    const related = buildSearchIndex([], [summary("tomato", "Tomato", "Late Blight")]);
+    render(<DiseaseView disease={detail()} related={related} />);
+    expect(screen.getByRole("link", { name: /Late Blight/ })).toBeInTheDocument();
   });
 });

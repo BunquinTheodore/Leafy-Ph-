@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
-import { getGoogleFlow } from "@/lib/auth/google";
+import { getGoogleSignIn } from "@/lib/auth/google";
 
 export const dynamic = "force-dynamic";
 
-export const GET = (request: NextRequest) => getGoogleFlow().start(request);
+/** POST only: the browser sends the Firebase ID token it just got from Google. */
+export const POST = (request: NextRequest) => getGoogleSignIn().handle(request);

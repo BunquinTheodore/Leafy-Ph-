@@ -1,19 +1,48 @@
 /* Scan journey: /scan, the progress panel, result panels, /scans and /scans/[id]. One viewport stage each. */
 
-/* ---- Stage: intro on the left, the working area on the right ---- */
+/* ---- Stage: intro and the working area side by side, one centered group (wide-layout.css) ---- */
 .scan {
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  gap: var(--space-8);
-  align-items: center;
+  /* The scan page is content sized, so on the biggest screens it grows a little beyond the
+     shared --ui-scale to keep the group wide. */
+  --ss: var(--ui-scale);
   min-height: 0;
-  overflow: hidden;
-  padding: var(--space-6) var(--gutter);
+}
+
+@media (min-width: 1900px) and (min-height: 820px) {
+  .scan {
+    --ss: calc(var(--ui-scale) * 1.2);
+  }
+}
+
+@media (min-width: 2300px) and (min-height: 980px) {
+  .scan {
+    --ss: calc(var(--ui-scale) * 1.3);
+  }
 }
 
 .scan--tracking {
   display: block;
   padding: 0;
+  overflow: hidden;
+}
+
+/* Both columns hug their content and the pair is centered: the title block and the working
+   area sit close together instead of drifting to opposite edges. */
+.scan__split {
+  --split-gap: clamp(20px, 2.4vw, 64px);
+  --split-cols: minmax(0, max-content) minmax(0, calc(480px * var(--ss)));
+  justify-content: center;
+  align-items: stretch;
+}
+
+/* Stacked: the title stays at the top gutter and the drop zone grows into the height left. */
+@media (max-width: 959px) {
+  .scan__split {
+    flex: 1 1 auto;
+    margin-block: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: stretch;
+  }
 }
 
 .tracker {
@@ -24,26 +53,50 @@
 .scan__intro {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: calc(var(--space-3) * var(--ss));
   min-width: 0;
+}
+
+/* The column is as wide as the title; lede and tips wrap to it, so the working area sits close. */
+.scan__intro > :not(.eyebrow):not(h1) {
+  width: 0;
+  min-width: 100%;
+}
+
+.scan__intro .display.display-sm {
+  font-size: calc(clamp(1.5rem, 1rem + 1.8vw, 2.75rem) * var(--ss));
+}
+
+.scan__intro .blurb {
+  font-size: calc(clamp(1rem, 0.96rem + 0.3vw, 1.25rem) * var(--ss));
 }
 
 .scan__main {
   display: grid;
-  align-items: center;
-  align-self: stretch;
+  align-items: stretch;
+  width: 100%;
   min-width: 0;
   min-height: 0;
 }
 
+.scan__main > .notice {
+  justify-self: stretch;
+  width: 100%;
+}
+
+/* The lost connection card sits straight in the tracking stage: center it. */
+.scan--tracking > .notice {
+  margin: clamp(2rem, 10vh, 6rem) auto 0;
+}
+
+@media (max-width: 959px) {
+  .scan__main {
+    width: 100%;
+  }
+}
+
 @media (max-width: 900px) {
   .scan {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    align-content: start;
-    gap: var(--space-4);
-    align-items: start;
-    overflow-y: auto;
     padding-top: var(--space-4);
   }
 
@@ -54,6 +107,7 @@
 
   .scan--tracking {
     display: block;
+    padding: 0;
   }
 
   .scan__intro .blurb {
@@ -63,6 +117,10 @@
 
 /* ---- Tip card ---- */
 .tips {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
   padding: var(--space-4) var(--space-6);
 }
 
@@ -80,11 +138,13 @@
 
 .tips__list {
   display: grid;
-  gap: var(--space-2);
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: start;
+  gap: var(--space-2) var(--space-6);
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 0.9375rem;
+  font-size: calc(0.9375rem * var(--ss));
   line-height: 1.45;
 }
 
@@ -128,11 +188,11 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  height: 100%;
-  max-height: 42rem;
-  padding: var(--space-8) var(--space-6);
+  min-height: calc(420px * var(--ui-scale));
+  padding: calc(var(--space-8) * var(--ss)) var(--space-6);
   border-style: dashed;
   border-width: 2px;
+  border-color: color-mix(in srgb, var(--text-muted) 80%, var(--bg));
   text-align: center;
   transition:
     border-color var(--dur-micro) var(--ease),
@@ -151,15 +211,20 @@
 .drop__icon {
   display: grid;
   place-items: center;
-  width: 84px;
-  height: 84px;
+  width: calc(84px * var(--ss));
+  height: calc(84px * var(--ss));
   border-radius: 50%;
   background: color-mix(in srgb, var(--brand) 16%, transparent);
   color: var(--brand-glow);
 }
 
+.drop__title {
+  font-size: calc(clamp(1.25rem, 1rem + 0.6vw, 2rem) * var(--ss));
+}
+
 .drop__hint {
   max-width: 34ch;
+  font-size: calc(1rem * var(--ss));
   color: var(--text-muted);
   text-wrap: balance;
 }
@@ -173,7 +238,7 @@
 }
 
 .drop__formats {
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--ss));
   color: var(--text-muted);
 }
 
@@ -189,7 +254,7 @@
 @media (max-width: 900px) {
   .drop {
     gap: var(--space-2);
-    height: auto;
+    min-height: 0;
     padding: var(--space-4);
   }
 
@@ -204,16 +269,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  height: 100%;
-  max-height: 40rem;
   min-height: 0;
   padding: var(--space-4);
 }
 
 .preview__frame {
   display: grid;
-  flex: 1 1 auto;
+  flex: none;
   place-items: center;
+  height: calc(400px * var(--ui-scale));
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -241,14 +305,8 @@
 }
 
 @media (max-width: 900px) {
-  .preview {
-    height: auto;
-    max-height: none;
-  }
-
   .preview__frame {
     height: 34dvh;
-    flex: none;
   }
 
   .preview__actions > * {
@@ -286,16 +344,21 @@
 .prog {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(22rem, 0.85fr);
-  gap: var(--space-8);
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: var(--split-gap);
+  align-items: center;
+  align-content: center;
+  width: min(100%, calc(var(--container-max) + 2 * var(--gutter)));
   height: 100%;
   min-height: 0;
-  padding: var(--space-6) var(--gutter);
+  margin-inline: auto;
+  padding: var(--stage-pad-y) var(--gutter);
+  box-sizing: border-box;
 }
 
 .prog__scene {
   position: relative;
+  height: clamp(300px, 64vh, calc(640px * var(--ui-scale)));
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -314,9 +377,10 @@
   flex-direction: column;
   gap: var(--space-4);
   align-self: center;
+  justify-self: start;
   width: 100%;
-  max-width: 34rem;
-  padding: var(--space-6);
+  max-width: calc(36rem * var(--ui-scale));
+  padding: calc(var(--space-6) * var(--ui-scale));
 }
 
 .prog__title {
@@ -387,6 +451,20 @@
     padding: var(--space-3) var(--gutter);
   }
 
+  .prog {
+    align-content: stretch;
+    align-items: stretch;
+  }
+
+  .prog__scene {
+    height: auto;
+    min-height: 0;
+  }
+
+  .prog__panel {
+    align-self: end;
+  }
+
   .prog__panel {
     max-width: none;
     gap: var(--space-3);
@@ -447,6 +525,7 @@
   position: absolute;
   inset: 0;
   display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   place-items: center;
   padding: var(--space-6);
 }
@@ -455,6 +534,7 @@
   display: block;
   max-width: 100%;
   max-height: 100%;
+  min-height: 0;
   object-fit: contain;
   border-radius: 12px;
 }
@@ -496,6 +576,11 @@
 
 /* ---- Result view ---- */
 .rv {
+  --photo-h: clamp(220px, min(58vh, calc(100vh - 400px)), calc(560px * var(--ui-scale)));
+  --res-gap: clamp(24px, 3vw, 72px);
+  --res-w: calc(var(--photo-h) * 1.5 + var(--res-gap) + 34rem * var(--ui-scale));
+  /* Head, result and detail slides share this one group width and one left edge. */
+  --container-max: var(--res-w);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -505,10 +590,13 @@
 .rv__head {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
   align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-6) var(--gutter) 0;
+  justify-content: flex-start;
+  gap: var(--space-4) clamp(24px, 4vw, 64px);
+  width: min(calc(100% - 2 * var(--gutter)), var(--container-max));
+  margin-inline: auto;
+  padding: calc(var(--space-6) * var(--ui-scale)) 0 0;
 }
 
 .rv__titles {
@@ -520,13 +608,14 @@
 
 .rv__title {
   max-width: 26ch;
+  font-size: calc(clamp(1.5rem, 1rem + 1.8vw, 2.75rem) * var(--ui-scale));
 }
 
 .rv__actions {
   display: flex;
   flex: none;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: var(--space-2);
 }
 
@@ -545,6 +634,7 @@
     align-items: stretch;
     gap: var(--space-2);
     padding-top: var(--space-3);
+    width: calc(100% - 2 * var(--gutter));
   }
 
   .rv__eyebrow {
@@ -581,35 +671,85 @@
   }
 }
 
-/* Result panel: photo on one side, the finding on the other. */
+/* Result panel: photo on one side, the finding on the other, one group on the container grid. */
 .res {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-  gap: var(--space-8);
+  grid-template-columns: minmax(0, calc(var(--photo-h) * 1.5)) minmax(
+      0,
+      calc(34rem * var(--ui-scale))
+    );
+  justify-content: center;
+  gap: var(--res-gap);
   align-items: center;
   height: 100%;
-  max-width: 1400px;
-  margin-inline: auto;
 }
 
 .res__photo {
-  height: 100%;
+  height: var(--photo-h);
   min-height: 0;
-  max-height: 34rem;
+}
+
+.res__info {
+  container-type: inline-size;
+  width: 100%;
+}
+
+.res__info .facts {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.res__info .facts > div {
+  grid-template-columns: minmax(0, 6rem) minmax(0, 1fr);
+  padding: var(--space-3) var(--space-4);
+}
+
+@container (min-width: 36rem) {
+  .res__info .facts {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    gap: var(--space-3);
+  }
+
+  .res__info .facts > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.res__verdict-phone {
+  display: none;
+}
+
+.rv__kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .res__info {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-4);
+  gap: calc(var(--space-4) * var(--ui-scale));
   min-width: 0;
 }
 
+.res__info .facts {
+  width: 100%;
+  font-size: calc(1rem * var(--ui-scale));
+}
+
+.res__info .facts dt {
+  font-size: calc(0.8125rem * var(--ui-scale));
+}
+
 .res__lead {
-  max-width: 40ch;
+  max-width: none;
   font-family: var(--font-body);
-  font-size: 1.0625rem;
+  font-size: calc(clamp(1.125rem, 0.9rem + 0.8vw, 1.625rem) * var(--ui-scale));
   line-height: 1.5;
   text-wrap: pretty;
 }
@@ -624,6 +764,14 @@
 
   .res__photo {
     height: clamp(100px, 18dvh, 200px);
+  }
+
+  .res__verdict-phone {
+    display: inline-flex;
+  }
+
+  .rv__kicker .badge {
+    display: none;
   }
 
   /* Question and answers share one line on a phone. */
@@ -654,6 +802,86 @@
     gap: var(--space-2);
     padding-bottom: var(--space-1);
   }
+}
+
+/* Detail panels (Causes, Symptoms, Treatment, Prevention, Photos): text and the user's photo as
+   one group on the same grid as the title. The base .dp rules live in handbook.css. */
+.rv .dp {
+  max-width: none;
+  container-type: inline-size;
+}
+
+@media (min-width: 900px) {
+  .rv .dp {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, calc(640px * var(--ui-scale)));
+    column-gap: clamp(24px, 3vw, 72px);
+  }
+
+  .rv .dp--wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.rv .dp__main .plist {
+  max-width: none;
+  font-size: calc(clamp(0.9375rem, 0.9rem + 0.25vw, 1.0625rem) * var(--ui-scale));
+}
+
+.rv .dp__main .prose {
+  max-width: none;
+  font-size: calc(clamp(1rem, 0.96rem + 0.2vw, 1.125rem) * var(--ui-scale));
+}
+
+@container (min-width: 760px) {
+  .rv .dp__main .plist {
+    display: block;
+    column-count: 2;
+    column-gap: var(--space-8);
+  }
+
+  .rv .dp__main .plist li {
+    break-inside: avoid;
+    margin-bottom: var(--space-4);
+  }
+}
+
+.rv .dp__aside .aside-photo {
+  width: 100%;
+  max-width: calc(40rem * var(--ui-scale));
+  aspect-ratio: auto;
+  height: clamp(200px, 44vh, calc(440px * var(--ui-scale)));
+}
+
+/* An empty state inside a detail panel reads from the same left edge as the heading. */
+.rv .dp__main .empty {
+  align-items: flex-start;
+  padding-inline: 0;
+  text-align: left;
+}
+
+.rv .dp__main .empty .blurb {
+  max-width: 70ch;
+}
+
+.rv .dp__caption {
+  font-size: calc(0.875rem * var(--ui-scale));
+}
+
+.rv .shots {
+  align-items: center;
+  scrollbar-width: none;
+}
+
+.rv .shots > .shot {
+  flex-basis: min(80%, calc(22rem * var(--ui-scale)));
+}
+
+.rv .shots > :first-child {
+  margin-inline-start: auto;
+}
+
+.rv .shots > :last-child {
+  margin-inline-end: auto;
 }
 
 .orbit {
@@ -830,17 +1058,20 @@
 /* ---- Failed ---- */
 .failed {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--space-8);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: var(--split-gap);
   align-items: center;
+  align-content: center;
+  width: min(100%, calc(var(--container-max) + 2 * var(--gutter)));
   height: 100%;
   min-height: 0;
-  padding: var(--space-6) var(--gutter);
+  margin-inline: auto;
+  padding: var(--stage-pad-y) var(--gutter);
+  box-sizing: border-box;
 }
 
 .failed__photo {
-  height: 100%;
-  max-height: 32rem;
+  height: clamp(260px, 58vh, calc(560px * var(--ui-scale)));
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -852,7 +1083,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  max-width: 36rem;
+  width: 100%;
+  max-width: calc(44rem * var(--ui-scale));
 }
 
 .failed__title {
@@ -881,6 +1113,7 @@
 
   .failed__photo {
     height: 24dvh;
+    min-height: 0;
   }
 
   .failed__body {
@@ -895,20 +1128,22 @@
 
 /* ---- History ---- */
 .hist {
+  min-height: 0;
+}
+
+.hist__inner {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  min-height: 0;
-  overflow: hidden;
-  padding: var(--space-6) var(--gutter) var(--space-4);
 }
 
 .hist__head {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
   align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-4);
+  justify-content: flex-start;
+  gap: var(--space-3) clamp(24px, 4vw, 64px);
 }
 
 .hist__titles {
@@ -916,6 +1151,10 @@
   flex-direction: column;
   gap: var(--space-2);
   min-width: 0;
+}
+
+.hist__titles .display.display-sm {
+  font-size: calc(clamp(1.5rem, 1rem + 1.8vw, 2.75rem) * var(--ui-scale));
 }
 
 .hist__cta {
@@ -944,41 +1183,48 @@
   background: color-mix(in srgb, var(--brand) 22%, transparent);
 }
 
+/* The count sits right beside the filters it describes. */
 .hist__count {
-  margin-left: auto;
+  align-self: flex-end;
+  margin: 0 0 0 var(--space-2);
   font-size: 0.8125rem;
+  line-height: 44px;
   color: var(--text-muted);
 }
 
 .hist__content {
   display: flex;
-  flex: 1 1 auto;
   flex-direction: column;
   gap: var(--space-3);
   min-height: 0;
+  container-type: inline-size;
 }
 
 .hist__state {
   display: grid;
-  flex: 1 1 auto;
   place-content: center;
   justify-items: center;
   gap: var(--space-4);
-  min-height: 0;
+  min-height: calc(280px * var(--ui-scale));
 }
 
 .hist__rail,
 .hist__grid {
+  --hist-gap: clamp(12px, 1.4vw, 24px);
   margin: 0;
   padding: var(--space-2) 2px var(--space-3);
   list-style: none;
   min-height: 0;
 }
 
+/* Cards share the row exactly (the column count follows the container), so the rail lines up
+   with both container edges; with few cards the rail centers; more cards scroll sideways. */
 .hist__rail {
+  --hist-cols: 1.15;
   display: flex;
-  flex: 1 1 auto;
-  gap: var(--space-4);
+  align-items: flex-start;
+  justify-content: safe center;
+  gap: var(--hist-gap);
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x proximity;
@@ -991,24 +1237,55 @@
 }
 
 .hist__rail .hist__item {
-  flex: 0 0 clamp(15rem, 24vw, 20rem);
-  max-height: 38rem;
+  flex: 0 0 calc((100% - (var(--hist-cols) - 1) * var(--hist-gap)) / var(--hist-cols));
   scroll-snap-align: start;
+}
+
+@container (min-width: 480px) {
+  .hist__rail {
+    --hist-cols: 2;
+  }
+}
+
+@container (min-width: 760px) {
+  .hist__rail {
+    --hist-cols: 3;
+  }
+}
+
+@container (min-width: 1100px) {
+  .hist__rail {
+    --hist-cols: 4;
+  }
+}
+
+@container (min-width: 1500px) {
+  .hist__rail {
+    --hist-cols: 5;
+  }
+}
+
+@container (min-width: 2000px) {
+  .hist__rail {
+    --hist-cols: 6;
+  }
 }
 
 .hist__item--more {
   align-items: center;
   justify-content: center;
-  flex-basis: 12rem !important;
+}
+
+.hist__rail .hist__item--more {
+  flex-basis: 12rem;
 }
 
 .hist__grid {
   display: grid;
-  flex: 1 1 auto;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(15rem * var(--ui-scale))), 1fr));
   align-content: start;
-  gap: var(--space-4);
-  overflow-y: auto;
+  align-items: start;
+  gap: var(--hist-gap);
 }
 
 .hist__more {
@@ -1071,18 +1348,14 @@
   text-decoration: none;
 }
 
+/* A fixed picture shape: no giant empty placeholders, every card the same height. */
 .hcard__thumb {
   position: relative;
   display: block;
-  flex: 1 1 auto;
-  min-height: 7.5rem;
-  overflow: hidden;
-  background: var(--surface);
-}
-
-.hist__grid .hcard__thumb {
   flex: none;
   aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--surface);
 }
 
 .hcard__thumb .scan-img {
@@ -1132,5 +1405,23 @@
 @media (prefers-reduced-motion: reduce) {
   .beam-poster__line {
     animation: none;
+  }
+}
+
+/* Mid width: the drop content shares the title's left edge so the pair reads as one group. */
+@media (min-width: 960px) and (max-width: 1279px) {
+  .drop {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .drop__actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (min-width: 1280px) and (max-width: 1599px) {
+  .scan {
+    --ss: 1.2;
   }
 }

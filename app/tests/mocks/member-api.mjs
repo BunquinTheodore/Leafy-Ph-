@@ -73,8 +73,6 @@ const freshState = () => ({
   reauthRequired: false,
   deleted: false,
   statsFail: false,
-  resendCooldownSeconds: 0,
-  lastResendAt: 0,
   calls: [],
 });
 
@@ -166,7 +164,19 @@ function changePassword(body) {
     state.hasPassword = true;
     state.user.auth_methods = [...new Set([...state.user.auth_methods, "password"])];
   }
-  return [200, envelope({ changed: true })];
+  return [200, envelope({ changed: true, ...replacementSession() })];
+}
+
+/** The real API revokes every older session and answers with a fresh one. */
+function replacementSession() {
+  const enc = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  const exp = Math.floor(Date.now() / 1000) + 900;
+  return {
+    access_token: `${enc({ alg: "HS256", typ: "JWT" })}.${enc({ sub: state.user.id, exp })}.sig`,
+    refresh_token: "rt-after-password-change-padding-padding",
+    expires_in: 900,
+    refresh_expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+  };
 }
 
 function deleteAccount(body) {
@@ -189,21 +199,6 @@ function deleteAccount(body) {
   }
   state.deleted = true;
   return [200, envelope({ deleted: true })];
-}
-
-function resend() {
-  if (state.user.email_verified)
-    return [409, failure("already_verified", "This email is already verified.")];
-  const waitMs = state.resendCooldownSeconds * 1000 - (Date.now() - state.lastResendAt);
-  if (state.lastResendAt && waitMs > 0) {
-    return [
-      429,
-      failure("rate_limited", "Too many attempts."),
-      { "retry-after": String(Math.ceil(waitMs / 1000)) },
-    ];
-  }
-  state.lastResendAt = Date.now();
-  return [200, envelope({ sent: true })];
 }
 
 async function route(req, res) {
@@ -262,10 +257,6 @@ async function route(req, res) {
   if (api === "/users/me" && req.method === "DELETE") {
     const [status, payload] = deleteAccount(body);
     return send(res, status, payload);
-  }
-  if (api === "/auth/resend-verification" && req.method === "POST") {
-    const [status, payload, headers] = resend();
-    return send(res, status, payload, headers);
   }
   if (api === "/scans/stats" && req.method === "GET") {
     if (state.statsFail)

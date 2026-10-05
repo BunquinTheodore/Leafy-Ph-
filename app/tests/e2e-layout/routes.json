@@ -1,0 +1,238 @@
+{
+  "_doc": "Routes checked by wide-layout.spec.ts and shot by scripts/shoot-wide.mjs. Extend freely. auth: needs the demo session. exempt: skip the document height rule (long reading pages). hash: panel to open. '@first' in a path is replaced by the id of the newest scan of the demo user.",
+  "routes": [
+    {
+      "name": "landing",
+      "path": "/",
+      "auth": false
+    },
+    {
+      "name": "landing-how",
+      "path": "/",
+      "hash": "how-it-works",
+      "auth": false
+    },
+    {
+      "name": "landing-plants",
+      "path": "/",
+      "hash": "plants",
+      "auth": false
+    },
+    {
+      "name": "landing-why",
+      "path": "/",
+      "hash": "why-leafy",
+      "auth": false
+    },
+    {
+      "name": "landing-faq",
+      "path": "/",
+      "hash": "faq",
+      "auth": false
+    },
+    {
+      "name": "landing-start",
+      "path": "/",
+      "hash": "start",
+      "auth": false
+    },
+    {
+      "name": "about",
+      "path": "/about",
+      "auth": false
+    },
+    {
+      "name": "handbook",
+      "path": "/handbook",
+      "auth": false
+    },
+    {
+      "name": "plant-tomato",
+      "path": "/handbook/tomato",
+      "auth": false
+    },
+    {
+      "name": "disease-early-blight",
+      "path": "/handbook/tomato/early-blight",
+      "auth": false
+    },
+    {
+      "name": "disease-early-blight-causes",
+      "path": "/handbook/tomato/early-blight",
+      "hash": "causes",
+      "auth": false
+    },
+    {
+      "name": "disease-early-blight-symptoms",
+      "path": "/handbook/tomato/early-blight",
+      "hash": "symptoms",
+      "auth": false
+    },
+    {
+      "name": "disease-early-blight-treatment",
+      "path": "/handbook/tomato/early-blight",
+      "hash": "treatment",
+      "auth": false
+    },
+    {
+      "name": "disease-early-blight-prevention",
+      "path": "/handbook/tomato/early-blight",
+      "hash": "prevention",
+      "auth": false
+    },
+    {
+      "name": "disease-early-blight-images",
+      "path": "/handbook/tomato/early-blight",
+      "hash": "images",
+      "auth": false
+    },
+    {
+      "name": "plant-tomato-diseases",
+      "path": "/handbook/tomato",
+      "hash": "diseases",
+      "auth": false
+    },
+    {
+      "name": "plant-blueberry",
+      "path": "/handbook/blueberry",
+      "auth": false
+    },
+    {
+      "name": "plant-blueberry-diseases",
+      "path": "/handbook/blueberry",
+      "hash": "diseases",
+      "auth": false
+    },
+    {
+      "name": "handbook-search",
+      "path": "/handbook?q=blight",
+      "auth": false
+    },
+    {
+      "name": "login",
+      "path": "/login",
+      "auth": false
+    },
+    {
+      "name": "register",
+      "path": "/register",
+      "auth": false
+    },
+    {
+      "name": "privacy",
+      "path": "/privacy",
+      "auth": false,
+      "exempt": true
+    },
+    {
+      "name": "terms",
+      "path": "/terms",
+      "auth": false,
+      "exempt": true
+    },
+    {
+      "name": "brand",
+      "path": "/brand",
+      "auth": false,
+      "exempt": true
+    },
+    {
+      "name": "dashboard",
+      "path": "/dashboard",
+      "auth": true
+    },
+    {
+      "name": "scan",
+      "path": "/scan",
+      "auth": true
+    },
+    {
+      "name": "scans",
+      "path": "/scans",
+      "auth": true
+    },
+    {
+      "name": "scan-detail",
+      "path": "/scans/@first",
+      "auth": true
+    },
+    {
+      "name": "scan-detail-causes",
+      "path": "/scans/@disease",
+      "hash": "causes",
+      "auth": true
+    },
+    {
+      "name": "scan-detail-symptoms",
+      "path": "/scans/@disease",
+      "hash": "symptoms",
+      "auth": true
+    },
+    {
+      "name": "scan-detail-treatment",
+      "path": "/scans/@disease",
+      "hash": "treatment",
+      "auth": true
+    },
+    {
+      "name": "scan-detail-prevention",
+      "path": "/scans/@disease",
+      "hash": "prevention",
+      "auth": true
+    },
+    {
+      "name": "scan-detail-photos",
+      "path": "/scans/@disease",
+      "hash": "photos",
+      "auth": true
+    },
+    {
+      "name": "account",
+      "path": "/account",
+      "auth": true
+    }
+  ],
+  "viewports": [
+    {
+      "name": "2560x1080",
+      "width": 2560,
+      "height": 1080
+    },
+    {
+      "name": "1908x835",
+      "width": 1908,
+      "height": 835
+    },
+    {
+      "name": "1536x730",
+      "width": 1536,
+      "height": 730
+    },
+    {
+      "name": "1440x900",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "name": "1280x720",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "1024x768",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "name": "768x1024",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "name": "390x844",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "specViewports": ["2560x1080", "1908x835", "1440x900", "1024x768", "390x844"]
+}

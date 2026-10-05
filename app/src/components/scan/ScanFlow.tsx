@@ -16,14 +16,13 @@ import {
 import { useSfx } from "../sfx/SfxProvider";
 import { useToast } from "../ui/Toast";
 import { Dropzone } from "./Dropzone";
-import { ScanErrorPanel, UnverifiedPrompt } from "./Notices";
+import { ScanErrorPanel } from "./Notices";
 import { PhotoPreview } from "./PhotoPreview";
 import { ScanTracker } from "./ScanTracker";
 import { TipCard } from "./TipCard";
 import "./scan.css";
 
 const copy = scanCopy;
-const unverified = describeScanError({ code: "email_not_verified", status: 403 });
 
 type Phase =
   | { kind: "idle" }
@@ -40,12 +39,11 @@ type Phase =
     };
 
 interface ScanFlowProps {
-  verified: boolean;
   labels: LabelOptions | null;
 }
 
 /** /scan: tip card, dropzone, preview, upload with real progress, then the tracker takes over. */
-export function ScanFlow({ verified, labels }: ScanFlowProps) {
+export function ScanFlow({ labels }: ScanFlowProps) {
   const router = useRouter();
   const toast = useToast();
   const sfx = useSfx();
@@ -165,36 +163,40 @@ export function ScanFlow({ verified, labels }: ScanFlowProps) {
   }
 
   return (
-    <div className="scan stage-fill" data-compact={phase.kind !== "idle" || undefined}>
-      <div className="scan__intro">
-        <p className="eyebrow m-0">{copy.page.eyebrow}</p>
-        <h1 className="display display-sm">{copy.page.title}</h1>
-        <p className="blurb m-0">{copy.page.lede}</p>
-        <TipCard />
-      </div>
-      <div className="scan__main">
-        {!verified ? (
-          <UnverifiedPrompt title={unverified.title} body={unverified.body} />
-        ) : phase.kind === "error" ? (
-          <ScanErrorPanel
-            view={phase.view}
-            onRetry={() => void analyze(phase.file, phase.url)}
-            onChooseAnother={reset}
-          />
-        ) : phase.kind === "preview" ? (
-          <PhotoPreview
-            url={phase.url}
-            fileName={phase.file.name}
-            onRetake={reset}
-            onAnalyze={() => void analyze(phase.file, phase.url)}
-          />
-        ) : (
-          <Dropzone
-            onFile={(file) => void acceptFile(file)}
-            problem={problem}
-            disabled={checking}
-          />
-        )}
+    <div
+      className="scan stage-fill wide-stage"
+      data-width="standard"
+      data-compact={phase.kind !== "idle" || undefined}
+    >
+      <div className="wide-container split split--top scan__split">
+        <div className="scan__intro">
+          <p className="eyebrow m-0">{copy.page.eyebrow}</p>
+          <h1 className="display display-sm">{copy.page.title}</h1>
+          <p className="blurb m-0">{copy.page.lede}</p>
+          <TipCard />
+        </div>
+        <div className="scan__main">
+          {phase.kind === "error" ? (
+            <ScanErrorPanel
+              view={phase.view}
+              onRetry={() => void analyze(phase.file, phase.url)}
+              onChooseAnother={reset}
+            />
+          ) : phase.kind === "preview" ? (
+            <PhotoPreview
+              url={phase.url}
+              fileName={phase.file.name}
+              onRetake={reset}
+              onAnalyze={() => void analyze(phase.file, phase.url)}
+            />
+          ) : (
+            <Dropzone
+              onFile={(file) => void acceptFile(file)}
+              problem={problem}
+              disabled={checking}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

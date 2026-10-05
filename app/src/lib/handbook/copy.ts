@@ -45,8 +45,11 @@ export const handbookCopy = {
 
 const PATHOGEN_PHRASES: Readonly<Record<string, string>> = {
   fungal: "caused by a fungus",
+  fungus: "caused by a fungus",
+  bacterium: "caused by bacteria",
   bacterial: "caused by bacteria",
   viral: "caused by a virus",
+  virus: "caused by a virus",
   oomycete: "caused by an oomycete, a kind of water mold",
   pest: "caused by a pest",
 };
@@ -62,7 +65,10 @@ export function causeSentence(
   const subject = name.toLowerCase().startsWith(plantName.toLowerCase())
     ? name
     : `${name} on ${plantName}`;
-  if (!phrase) return `${subject} is a known problem for ${plantName}.`;
+  if (!phrase)
+    return subject === name
+      ? `${name} is a known disease of ${plantName}.`
+      : `${subject} is a known disease.`;
   // A virus is often named after itself ("Tomato yellow leaf curl virus"); do not repeat it.
   const repeatsName = pathogenName ? name.toLowerCase() === pathogenName.toLowerCase() : true;
   const agent = pathogenName && !repeatsName ? `, ${pathogenName}` : "";

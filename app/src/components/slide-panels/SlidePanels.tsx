@@ -32,10 +32,14 @@ interface SlidePanelsProps {
   showHint?: boolean;
   /** Keep the URL hash in sync (deep links). Defaults to true. */
   syncHash?: boolean;
+  /** Shared container width for the slides and the controls (see styles/LAYOUT.md). */
+  width?: "narrow" | "standard" | "wide";
 }
 
 const DRAG_THRESHOLD_PX = 6;
 const SMOOTH_SCROLL_LOCK_MS = 700;
+/** Scrolled less than this from the bottom counts as the end (no fade). */
+const MORE_BELOW_PX = 8;
 const NO_DRAG = "a, button, input, textarea, select, label, [role=button], [data-no-drag]";
 
 /**
@@ -49,6 +53,7 @@ export function SlidePanels({
   className,
   showHint = true,
   syncHash = true,
+  width,
 }: SlidePanelsProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
@@ -133,13 +138,21 @@ export function SlidePanels({
     const update = () => {
       if (panel.scrollHeight > panel.clientHeight + 1) panel.tabIndex = 0;
       else panel.removeAttribute("tabindex");
+      // More content below the fold: CSS shows a bottom fade as the scroll cue.
+      const more = panel.scrollHeight - panel.clientHeight - panel.scrollTop > MORE_BELOW_PX;
+      if (more) panel.setAttribute("data-more", "true");
+      else panel.removeAttribute("data-more");
     };
     update();
+    panel.addEventListener("scroll", update, { passive: true });
     const observer = typeof ResizeObserver === "function" ? new ResizeObserver(update) : null;
     observer?.observe(panel);
+    for (const child of Array.from(panel.children)) observer?.observe(child);
     return () => {
       observer?.disconnect();
+      panel.removeEventListener("scroll", update);
       panel.removeAttribute("tabindex");
+      panel.removeAttribute("data-more");
     };
   }, [active, count]);
 
@@ -203,6 +216,7 @@ export function SlidePanels({
       className={["panels", className ?? ""].filter(Boolean).join(" ")}
       aria-roledescription="carousel"
       aria-label={label}
+      data-width={width}
       onKeyDown={onKeyDown}
     >
       <div

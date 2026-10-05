@@ -1,12 +1,46 @@
 /* Auth and token pages: one viewport stage, intro beside a glass card, drifting leaves behind. */
 .auth-stage {
+  /* Sizes below are in layout pixels; .auth-layout is zoomed by --auth-zoom on big screens. */
+  --auth-zoom: 1;
+  --auth-card-w: clamp(27.5rem, 8rem + 15.5vw, 35rem);
+  --auth-intro-w: clamp(24rem, 8rem + 26vw, 40rem);
+  --auth-gap: clamp(24px, 2.4vw, 56px);
+  /* Upper bound of the group width: the leaves stay outside it. */
+  --auth-group-w: calc(
+    (var(--auth-intro-w) + var(--auth-gap) + var(--auth-card-w)) * var(--auth-zoom)
+  );
   position: relative;
   isolation: isolate;
   overflow: hidden;
   display: grid;
   align-items: center;
   min-height: calc(100dvh - var(--header-h) - var(--footer-h, 0px));
-  padding: var(--space-6) var(--gutter);
+  padding: clamp(14px, 2.5vh, 64px) var(--gutter);
+}
+
+/* The group grows with the screen, so a 2560 wide display is not a small island in a void. */
+@media (min-width: 1600px) and (min-height: 780px) {
+  .auth-stage {
+    --auth-zoom: 1.1;
+  }
+}
+
+@media (min-width: 1900px) and (min-height: 820px) {
+  .auth-stage {
+    --auth-zoom: 1.2;
+  }
+}
+
+@media (min-width: 2300px) and (min-height: 980px) {
+  .auth-stage {
+    --auth-zoom: 1.5;
+    --auth-gap: 32px;
+    --auth-card-w: 38rem;
+  }
+
+  .auth-stage .auth-intro .blurb {
+    max-width: 26ch;
+  }
 }
 
 .auth-backdrop {
@@ -16,40 +50,68 @@
   pointer-events: none;
 }
 
+/* Static fallback: soft glows centered in the side margins, never behind the copy or the card. */
 .auth-backdrop__poster {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center start;
-  padding-left: 8vw;
   background:
     radial-gradient(
-      55% 70% at 20% 45%,
-      color-mix(in srgb, var(--brand-deep) 50%, transparent),
-      transparent 70%
+      22% 50% at 9% 50%,
+      color-mix(in srgb, var(--brand-deep) 55%, transparent),
+      transparent 100%
     ),
     radial-gradient(
-      50% 60% at 90% 90%,
-      color-mix(in srgb, var(--brand-deep) 30%, transparent),
-      transparent 70%
+      22% 50% at 91% 50%,
+      color-mix(in srgb, var(--brand-deep) 40%, transparent),
+      transparent 100%
     );
-  transition: opacity var(--dur-scene) var(--ease);
 }
 
-.auth-backdrop__poster svg {
-  width: clamp(140px, 22vw, 300px);
+[data-theme="light"] .auth-backdrop__poster {
+  opacity: 0.45;
+}
+
+/* Leaf marks live in the free margins beside the group (each gets its own margin box). */
+.auth-backdrop__mark {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: max(0px, calc((100% - var(--auth-group-w)) / 2 - var(--gutter)));
+  place-items: center;
+  overflow: hidden;
+  opacity: 0.32;
+}
+
+.auth-backdrop__mark--start {
+  inset-inline-start: 0;
+}
+
+.auth-backdrop__mark--end {
+  inset-inline-end: 0;
+}
+
+.auth-backdrop__mark svg {
+  width: min(70%, 260px);
   height: auto;
-  opacity: 0.4;
-}
-
-.auth-backdrop[data-ready="true"] .auth-backdrop__poster {
-  opacity: 0;
 }
 
 .auth-backdrop__canvas {
   position: absolute;
   inset: 0;
   opacity: 0;
+  /*
+   * The full bleed scene is masked to the two margins, so no leaf is ever drawn where the group sits.
+   * It carries no data-decor on purpose: its box is the stage, its visible area is only the margins.
+   */
+  --auth-clear: calc(var(--auth-group-w) / 2);
+  mask-image: linear-gradient(
+    90deg,
+    #000 calc(50% - var(--auth-clear) - 1.5rem),
+    transparent calc(50% - var(--auth-clear) - 0.25rem),
+    transparent calc(50% + var(--auth-clear) + 0.25rem),
+    #000 calc(50% + var(--auth-clear) + 1.5rem)
+  );
   transition: opacity var(--dur-scene) var(--ease);
 }
 
@@ -57,34 +119,26 @@
   opacity: 1;
 }
 
-/* Keeps the title and the form readable wherever a leaf drifts behind them. */
-.auth-stage::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--bg) 82%, transparent),
-      color-mix(in srgb, var(--bg) 60%, transparent) 38%,
-      transparent 62%
-    ),
-    radial-gradient(
-      70% 80% at 50% 50%,
-      color-mix(in srgb, var(--bg) 45%, transparent),
-      transparent 75%
-    );
+/* Margins are wide enough for a mark from about 1400px. */
+@media (min-width: 1400px) {
+  .auth-backdrop__mark {
+    display: grid;
+  }
+
+  .auth-backdrop[data-ready="true"] .auth-backdrop__mark {
+    opacity: 0;
+  }
 }
 
+/* One centered group: headline column and form card sit close together at every width. */
 .auth-layout {
+  zoom: var(--auth-zoom);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 27rem);
+  grid-template-columns: fit-content(var(--auth-intro-w)) minmax(0, var(--auth-card-w));
+  justify-content: center;
   align-items: center;
-  gap: clamp(24px, 6vw, 112px);
-  width: 100%;
-  max-width: 1600px;
+  gap: var(--auth-gap);
+  width: calc(100% / var(--auth-zoom));
   margin-inline: auto;
 }
 
@@ -92,22 +146,113 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-4);
+  gap: clamp(12px, 1.2vw, 24px);
 }
 
 .auth-intro .display {
-  max-width: 14ch;
+  max-width: none;
+  font-size: clamp(1.75rem, calc(var(--auth-intro-w) / 13.4), 5rem);
+}
+
+/* A short title ("Sign in") grows so the column does not read as a small word beside a wide card. */
+.auth-intro .display[data-short="true"] {
+  font-size: clamp(2rem, calc(var(--auth-intro-w) / 6.4), 7rem);
+}
+
+.auth-intro .eyebrow {
+  font-weight: 500;
+  font-size: clamp(0.8125rem, 0.7rem + 0.2vw, 1rem);
+  color: var(--text);
+  opacity: 0.85;
+}
+
+[data-theme="light"] .auth-intro .eyebrow {
+  color: var(--brand);
+  opacity: 1;
+}
+
+.auth-intro .blurb {
+  max-width: 40ch;
+  font-size: clamp(1rem, 0.8rem + 0.5vw, 1.5rem);
+  color: var(--text-muted);
+  text-wrap: wrap;
+}
+
+.auth-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: clamp(0.9375rem, 0.75rem + 0.45vw, 1.375rem);
+}
+
+.auth-benefits li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.auth-benefits__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: clamp(36px, 2.4vw, 48px);
+  aspect-ratio: 1;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  color: var(--brand-glow);
+}
+
+[data-theme="light"] .auth-benefits__icon {
+  color: var(--brand);
 }
 
 .auth-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   width: 100%;
-  padding: clamp(20px, 3vw, 32px);
+  padding: clamp(20px, 2.4vw, 40px);
+}
+
+[data-theme="light"] .auth-card {
+  border-color: color-mix(in srgb, var(--brand) 38%, var(--border));
+  background: color-mix(in srgb, var(--surface) 88%, var(--bg));
+  box-shadow: 0 18px 48px -24px color-mix(in srgb, var(--brand-deep) 45%, transparent);
+}
+
+/* Same card height on sign in and create account, so the form does not jump between routes. */
+@media (min-width: 960px) and (min-height: 760px) {
+  .auth-card {
+    min-height: 34rem;
+  }
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+/* Recovery help: one short note with an accent edge, full contrast, left aligned. */
+.auth-form__help {
+  padding: var(--space-2) var(--space-3);
+  border-inline-start: 2px solid var(--brand-glow);
+  border-radius: 0 var(--radius-sm, 6px) var(--radius-sm, 6px) 0;
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text);
+  text-wrap: pretty;
+}
+
+[data-theme="light"] .auth-form__help {
+  border-inline-start-color: var(--brand);
 }
 
 .auth-form__links {
@@ -132,20 +277,27 @@
 
 [data-theme="light"] .auth-form__links a,
 [data-theme="light"] .auth-link {
-  color: var(--brand);
+  color: var(--brand-deep);
 }
 
 .auth-legal {
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: 0.9375rem;
   line-height: 1.5;
-  color: var(--text-muted);
+  color: var(--text);
+  opacity: 0.82;
   text-wrap: pretty;
 }
 
 .auth-legal a {
-  color: var(--text);
+  color: var(--brand-glow);
+  font-weight: 500;
+  text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+[data-theme="light"] .auth-legal a {
+  color: var(--brand);
 }
 
 .auth-divider {
@@ -252,38 +404,84 @@
   opacity: 0.75;
 }
 
+.google-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.auth-hint {
+  font-size: 0.8125rem;
+  color: var(--text);
+  opacity: 0.82;
+}
+
 .google-btn svg {
   flex: none;
 }
 
-/* ---- Phones: title above the card, tight spacing so the form stays on one screen ---- */
-@media (max-width: 899px) {
+/* ---- Stacked: compact headline above the form, centered, form up to 520px ---- */
+@media (max-width: 959px) {
   .auth-stage {
-    align-items: start;
     padding-block: var(--space-4);
   }
 
   .auth-layout {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 32.5rem);
+    justify-content: center;
     gap: var(--space-4);
-    max-width: 30rem;
   }
 
   .auth-intro {
     gap: var(--space-2);
   }
 
-  .auth-intro .display {
-    max-width: none;
+  .auth-intro {
+    align-items: center;
+    text-align: center;
   }
 
-  .auth-intro .blurb {
+  .auth-intro .display,
+  .auth-intro .display[data-short="true"] {
+    font-size: clamp(1.75rem, 1rem + 3.4vw, 2.75rem);
+  }
+
+  .auth-intro .blurb,
+  .auth-benefits {
+    display: none;
+  }
+
+  .auth-layout {
+    zoom: 1;
+    width: 100%;
+  }
+
+  /* No margins to spare when stacked: only the soft glows stay. */
+  .auth-backdrop__canvas,
+  .auth-backdrop__mark {
     display: none;
   }
 }
 
-@media (min-width: 900px) and (max-height: 700px) {
+/* Tall tablets have room for the support line and the benefits. */
+@media (min-width: 600px) and (max-width: 959px) and (min-height: 900px) {
   .auth-intro .blurb {
+    display: block;
+  }
+
+  .auth-benefits {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    align-self: center;
+    gap: var(--space-2);
+    font-size: 0.9375rem;
+  }
+}
+
+@media (min-width: 960px) and (max-height: 700px) {
+  .auth-intro .blurb,
+  .auth-benefits {
     display: none;
   }
 }

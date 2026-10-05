@@ -261,28 +261,12 @@ test.describe("failures and limits", () => {
     await expect(page.getByTestId("upload-photo")).toBeVisible();
   });
 
-  test("an unverified member sees the verify prompt and can resend", async ({ page }) => {
+  test("a member with an unverified address can scan like everyone else", async ({ page }) => {
     await resetMock({ user: { email_verified: false, email_verified_at: null } });
-    await page.goto("/scan");
-    const prompt = page.getByTestId("unverified-prompt");
-    await expect(prompt).toBeVisible();
-    await expect(prompt).toContainText("Verify your email to scan");
-    await expect(page.getByTestId("upload-photo")).toHaveCount(0);
-    await page.getByTestId("resend-verification").click();
-    await expect(prompt).toContainText("We sent a new link");
-    await expect(page.getByTestId("resend-verification")).toBeDisabled();
-  });
-
-  test("a 403 email_not_verified from the API shows the inline prompt", async ({ page }) => {
-    await resetMock({
-      createError: {
-        status: 403,
-        code: "email_not_verified",
-        message: "Verify your email to scan.",
-      },
-    });
     await startScan(page);
-    await expect(page.getByTestId("unverified-prompt")).toBeVisible();
+    await expect(page.getByTestId("unverified-prompt")).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByTestId("result-view")).toBeVisible({ timeout: 20_000 });
   });
 
   test("rate limiting shows a countdown and re-enables Try again", async ({ page }) => {

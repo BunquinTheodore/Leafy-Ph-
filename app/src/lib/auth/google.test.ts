@@ -3,276 +3,207 @@ import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 import { createMockFetch, fail, mockSession, ok } from "../../../tests/mocks/api";
 import { parseEnv } from "../env";
-import { codeChallengeFor, createGoogleFlow } from "./google";
+import { createGoogleSignIn } from "./google";
 
 const ORIGIN = "http://localhost:3000";
-const baseEnv = {
-  API_INTERNAL_URL: "http://api.test",
-  APP_ORIGIN: ORIGIN,
-  GOOGLE_CLIENT_ID: "client-123",
+const ID_TOKEN = "eyJhbGciOiJSUzI1NiJ9.payload-part-of-a-token.signature-part";
+const env = parseEnv({ API_INTERNAL_URL: "http://api.test", APP_ORIGIN: ORIGIN });
+
+interface PostOptions {
+  body?: unknown;
+  raw?: string;
+  headers?: Record<string, string>;
+}
+
+function post({ body = { idToken: ID_TOKEN }, raw, headers }: PostOptions = {}) {
+  return new NextRequest(`${ORIGIN}/api/auth/google`, {
+    method: "POST",
+    headers: { origin: ORIGIN, "content-type": "application/json", ...headers },
+    body: raw ?? JSON.stringify(body),
+  });
+}
+
+const handlerFor = (routes: Parameters<typeof createMockFetch>[0], hops = 0) => {
+  const fetchMock = createMockFetch(routes);
+  const handler = createGoogleSignIn({
+    env: hops
+      ? parseEnv({
+          API_INTERNAL_URL: "http://api.test",
+          APP_ORIGIN: ORIGIN,
+          TRUSTED_PROXY_HOPS: String(hops),
+        })
+      : env,
+    fetch: fetchMock,
+  });
+  return { handler, fetchMock };
 };
-const env = parseEnv(baseEnv);
 
-function get(path: string, cookie?: string) {
-  return new NextRequest(`${ORIGIN}${path}`, { headers: cookie ? { cookie } : {} });
-}
-
-function oauthCookieFrom(res: Response): string {
-  const raw = res.headers.getSetCookie().find((c) => c.startsWith("leafy_oauth="));
-  expect(raw).toBeDefined();
-  return (raw ?? "").split(";")[0] ?? "";
-}
-
-describe("codeChallengeFor", () => {
-  it("matches the RFC 7636 example", async () => {
-    expect(await codeChallengeFor("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")).toBe(
-      "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
-    );
-  });
+const flags = (is_new_user: boolean, linked_existing_account: boolean) => ({
+  ...mockSession(),
+  is_new_user,
+  linked_existing_account,
 });
 
-describe("google start", () => {
-  it("redirects to Google with state, nonce, PKCE S256 and the right scope", async () => {
-    const flow = createGoogleFlow({ env, fetch: createMockFetch({}) });
-    const res = await flow.start(get("/api/auth/google?next=/scan"));
-    expect(res.status).toBe(307);
-    const url = new URL(res.headers.get("location") ?? "");
-    expect(url.origin + url.pathname).toBe("https://accounts.google.com/o/oauth2/v2/auth");
-    expect(url.searchParams.get("client_id")).toBe("client-123");
-    expect(url.searchParams.get("redirect_uri")).toBe(`${ORIGIN}/api/auth/google/callback`);
-    expect(url.searchParams.get("response_type")).toBe("code");
-    expect(url.searchParams.get("scope")).toBe("openid email profile");
-    expect(url.searchParams.get("code_challenge_method")).toBe("S256");
-    expect(url.searchParams.get("prompt")).toBe("select_account");
-    expect(url.searchParams.get("state")?.length).toBeGreaterThanOrEqual(32);
-    expect(url.searchParams.get("nonce")?.length).toBeGreaterThanOrEqual(32);
-    expect(url.searchParams.get("code_challenge")?.length).toBeGreaterThanOrEqual(43);
-    const set = res.headers.getSetCookie().find((c) => c.startsWith("leafy_oauth=")) ?? "";
-    expect(set.toLowerCase()).toContain("httponly");
-    expect(set.toLowerCase()).toContain("samesite=lax");
-    expect(set).toContain("Max-Age=600");
-  });
-
-  it("uses the __Host- prefix and Secure in production", async () => {
-    const prod = parseEnv({ ...baseEnv, COOKIE_PREFIX: "__Host-", COOKIE_SECURE: "true" });
-    const res = await createGoogleFlow({ env: prod, fetch: createMockFetch({}) }).start(
-      get("/api/auth/google"),
-    );
-    const set = res.headers.getSetCookie().find((c) => c.startsWith("__Host-leafy_oauth=")) ?? "";
-    expect(set).toContain("Secure");
-    expect(set).toContain("Path=/");
-  });
-
-  it("goes to login with an error when Google is not configured", async () => {
-    const none = parseEnv({ API_INTERNAL_URL: "http://api.test", APP_ORIGIN: ORIGIN });
-    const res = await createGoogleFlow({ env: none, fetch: createMockFetch({}) }).start(
-      get("/api/auth/google"),
-    );
-    expect(new URL(res.headers.get("location") ?? "").searchParams.get("error")).toBe(
-      "google_unavailable",
-    );
-  });
-
-  it("in mock mode takes a code from the API mock provider and returns to the callback", async () => {
-    const mock = parseEnv({ ...baseEnv, GOOGLE_CLIENT_ID: "", GOOGLE_MOCK: "1" });
-    const fetchMock = createMockFetch({
-      "GET /mock-google/authorize": ({ url }) =>
-        new Response(null, {
-          status: 302,
-          headers: {
-            location: `${ORIGIN}/api/auth/google/callback?code=real-code&state=${url.searchParams.get("state")}`,
-          },
-        }),
+describe("google sign in handler", () => {
+  it("forwards the ID token to the API, sets the session cookies and returns only the user", async () => {
+    const { handler, fetchMock } = handlerFor({
+      "POST /auth/google": () => ok(flags(false, false)),
     });
-    const res = await createGoogleFlow({ env: mock, fetch: fetchMock }).start(
-      get("/api/auth/google?email=ada@example.com"),
-    );
-    const url = new URL(res.headers.get("location") ?? "");
-    expect(url.pathname).toBe("/api/auth/google/callback");
-    expect(url.searchParams.get("code")).toBe("real-code");
-    expect(url.searchParams.get("state")).toBeTruthy();
-    const asked = new URL(fetchMock.calls[0]?.url ?? "");
-    expect(asked.searchParams.get("email")).toBe("ada@example.com");
-    expect(asked.searchParams.get("code_challenge")?.length).toBeGreaterThanOrEqual(43);
-    expect(asked.searchParams.get("redirect_uri")).toBe(`${ORIGIN}/api/auth/google/callback`);
-  });
-
-  it("in mock mode falls back to the default identity for a malformed email", async () => {
-    const mock = parseEnv({ ...baseEnv, GOOGLE_CLIENT_ID: "", GOOGLE_MOCK: "1" });
-    const fetchMock = createMockFetch({
-      "GET /mock-google/authorize": () =>
-        new Response(null, { status: 302, headers: { location: `${ORIGIN}/cb?code=c&state=s` } }),
-    });
-    await createGoogleFlow({ env: mock, fetch: fetchMock }).start(
-      get("/api/auth/google?email=not-an-email"),
-    );
-    const asked = new URL(fetchMock.calls[0]?.url ?? "");
-    expect(asked.searchParams.get("email")).toBe("dev@example.com");
-  });
-
-  it("in mock mode sends the visitor to login when the mock provider fails", async () => {
-    const mock = parseEnv({ ...baseEnv, GOOGLE_CLIENT_ID: "", GOOGLE_MOCK: "1" });
-    const res = await createGoogleFlow({ env: mock, fetch: createMockFetch({}) }).start(
-      get("/api/auth/google"),
-    );
-    const url = new URL(res.headers.get("location") ?? "");
-    expect(url.pathname).toBe("/login");
-    expect(url.searchParams.get("error")).toBe("google_auth_failed");
-  });
-});
-
-async function startAndGetState(flow: ReturnType<typeof createGoogleFlow>, next = "/scan") {
-  const res = await flow.start(get(`/api/auth/google?next=${encodeURIComponent(next)}`));
-  const state = new URL(res.headers.get("location") ?? "").searchParams.get("state") ?? "";
-  return { state, cookie: oauthCookieFrom(res) };
-}
-
-describe("google callback", () => {
-  it("exchanges the code via the API, sets session cookies and redirects to next", async () => {
-    let apiBody: Record<string, string> = {};
-    const fetchMock = createMockFetch({
-      "POST /auth/google": ({ body }) => {
-        apiBody = JSON.parse(body ?? "{}") as Record<string, string>;
-        return ok(mockSession());
-      },
-    });
-    const flow = createGoogleFlow({ env, fetch: fetchMock });
-    const { state, cookie } = await startAndGetState(flow, "/scan");
-    const res = await flow.callback(
-      get(`/api/auth/google/callback?code=abc&state=${state}`, cookie),
-    );
-    expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toBe(`${ORIGIN}/scan`);
+    const res = await handler.handle(post());
+    expect(res.status).toBe(200);
+    const call = fetchMock.calls[0];
+    expect(call?.url).toBe("http://api.test/api/v1/auth/google");
+    expect(JSON.parse(call?.body ?? "{}")).toEqual({ id_token: ID_TOKEN });
     const cookies = res.headers.getSetCookie().join("\n");
     expect(cookies).toContain("leafy_at=");
     expect(cookies).toContain("leafy_rt=rt-new");
-    expect(cookies).toMatch(/leafy_oauth=;/);
-    expect(apiBody.code).toBe("abc");
-    expect(apiBody.redirect_uri).toBe(`${ORIGIN}/api/auth/google/callback`);
-    expect(apiBody.code_verifier?.length).toBeGreaterThanOrEqual(43);
-    expect(apiBody.nonce?.length).toBeGreaterThanOrEqual(32);
+    expect(cookies.toLowerCase()).toContain("httponly");
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.data.user.email).toBe("ada@example.com");
+    expect(JSON.stringify(json)).not.toContain("rt-new");
+    expect(res.headers.get("cache-control")).toBe("no-store");
   });
 
   it.each([
-    [
-      "a first time Google user",
-      { is_new_user: true, linked_existing_account: false },
-      "google_welcome",
-    ],
-    [
-      "an account linked to Google",
-      { is_new_user: false, linked_existing_account: true },
-      "google_linked",
-    ],
-  ])("leaves a one time notice cookie for %s", async (_label, flags, notice) => {
-    const fetchMock = createMockFetch({
-      "POST /auth/google": () => ok({ ...mockSession(), ...flags }),
+    ["a first time Google user", flags(true, false), "google_welcome"],
+    ["an account linked to Google", flags(false, true), "google_linked"],
+  ])("leaves a one time notice cookie for %s", async (_label, session, notice) => {
+    const { handler } = handlerFor({ "POST /auth/google": () => ok(session) });
+    const res = await handler.handle(post());
+    const set = res.headers.getSetCookie().find((c) => c.startsWith("leafy_notice=")) ?? "";
+    expect(set).toContain(notice);
+    expect(set.toLowerCase()).not.toContain("httponly");
+  });
+
+  it("sets no notice cookie for a plain returning sign in", async () => {
+    const { handler } = handlerFor({ "POST /auth/google": () => ok(flags(false, false)) });
+    const res = await handler.handle(post());
+    expect(res.headers.getSetCookie().some((c) => c.startsWith("leafy_notice="))).toBe(false);
+  });
+
+  it("uses Secure and the __Host- prefix in production", async () => {
+    const prod = parseEnv({
+      API_INTERNAL_URL: "http://api.test",
+      APP_ORIGIN: ORIGIN,
+      COOKIE_PREFIX: "__Host-",
+      COOKIE_SECURE: "true",
     });
-    const flow = createGoogleFlow({ env, fetch: fetchMock });
-    const { state, cookie } = await startAndGetState(flow, "/dashboard");
-    const res = await flow.callback(
-      get(`/api/auth/google/callback?code=abc&state=${state}`, cookie),
-    );
-    const raw = res.headers.getSetCookie().find((c) => c.startsWith("leafy_notice=")) ?? "";
-    expect(raw).toContain(`leafy_notice=${notice}`);
-    expect(raw).toContain("Max-Age=120");
-    expect(raw.toLowerCase()).not.toContain("httponly");
-  });
-
-  it("sets no notice cookie for a plain returning Google sign in", async () => {
-    const fetchMock = createMockFetch({
-      "POST /auth/google": () =>
-        ok({ ...mockSession(), is_new_user: false, linked_existing_account: false }),
+    const handler = createGoogleSignIn({
+      env: prod,
+      fetch: createMockFetch({ "POST /auth/google": () => ok(flags(false, false)) }),
     });
-    const flow = createGoogleFlow({ env, fetch: fetchMock });
-    const { state, cookie } = await startAndGetState(flow, "/dashboard");
-    const res = await flow.callback(
-      get(`/api/auth/google/callback?code=abc&state=${state}`, cookie),
-    );
-    expect(res.headers.getSetCookie().join(";")).not.toContain("leafy_notice=");
+    const set = (await handler.handle(post())).headers.getSetCookie().join("\n");
+    expect(set).toContain("__Host-leafy_at=");
+    expect(set).toContain("Secure");
   });
 
-  it("forwards the trusted client address to the API and drops a spoofed one", async () => {
-    const trusted = parseEnv({ ...baseEnv, TRUSTED_PROXY_HOPS: "1" });
-    const run = async (hopsEnv: typeof env, xff: string) => {
-      const fetchMock = createMockFetch({ "POST /auth/google": () => ok(mockSession()) });
-      const flow = createGoogleFlow({ env: hopsEnv, fetch: fetchMock });
-      const { state, cookie } = await startAndGetState(flow);
-      const req = new NextRequest(`${ORIGIN}/api/auth/google/callback?code=abc&state=${state}`, {
-        headers: { cookie, "x-forwarded-for": xff },
-      });
-      await flow.callback(req);
-      return fetchMock.calls[0]?.headers.get("x-forwarded-for") ?? null;
-    };
-    expect(await run(trusted, "6.6.6.6, 203.0.113.7")).toBe("203.0.113.7");
-    expect(await run(env, "6.6.6.6")).toBeNull();
-  });
-
-  it("rejects a state mismatch without calling the API", async () => {
-    const fetchMock = createMockFetch({ "POST /auth/google": () => ok(mockSession()) });
-    const flow = createGoogleFlow({ env, fetch: fetchMock });
-    const { cookie } = await startAndGetState(flow);
-    const res = await flow.callback(get("/api/auth/google/callback?code=abc&state=forged", cookie));
-    expect(new URL(res.headers.get("location") ?? "").searchParams.get("error")).toBe(
-      "invalid_state",
-    );
+  it("refuses a cross site request before calling the API", async () => {
+    const { handler, fetchMock } = handlerFor({});
+    const res = await handler.handle(post({ headers: { origin: "https://evil.example" } }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).error.code).toBe("csrf_failed");
     expect(fetchMock.calls).toHaveLength(0);
-    expect(res.headers.getSetCookie().join("\n")).toMatch(/leafy_oauth=;/);
   });
 
-  it("rejects a missing cookie (replay or expired)", async () => {
-    const flow = createGoogleFlow({ env, fetch: createMockFetch({}) });
-    const res = await flow.callback(get("/api/auth/google/callback?code=abc&state=whatever"));
-    expect(new URL(res.headers.get("location") ?? "").searchParams.get("error")).toBe(
-      "invalid_state",
-    );
+  it("refuses a request without an Origin or Referer", async () => {
+    const { handler } = handlerFor({});
+    const request = new NextRequest(`${ORIGIN}/api/auth/google`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ idToken: ID_TOKEN }),
+    });
+    expect((await handler.handle(request)).status).toBe(403);
   });
 
-  it("never trusts a next supplied on the callback and sanitizes the stored one", async () => {
-    const fetchMock = createMockFetch({ "POST /auth/google": () => ok(mockSession()) });
-    const flow = createGoogleFlow({ env, fetch: fetchMock });
-    const { state, cookie } = await startAndGetState(flow, "//evil.test");
-    const res = await flow.callback(
-      get(`/api/auth/google/callback?code=abc&state=${state}&next=//evil.test`, cookie),
-    );
-    expect(res.headers.get("location")).toBe(`${ORIGIN}/dashboard`);
+  it.each([
+    ["a missing token", { body: {} }],
+    ["a non string token", { body: { idToken: 42 } }],
+    ["a too short token", { body: { idToken: "abc" } }],
+    ["an unexpected extra field", { body: { idToken: ID_TOKEN, next: "/x" } }],
+    ["invalid JSON", { raw: "{not json" }],
+  ])("rejects %s with validation_error", async (_label, options) => {
+    const { handler, fetchMock } = handlerFor({});
+    const res = await handler.handle(post(options));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.code).toBe("validation_error");
+    expect(fetchMock.calls).toHaveLength(0);
   });
 
-  it("returns a calm cancelled notice when the user denies access", async () => {
-    const flow = createGoogleFlow({ env, fetch: createMockFetch({}) });
-    const { state, cookie } = await startAndGetState(flow);
-    const res = await flow.callback(
-      get(`/api/auth/google/callback?error=access_denied&state=${state}`, cookie),
+  it("rejects a non JSON content type and an oversized body", async () => {
+    const { handler } = handlerFor({});
+    expect((await handler.handle(post({ headers: { "content-type": "text/plain" } }))).status).toBe(
+      415,
     );
-    expect(new URL(res.headers.get("location") ?? "").searchParams.get("error")).toBe(
-      "google_cancelled",
-    );
+    const big = await handler.handle(post({ body: { idToken: "x".repeat(20_000) } }));
+    expect(big.status).toBe(413);
   });
 
-  it("maps API failures to a login error code and sets no session", async () => {
-    const fetchMock = createMockFetch({
+  it("passes google_email_unverified through", async () => {
+    const { handler } = handlerFor({
       "POST /auth/google": () => fail(400, "google_email_unverified"),
     });
-    const flow = createGoogleFlow({ env, fetch: fetchMock });
-    const { state, cookie } = await startAndGetState(flow);
-    const res = await flow.callback(
-      get(`/api/auth/google/callback?code=abc&state=${state}`, cookie),
-    );
-    expect(new URL(res.headers.get("location") ?? "").searchParams.get("error")).toBe(
-      "google_email_unverified",
-    );
-    expect(res.headers.getSetCookie().join("\n")).not.toContain("leafy_at=ey");
+    const res = await handler.handle(post());
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.code).toBe("google_email_unverified");
+    expect(res.headers.getSetCookie()).toHaveLength(0);
   });
 
-  it("treats an unexpected API error as google_auth_failed", async () => {
-    const fetchMock = createMockFetch({ "POST /auth/google": () => fail(500, "internal_error") });
-    const flow = createGoogleFlow({ env, fetch: fetchMock });
-    const { state, cookie } = await startAndGetState(flow);
-    const res = await flow.callback(
-      get(`/api/auth/google/callback?code=abc&state=${state}`, cookie),
-    );
-    expect(new URL(res.headers.get("location") ?? "").searchParams.get("error")).toBe(
-      "google_auth_failed",
-    );
+  it("keeps the rate limit status and Retry-After", async () => {
+    const { handler } = handlerFor({
+      "POST /auth/google": () =>
+        new Response(
+          JSON.stringify({
+            success: false,
+            data: null,
+            error: { code: "rate_limited", message: "slow down", details: null },
+          }),
+          { status: 429, headers: { "retry-after": "42", "content-type": "application/json" } },
+        ),
+    });
+    const res = await handler.handle(post());
+    expect(res.status).toBe(429);
+    expect(res.headers.get("retry-after")).toBe("42");
+    expect((await res.json()).error.code).toBe("rate_limited");
+  });
+
+  it.each([
+    ["an unknown API error", () => fail(500, "internal_error", "stack trace here")],
+    ["a disabled provider", () => fail(400, "google_auth_failed", "disabled")],
+    ["a 502 from the API", () => fail(502, "bad_gateway")],
+  ])("turns %s into a generic google_auth_failed without leaking details", async (_l, route) => {
+    const { handler } = handlerFor({ "POST /auth/google": route });
+    const res = await handler.handle(post());
+    const json = await res.json();
+    expect(json.error.code).toBe("google_auth_failed");
+    expect(JSON.stringify(json)).not.toContain("stack trace");
+    expect(JSON.stringify(json)).not.toContain(ID_TOKEN);
+  });
+
+  it("answers 503 api_unreachable when the API cannot be reached", async () => {
+    const handler = createGoogleSignIn({
+      env,
+      fetch: async () => {
+        throw new TypeError("fetch failed");
+      },
+    });
+    const res = await handler.handle(post());
+    expect(res.status).toBe(503);
+    expect((await res.json()).error.code).toBe("api_unreachable");
+  });
+
+  it("answers 502 when the API reply has the wrong shape", async () => {
+    const { handler } = handlerFor({ "POST /auth/google": () => ok({ nope: true }) });
+    expect((await handler.handle(post())).status).toBe(502);
+  });
+
+  it("forwards the trusted client address and drops a spoofed one", async () => {
+    const trusted = handlerFor({ "POST /auth/google": () => ok(flags(false, false)) }, 1);
+    await trusted.handler.handle(post({ headers: { "x-forwarded-for": "203.0.113.9" } }));
+    expect(trusted.fetchMock.calls[0]?.headers.get("x-forwarded-for")).toBe("203.0.113.9");
+
+    const ignored = handlerFor({ "POST /auth/google": () => ok(flags(false, false)) }, 0);
+    await ignored.handler.handle(post({ headers: { "x-forwarded-for": "203.0.113.9" } }));
+    expect(ignored.fetchMock.calls[0]?.headers.get("x-forwarded-for")).toBeNull();
   });
 });

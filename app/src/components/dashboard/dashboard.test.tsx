@@ -152,7 +152,7 @@ describe("RecentScans", () => {
 
 describe("DashboardView", () => {
   const view = (over: Partial<Parameters<typeof DashboardView>[0]> = {}) =>
-    render(<DashboardView firstName="Ada" verified stats={stats} scans={[scan()]} {...over} />);
+    render(<DashboardView firstName="Ada" stats={stats} scans={[scan()]} {...over} />);
 
   it("shows the totals, the split, the top diseases and the recent scans", () => {
     view();
@@ -182,14 +182,6 @@ describe("DashboardView", () => {
     expect(screen.getByRole("heading", { name: "Scan your first leaf" })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /Scan a leaf/ })).toHaveLength(1);
     expect(screen.queryByTestId("result-split")).not.toBeInTheDocument();
-  });
-
-  it("explains why Scan is unavailable until the email is verified", () => {
-    view({ verified: false });
-    expect(screen.queryByRole("link", { name: "Scan a leaf" })).not.toBeInTheDocument();
-    const button = screen.getByRole("button", { name: "Scan a leaf" });
-    expect(button).toBeDisabled();
-    expect(button).toHaveAccessibleDescription("Verify your email to scan");
   });
 
   it("says so, with a reload, when the summary could not load", () => {

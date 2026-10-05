@@ -139,9 +139,6 @@ export function RegisterForm({ next }: { next?: string }) {
             <Link href={buildAuthHref("/login", next)} className="auth-link">
               {copy.takenSignIn}
             </Link>
-            <Link href={buildAuthHref("/forgot-password", next)} className="auth-link">
-              {copy.takenReset}
-            </Link>
           </p>
         ) : null}
       </div>

@@ -61,13 +61,14 @@ describe("global error page", () => {
 });
 
 describe("SiteFooter", () => {
-  it("links About, Privacy, Terms and the Handbook and credits DAHON", () => {
+  it("links About, Privacy, Terms and the Handbook and has no origin note", () => {
     render(<SiteFooter />);
     const footer = screen.getByRole("navigation", { name: "Footer" });
     expect(footer).toHaveTextContent("About");
     expect(screen.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
     expect(screen.getByRole("link", { name: "Terms" })).toHaveAttribute("href", "/terms");
     expect(screen.getByRole("link", { name: "Handbook" })).toHaveAttribute("href", "/handbook");
-    expect(document.body.textContent).toContain("Dahon means leaf in Filipino");
+    expect(document.body.textContent).not.toContain("began as DAHON");
+    expect(document.body.textContent).not.toContain("Dahon means leaf in Filipino");
   });
 });

@@ -40,6 +40,7 @@ export default defineConfig({
         COOKIE_SECURE: "false",
         COOKIE_PREFIX: "",
         GOOGLE_MOCK: "1",
+        NEXT_PUBLIC_AUTH_MOCK: "1",
         NODE_ENV: "production",
       },
       url: `${APP_ORIGIN}/login?nosplash`,

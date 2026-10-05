@@ -9,13 +9,10 @@ export async function resetMock(request: APIRequestContext): Promise<void> {
   expect(response.ok()).toBe(true);
 }
 
-export async function mintToken(
-  request: APIRequestContext,
-  type: "verify" | "reset",
-  state: "valid" | "expired" = "valid",
-): Promise<string> {
-  const response = await request.post(`${API}/__test/token`, { data: { type, state } });
-  return ((await response.json()) as { token: string }).token;
+/** Makes the mock API stamp Google sign ins as this many seconds old. */
+export async function googleAge(request: APIRequestContext, seconds: number): Promise<void> {
+  const response = await request.post(`${API}/__test/google-age`, { data: { seconds } });
+  expect(response.ok()).toBe(true);
 }
 
 export interface MockCall {

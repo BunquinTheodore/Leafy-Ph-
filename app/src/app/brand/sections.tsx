@@ -14,7 +14,7 @@ import {
   Skeleton,
   Stepper,
 } from "@/components/ui";
-import { BRAND_ORIGIN_NOTE, BRAND_POSITIONING, TAGLINES } from "@/lib/brand";
+import { BRAND_POSITIONING, TAGLINES } from "@/lib/brand";
 import { FormDemo, OverlayDemo, SoundDemo } from "./demos";
 
 function Section({
@@ -27,7 +27,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto grid w-full max-w-[1600px] gap-6">
+    <div className="grid w-full gap-4">
       <header className="grid gap-2">
         <p className="eyebrow m-0">{eyebrow}</p>
         <h2 className="display display-sm">{title}</h2>
@@ -39,7 +39,7 @@ function Section({
 
 const Tile = ({ tone, children }: { tone: "dark" | "light"; children: ReactNode }) => (
   <div
-    className="grid min-h-28 place-items-center rounded-[var(--radius-card)] border border-[var(--border)] p-4"
+    className="grid min-h-20 place-items-center rounded-[var(--radius-card)] border border-[var(--border)] p-3"
     style={
       tone === "dark"
         ? { background: "#06120b", color: "#e9f4ec" }
@@ -54,7 +54,7 @@ const Tile = ({ tone, children }: { tone: "dark" | "light"; children: ReactNode 
 export function LogoSection() {
   return (
     <Section eyebrow="Brand" title="Logo and mark">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-[repeat(4,14rem)]">
         <Tile tone="dark">
           <Logo height={48} />
         </Tile>
@@ -62,43 +62,42 @@ export function LogoSection() {
           <Logo height={48} />
         </Tile>
         <Tile tone="dark">
-          <Logo variant="stacked" height={84} />
+          <Logo variant="stacked" height={64} />
         </Tile>
         <Tile tone="light">
-          <Logo variant="stacked" height={84} />
+          <Logo variant="stacked" height={64} />
         </Tile>
       </div>
-      <div className="grid gap-4 md:grid-cols-4">
-        <Tile tone="dark">
-          <LogoMark height={56} />
-        </Tile>
-        <Tile tone="light">
-          <LogoMark height={56} />
-        </Tile>
-        <Tile tone="light">
-          <LogoMark height={56} tone="mono" className="text-black" />
-        </Tile>
-        <Tile tone="dark">
-          <LogoMark height={56} tone="mono" className="text-white" />
-        </Tile>
-      </div>
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <div className="prose">
+      <div className="grid items-center gap-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-8">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-[repeat(2,8rem)]">
+          <Tile tone="dark">
+            <LogoMark height={44} />
+          </Tile>
+          <Tile tone="light">
+            <LogoMark height={44} />
+          </Tile>
+          <Tile tone="light">
+            <LogoMark height={44} tone="mono" className="text-black" />
+          </Tile>
+          <Tile tone="dark">
+            <LogoMark height={44} tone="mono" className="text-white" />
+          </Tile>
+        </div>
+        <div
+          className="prose"
+          style={{ maxWidth: "none", fontSize: "calc(1.0625rem * var(--ui-scale))" }}
+        >
           <p>
-            The mark is the DAHON two leaf shape redrawn on a clean grid: a large leaf with a vein
-            cut and a smaller leaf crossing it. The wordmark is LEAFY in Josefin Sans Light,
-            capitals, tracked at 0.18em.
+            The mark is a two leaf shape on a clean grid: a large leaf with a vein cut and a smaller
+            leaf crossing it. The wordmark is LEAFY in Josefin Sans Light, capitals, tracked at
+            0.18em.
           </p>
           <p>
             Clear space equals the height of the small leaf. Minimum size is 20px for the mark and
             96px for a lockup. On busy imagery use the mono versions.
           </p>
-          <p>
-            {BRAND_ORIGIN_NOTE} DAHON is credited as the origin in the footer and About page, never
-            as the brand.
-          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4 lg:max-w-[18rem] lg:justify-end">
           <Image
             src="/icons/icon-192.png"
             alt="App icon, 192 pixels"
@@ -230,7 +229,7 @@ export function VoiceSection() {
           </li>
         ))}
       </ul>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-[repeat(4,14rem)]">
         <Alert tone="success" title="Say it like this">
           We found signs of early blight. This photo is a little dark, so try daylight and hold the
           leaf flat.
@@ -415,7 +414,7 @@ export function RulesSection() {
   ];
   return (
     <Section eyebrow="System" title="Do and do not">
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-[repeat(4,14rem)]">
         <Card>
           <h3 className="h3 mb-3">Do</h3>
           <ul className="prose m-0">

@@ -131,7 +131,7 @@ function Facts({ scan }: FactsProps) {
   );
 }
 
-function VerdictBadge({ scan }: FactsProps) {
+export function VerdictBadge({ scan }: FactsProps) {
   if (scan.verdict === "healthy")
     return <Badge tone="healthy">{scanCopy.history.verdicts.healthy}</Badge>;
   if (scan.verdict === "disease") {
@@ -157,7 +157,9 @@ function ResultPanel({ scan, labels }: { scan: ScanDetail; labels: LabelOptions 
         <LeafOrbit scan={scan} />
       </div>
       <div className="res__info">
-        <VerdictBadge scan={scan} />
+        <span className="res__verdict-phone">
+          <VerdictBadge scan={scan} />
+        </span>
         {lead ? <p className="res__lead m-0">{lead}</p> : null}
         <Facts scan={scan} />
         <Feedback scanId={scan.id} initial={scan.feedback} labels={labels} />
@@ -200,7 +202,7 @@ function PhotosPanel({ scan }: { scan: ScanDetail }) {
   const images = detail?.images ?? [];
   if (!detail || images.length === 0) {
     return (
-      <Shell title={copy.photosTitle}>
+      <Shell title={copy.photosTitle} aside={<PhotoAside scan={scan} />}>
         <EmptyState
           icon={ImageOff}
           title={copy.photosEmptyTitle}

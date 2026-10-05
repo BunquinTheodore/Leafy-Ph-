@@ -26,7 +26,6 @@ describe("cookieNames", () => {
     expect(cookieNames("__Host-")).toEqual({
       access: "__Host-leafy_at",
       refresh: "__Host-leafy_rt",
-      oauth: "__Host-leafy_oauth",
     });
     expect(cookieNames("").access).toBe("leafy_at");
   });

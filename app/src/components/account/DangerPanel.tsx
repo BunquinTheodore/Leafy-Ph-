@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { callApi } from "@/lib/api/browser";
 import { member } from "@/lib/i18n/member-en";
+import { GoogleButton } from "../auth/GoogleButton";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { Alert } from "../ui/Display";
@@ -14,7 +15,7 @@ import type { AccountUser } from "./types";
 const copy = member.account.danger;
 const CONFIRM_WORD = "DELETE";
 /** Where a fresh Google sign in returns to: the Danger zone panel. */
-const REAUTH_URL = `/api/auth/google?next=${encodeURIComponent("/account#danger")}`;
+const REAUTH_NEXT = "/account#danger";
 
 interface Errors {
   password?: string;
@@ -122,9 +123,9 @@ export function DangerPanel({ user, onDeleted }: DangerPanelProps) {
         {errors.reauth ? (
           <Alert tone="warning" title={copy.reauthTitle}>
             <p className="m-0">{copy.reauthBody}</p>
-            <a href={REAUTH_URL} className="btn btn-secondary btn-sm pressable mt-3">
-              {copy.reauthCta}
-            </a>
+            <div className="mt-3">
+              <GoogleButton next={REAUTH_NEXT} label={copy.reauthCta} />
+            </div>
           </Alert>
         ) : null}
         {errors.form ? <Alert tone="error">{errors.form}</Alert> : null}

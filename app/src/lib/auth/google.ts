@@ -1,178 +1,95 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { authSessionSchema } from "../api/types";
-import { readJson } from "../api/envelope";
+import { errorFromEnvelope, readJson } from "../api/envelope";
+import { ApiError } from "../api/errors";
+import { googleSessionSchema } from "../api/types";
 import { getEnv, type AppEnv } from "../env";
 import { forwardedClientIp } from "../http/client-ip";
-import { sanitizeNext } from "../http/safe-redirect";
-import { clearOauthCookie, cookieNames, setOauthCookie, setSessionCookies } from "./cookies";
+import { assertSameOrigin } from "../http/csrf";
+import { setSessionCookies } from "./cookies";
 import { NOTICE_COOKIE, NOTICE_MAX_AGE_SECONDS, noticeAfterGoogle } from "./notice";
 
-const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-const MOCK_EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}$/;
-const MOCK_DEFAULT_EMAIL = "dev@example.com";
+const MAX_BODY_BYTES = 16 * 1024;
+const NO_STORE = { "cache-control": "no-store" } as const;
+/** API codes that mean something to the person; anything else becomes a generic failure. */
 const PASS_THROUGH_ERRORS = new Set([
   "google_email_unverified",
   "google_auth_failed",
   "rate_limited",
 ]);
-const RANDOM_BYTES = 32;
 
-/** What the API says happened to the account; missing flags mean a plain returning sign in. */
-const accountFlagsSchema = z.object({
-  is_new_user: z.boolean().default(false),
-  linked_existing_account: z.boolean().default(false),
-});
+const bodySchema = z.object({ idToken: z.string().min(20).max(8192) }).strict();
 
-export interface GoogleFlowDeps {
+export interface GoogleSignInDeps {
   env: AppEnv;
   fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 }
 
-interface OauthState {
-  state: string;
-  nonce: string;
-  verifier: string;
-  next: string;
-}
-
-const toBase64Url = (bytes: Uint8Array): string => {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-};
-
-const randomToken = (): string => toBase64Url(crypto.getRandomValues(new Uint8Array(RANDOM_BYTES)));
-
-/** PKCE S256 code challenge for a verifier. */
-export async function codeChallengeFor(verifier: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
-  return toBase64Url(new Uint8Array(digest));
-}
-
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-function encodeState(value: OauthState): string {
-  return toBase64Url(new TextEncoder().encode(JSON.stringify(value)));
-}
-
-function decodeState(raw: string | undefined): OauthState | null {
-  if (!raw) return null;
-  try {
-    const base64 = raw.replace(/-/g, "+").replace(/_/g, "/");
-    const json = new TextDecoder().decode(
-      Uint8Array.from(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "=")), (c) =>
-        c.charCodeAt(0),
-      ),
-    );
-    const value = JSON.parse(json) as Partial<OauthState>;
-    const { state, nonce, verifier, next } = value;
-    if (
-      typeof state === "string" &&
-      typeof nonce === "string" &&
-      typeof verifier === "string" &&
-      typeof next === "string"
-    ) {
-      return { state, nonce, verifier, next };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/** The two browser legs of Google sign in. Code exchange and ID token checks live in the API. */
-export function createGoogleFlow({ env, fetch: doFetch }: GoogleFlowDeps) {
-  const oauthCookie = cookieNames(env.cookiePrefix).oauth;
-
-  const toLogin = (error: string): NextResponse => {
-    const url = new URL("/login", env.appOrigin);
-    url.searchParams.set("error", error);
-    const response = NextResponse.redirect(url);
-    clearOauthCookie(response.cookies, env);
-    response.headers.set("cache-control", "no-store");
-    return response;
-  };
-
-  /**
-   * GOOGLE_MOCK only: plays the account picker against the API's mock provider, server side, so the
-   * browser never talks to the API. `?email=` picks the identity; the API issues a single use code.
-   */
-  const startMockSignIn = async (request: NextRequest, stored: OauthState): Promise<URL | null> => {
-    const requested = request.nextUrl.searchParams.get("email") ?? "";
-    const email = MOCK_EMAIL.test(requested) ? requested : MOCK_DEFAULT_EMAIL;
-    const authorize = new URL(`${env.apiBaseUrl}/mock-google/authorize`);
-    authorize.searchParams.set("redirect_uri", env.googleRedirectUri);
-    authorize.searchParams.set("state", stored.state);
-    authorize.searchParams.set("nonce", stored.nonce);
-    authorize.searchParams.set("email", email);
-    authorize.searchParams.set("code_challenge", await codeChallengeFor(stored.verifier));
-    try {
-      const reply = await doFetch(authorize, { redirect: "manual", cache: "no-store" });
-      const location = reply.headers.get("location");
-      const code = location ? new URL(location).searchParams.get("code") : null;
-      if (!code) return null;
-      const target = new URL("/api/auth/google/callback", env.appOrigin);
-      target.searchParams.set("code", code);
-      target.searchParams.set("state", stored.state);
-      return target;
-    } catch {
-      return null;
-    }
-  };
-
-  return {
-    async start(request: NextRequest): Promise<NextResponse> {
-      if (!env.googleMock && !env.googleClientId) return toLogin("google_unavailable");
-
-      const stored: OauthState = {
-        state: randomToken(),
-        nonce: randomToken(),
-        verifier: randomToken(),
-        next: sanitizeNext(request.nextUrl.searchParams.get("next")),
-      };
-
-      let target: URL;
-      if (env.googleMock) {
-        const mockTarget = await startMockSignIn(request, stored);
-        if (!mockTarget) return toLogin("google_auth_failed");
-        target = mockTarget;
-      } else {
-        target = new URL(GOOGLE_AUTH_URL);
-        target.searchParams.set("client_id", env.googleClientId);
-        target.searchParams.set("redirect_uri", env.googleRedirectUri);
-        target.searchParams.set("response_type", "code");
-        target.searchParams.set("scope", "openid email profile");
-        target.searchParams.set("state", stored.state);
-        target.searchParams.set("nonce", stored.nonce);
-        target.searchParams.set("code_challenge", await codeChallengeFor(stored.verifier));
-        target.searchParams.set("code_challenge_method", "S256");
-        target.searchParams.set("prompt", "select_account");
-      }
-      const response = NextResponse.redirect(target);
-      setOauthCookie(response.cookies, encodeState(stored), env);
-      response.headers.set("cache-control", "no-store");
-      return response;
+function errorResponse(error: ApiError): NextResponse {
+  const headers: Record<string, string> = { ...NO_STORE };
+  if (error.retryAfterSeconds !== undefined)
+    headers["retry-after"] = String(error.retryAfterSeconds);
+  return NextResponse.json(
+    {
+      success: false,
+      data: null,
+      error: {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        request_id: error.requestId,
+      },
     },
+    { status: error.status, headers },
+  );
+}
 
-    async callback(request: NextRequest): Promise<NextResponse> {
-      const params = request.nextUrl.searchParams;
-      const stored = decodeState(request.cookies.get(oauthCookie)?.value);
-      const returnedState = params.get("state") ?? "";
-      if (!stored || !safeEqual(stored.state, returnedState)) return toLogin("invalid_state");
+const simpleError = (status: number, code: string, message: string) =>
+  errorResponse(new ApiError({ status, code, message }));
 
-      const providerError = params.get("error");
-      if (providerError)
-        return toLogin(
-          providerError === "access_denied" ? "google_cancelled" : "google_auth_failed",
-        );
-      const code = params.get("code");
-      if (!code) return toLogin("google_auth_failed");
+type ParsedBody = { ok: true; idToken: string } | { ok: false; response: NextResponse };
+
+async function readBody(request: NextRequest): Promise<ParsedBody> {
+  const contentType = (request.headers.get("content-type") ?? "").toLowerCase();
+  if (!contentType.startsWith("application/json"))
+    return { ok: false, response: simpleError(415, "unsupported_media_type", "Send JSON.") };
+  const text = await request.text();
+  if (text.length > MAX_BODY_BYTES)
+    return {
+      ok: false,
+      response: simpleError(413, "payload_too_large", "That request is too large."),
+    };
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    json = null;
+  }
+  const parsed = bodySchema.safeParse(json);
+  if (!parsed.success)
+    return {
+      ok: false,
+      response: simpleError(400, "validation_error", "Send the Google ID token as idToken."),
+    };
+  return { ok: true, idToken: parsed.data.idToken };
+}
+
+/**
+ * Google sign in, server leg. The browser signs in with Firebase and hands us the ID token; the
+ * API verifies it (Google's public certificates, no secret) and returns the normal session, which
+ * we turn into httpOnly cookies. The token is never logged or echoed back.
+ */
+export function createGoogleSignIn({ env, fetch: doFetch }: GoogleSignInDeps) {
+  return {
+    async handle(request: NextRequest): Promise<NextResponse> {
+      try {
+        assertSameOrigin(request, env.appOrigin);
+      } catch (error) {
+        if (error instanceof ApiError) return errorResponse(error);
+        throw error;
+      }
+      const body = await readBody(request);
+      if (!body.ok) return body.response;
 
       const clientIp = forwardedClientIp(request.headers, env.trustedProxyHops);
       let upstream: Response;
@@ -185,39 +102,42 @@ export function createGoogleFlow({ env, fetch: doFetch }: GoogleFlowDeps) {
             "x-request-id": crypto.randomUUID(),
             ...(clientIp ? { "x-forwarded-for": clientIp } : {}),
           },
-          body: JSON.stringify({
-            code,
-            code_verifier: stored.verifier,
-            nonce: stored.nonce,
-            redirect_uri: env.googleRedirectUri,
-          }),
+          body: JSON.stringify({ id_token: body.idToken }),
           cache: "no-store",
         });
       } catch {
-        return toLogin("google_auth_failed");
+        return simpleError(
+          503,
+          "api_unreachable",
+          "We could not reach Leafy right now. Try again in a moment.",
+        );
       }
-      const payload = (await readJson(upstream)) as {
-        data?: unknown;
-        error?: { code?: string };
-      } | null;
-      if (!upstream.ok) {
-        const apiCode = payload?.error?.code ?? "";
-        return toLogin(PASS_THROUGH_ERRORS.has(apiCode) ? apiCode : "google_auth_failed");
-      }
-      const session = authSessionSchema.safeParse(payload?.data);
-      if (!session.success) return toLogin("google_auth_failed");
 
-      // Only the value stored before the redirect is trusted, never a `next` on the callback URL.
-      const response = NextResponse.redirect(new URL(sanitizeNext(stored.next), env.appOrigin));
+      const payload = await readJson(upstream);
+      if (!upstream.ok) {
+        const failure = errorFromEnvelope(upstream.status, payload, upstream);
+        if (PASS_THROUGH_ERRORS.has(failure.code)) return errorResponse(failure);
+        return simpleError(400, "google_auth_failed", "Google sign in did not work.");
+      }
+      const session = googleSessionSchema.safeParse((payload as { data?: unknown } | null)?.data);
+      if (!session.success)
+        return simpleError(
+          502,
+          "invalid_response",
+          "Leafy sent an unexpected reply. Please try again.",
+        );
+
+      const { user, is_new_user: isNewUser, linked_existing_account: linked } = session.data;
+      const response = NextResponse.json(
+        {
+          success: true,
+          data: { user, is_new_user: isNewUser, linked_existing_account: linked },
+          error: null,
+        },
+        { status: 200, headers: NO_STORE },
+      );
       setSessionCookies(response.cookies, session.data, env);
-      clearOauthCookie(response.cookies, env);
-      const flags = accountFlagsSchema.safeParse(payload?.data);
-      const notice = flags.success
-        ? noticeAfterGoogle({
-            isNewUser: flags.data.is_new_user,
-            linkedExistingAccount: flags.data.linked_existing_account,
-          })
-        : null;
+      const notice = noticeAfterGoogle({ isNewUser, linkedExistingAccount: linked });
       if (notice) {
         // Readable by the page (not httpOnly) so it can show the notice once and delete the cookie.
         response.cookies.set(NOTICE_COOKIE, notice, {
@@ -228,16 +148,18 @@ export function createGoogleFlow({ env, fetch: doFetch }: GoogleFlowDeps) {
           maxAge: NOTICE_MAX_AGE_SECONDS,
         });
       }
-      response.headers.set("cache-control", "no-store");
       return response;
     },
   };
 }
 
-let defaultFlow: ReturnType<typeof createGoogleFlow> | undefined;
+let defaultHandler: ReturnType<typeof createGoogleSignIn> | undefined;
 
-/** Process wide flow wired to the real fetch and environment. */
-export function getGoogleFlow(): ReturnType<typeof createGoogleFlow> {
-  defaultFlow ??= createGoogleFlow({ env: getEnv(), fetch: (input, init) => fetch(input, init) });
-  return defaultFlow;
+/** Process wide handler wired to the real fetch and environment. */
+export function getGoogleSignIn(): ReturnType<typeof createGoogleSignIn> {
+  defaultHandler ??= createGoogleSignIn({
+    env: getEnv(),
+    fetch: (input, init) => fetch(input, init),
+  });
+  return defaultHandler;
 }

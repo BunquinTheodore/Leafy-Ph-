@@ -3,14 +3,14 @@
  *
  *   pnpm e2e:all                 build once, run auth, member, scan, then ui and full on the real stack
  *   pnpm e2e:all -- --only=auth,scan     run just those suites
- *   pnpm e2e:all -- --skip-full  skip the suites that need the real stack (ui, full) (no Postgres, S3, Mailpit, API needed)
+ *   pnpm e2e:all -- --skip-full  skip the suites that need the real stack (ui, full) (no Postgres, S3, API needed)
  *   E2E_SKIP_BUILD=1 pnpm e2e:all        reuse the last build in .next-e2e
  *
  * The mock backed suites (auth, member, scan) start and stop their own mock servers and app
  * server through Playwright's webServer. The ui suite (landing, handbook, design system) and the
  * full suite need the real stack: this script starts it once with scripts/dev/run-all.ps1 -E2E
- * (Windows), shares it between both and stops it again, leaving Postgres, S3 and
- * Mailpit running if they were already running. An app already answering on :3000 is reused and
+ * (Windows), shares it between both and stops it again, leaving Postgres and S3
+ * running if they were already running. An app already answering on :3000 is reused and
  * left alone. The exit code is non-zero if any suite failed.
  */
 import { spawn, spawnSync } from "node:child_process";
@@ -51,7 +51,21 @@ if (selected.length === 0) {
   process.exit(2);
 }
 
-const sharedEnv = { ...process.env, NEXT_DIST_DIR: DIST, NEXT_TELEMETRY_DISABLED: "1" };
+// The project id must equal FIREBASE_PROJECT_ID that scripts/dev/run-all.ps1 gives the API (leafy-mock).
+// NEXT_PUBLIC values are inlined at build time: test builds use the fake Google sign in and made up
+// Firebase identifiers (same defaults as e2e-serve.mjs), so a local .env.local never leaks in.
+const sharedEnv = {
+  ...process.env,
+  NEXT_DIST_DIR: DIST,
+  NEXT_TELEMETRY_DISABLED: "1",
+  NEXT_PUBLIC_AUTH_MOCK: process.env.NEXT_PUBLIC_AUTH_MOCK ?? "1",
+  NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "e2e-placeholder-key",
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:
+    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "leafy-mock.firebaseapp.com",
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "leafy-mock",
+  NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "",
+  GOOGLE_MOCK: process.env.GOOGLE_MOCK ?? "1",
+};
 const log = (message) => console.log(`\n[e2e:all] ${message}`);
 
 const portOpen = (port) =>
@@ -105,7 +119,7 @@ async function startStack() {
     return false;
   }
   stack.infraWasUp = await portOpen(POSTGRES_PORT);
-  log("starting the full stack (Postgres, S3, Mailpit, two APIs, two web servers)");
+  log("starting the full stack (Postgres, S3, two APIs, two web servers)");
   stack.startedByUs = true;
   const started = powershell(["-E2E", "-SkipBuild"], sharedEnv);
   if (started.status !== 0) return false;

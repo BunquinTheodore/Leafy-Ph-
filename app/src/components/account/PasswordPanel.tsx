@@ -21,11 +21,19 @@ interface Errors {
   form?: string;
 }
 
+interface PasswordPanelProps {
+  user: AccountUser;
+  /** The session came from a Google sign in in the last few minutes: the API skips the old password. */
+  recentGoogle?: boolean;
+}
+
 /**
  * Change the password with the current one, or set a first password for a Google only member.
- * After setting a first password the page refreshes so the panel becomes "Change password".
+ * Leafy sends no email, so a fresh Google sign in is the way back in after a forgotten password:
+ * it may set a new one without the old. After setting a first password the page refreshes so the
+ * panel becomes "Change password".
  */
-export function PasswordPanel({ user }: { user: AccountUser }) {
+export function PasswordPanel({ user, recentGoogle = false }: PasswordPanelProps) {
   const router = useRouter();
   const toast = useToast();
   const hasPassword = user.auth_methods.includes("password");
@@ -33,10 +41,13 @@ export function PasswordPanel({ user }: { user: AccountUser }) {
   const [next, setNext] = useState("");
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
+  // The hint can go stale; once the API asks for the current password the field comes back.
+  const [hintExpired, setHintExpired] = useState(false);
+  const skipCurrent = hasPassword && recentGoogle && !hintExpired;
 
   function validate(): Errors {
     const found: Errors = {};
-    if (hasPassword && current.length === 0) found.current = copy.currentRequired;
+    if (hasPassword && !skipCurrent && current.length === 0) found.current = copy.currentRequired;
     if (next.length === 0) found.next = copy.newRequired;
     else if (next.length < MIN_PASSWORD_LENGTH) {
       found.next = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
@@ -54,9 +65,10 @@ export function PasswordPanel({ user }: { user: AccountUser }) {
     setBusy(true);
     const result = await callApi("/api/me/password", {
       method: "POST",
-      json: hasPassword
-        ? { current_password: current, new_password: next }
-        : { new_password: next },
+      json:
+        hasPassword && !skipCurrent
+          ? { current_password: current, new_password: next }
+          : { new_password: next },
     });
     setBusy(false);
 
@@ -68,6 +80,7 @@ export function PasswordPanel({ user }: { user: AccountUser }) {
       return;
     }
     const problem = describeAccountError(result.error, "current");
+    if (skipCurrent && problem.field === "current") setHintExpired(true);
     setErrors({
       current: problem.field === "current" ? problem.message : undefined,
       next: problem.field === "new" ? problem.message : undefined,
@@ -96,7 +109,12 @@ export function PasswordPanel({ user }: { user: AccountUser }) {
           readOnly
           hidden
         />
-        {hasPassword ? (
+        {skipCurrent ? (
+          <p className="acct__note m-0" role="note">
+            {copy.recentGoogle}
+          </p>
+        ) : null}
+        {hasPassword && !skipCurrent ? (
           <Input
             label={copy.current}
             name="current_password"

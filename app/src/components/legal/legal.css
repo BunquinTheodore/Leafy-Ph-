@@ -1,8 +1,14 @@
 /* Legal and About pages: a title strip over sideways section panels. */
 .doc-page {
+  --container-max: var(--container-standard);
+  /* Title and slides share one container and one left edge: side column, gap, reading column. */
+  --doc-gap: clamp(24px, 5vw, 96px);
+  --doc-w: min(var(--container-max), calc(23em + var(--doc-gap) + 50em));
   display: flex;
   flex-direction: column;
   min-height: 0;
+  /* Type grows on wide screens together with the container. */
+  font-size: calc(1rem * var(--ui-scale));
 }
 
 .doc-page .panels {
@@ -12,11 +18,10 @@
 }
 
 .doc-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-6);
-  padding: var(--space-6) var(--gutter) 0;
+  /* Same left edge as the slides below: the centered container, never less than the gutter. */
+  width: min(100% - 2 * var(--gutter), var(--doc-w));
+  margin-inline: auto;
+  padding: var(--space-6) 0 0;
 }
 
 .doc-head__titles {
@@ -27,13 +32,16 @@
 
 .doc-head .display {
   max-width: none;
+  font-size: calc(clamp(1.5rem, 1rem + 1.8vw, 2.75rem) * var(--ui-scale));
 }
 
 .doc-draft {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 6px;
   min-height: 28px;
+  margin-top: var(--space-1);
   padding: 0 var(--space-3);
   border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
   border-radius: var(--radius-pill);
@@ -43,15 +51,50 @@
   font-size: 0.8125rem;
 }
 
-/* Each panel: the section title on the left, the reading text on the right. */
+/* Each panel: the section title on the left, the reading text on the right, tops aligned. */
 .doc-panel {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  grid-template-columns: minmax(0, 23em) minmax(0, 50em);
+  justify-content: center;
   align-items: start;
-  gap: clamp(24px, 5vw, 80px);
-  max-width: 1400px;
-  margin-inline: auto;
-  padding-block: var(--space-4);
+  column-gap: var(--doc-gap);
+  row-gap: var(--space-3);
+  padding-block: var(--space-2);
+}
+
+/* The slide sits right under the title strip instead of floating in the middle of the stage. */
+.doc-page .panels__panel {
+  padding-top: var(--space-4);
+}
+
+.doc-page .panels__panel > :first-child {
+  margin-top: clamp(0px, 3vh, 32px);
+}
+
+.doc-panel .prose {
+  font-size: calc(clamp(1.0625rem, 1rem + 0.25vw, 1.25rem) * var(--ui-scale));
+}
+
+.doc-panel .h2 {
+  font-size: calc(clamp(1.75rem, 1.25rem + 1.6vw, 2.75rem) * var(--ui-scale));
+}
+
+/* The leaf mark sits in its own cell under the section title. */
+.doc-panel__decor {
+  align-self: flex-start;
+  justify-content: start;
+  margin-top: var(--space-4);
+  opacity: 0.5;
+  color: var(--brand-glow);
+}
+
+.doc-panel__decor svg {
+  height: calc(260px * var(--ui-scale));
+  width: auto;
+}
+
+[data-theme="light"] .doc-panel__decor {
+  color: var(--brand);
 }
 
 .doc-panel__side {
@@ -60,25 +103,16 @@
   gap: var(--space-3);
 }
 
-.doc-panel__count {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 300;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  font-size: 0.8125rem;
-  color: var(--text-muted);
-}
-
 .doc-panel .prose ul {
   padding-left: 1.1em;
 }
 
 .doc-contents {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2) var(--space-6);
-  margin: var(--space-4) 0 0;
+  /* Cards fill the reading column and wrap to fewer columns on narrow widths. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15em), 1fr));
+  gap: var(--space-3);
+  margin: 0;
   padding: 0;
   list-style: none;
   counter-reset: contents;
@@ -92,8 +126,10 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 44px;
-  padding: 0 var(--space-3);
+  min-height: 56px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border);
+  background: var(--surface);
   border-radius: var(--radius-card);
   font-family: var(--font-heading);
   font-weight: 500;
@@ -112,7 +148,8 @@
 }
 
 .doc-contents a:hover {
-  background: color-mix(in srgb, var(--brand) 14%, transparent);
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 14%, var(--surface));
 }
 
 .doc-contents a:focus-visible {
@@ -120,51 +157,90 @@
   outline-offset: 2px;
 }
 
+/* Tablets: keep two columns (title and leaf left, text right) so the screen stays filled. */
 @media (max-width: 899px) {
-  .doc-panel {
+  .doc-panel,
+  .panels__panel > .doc-panel--contents {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    column-gap: var(--doc-gap);
+  }
+
+  .doc-page .panels__panel > :first-child {
+    margin-top: 0;
+  }
+
+  .doc-panel__decor svg {
+    height: calc(150px * var(--ui-scale));
+  }
+}
+
+/* Phones: one column, single column cards at the 44px touch size, the panel scrolls with a fade. */
+@media (max-width: 639px) {
+  .doc-panel,
+  .panels__panel > .doc-panel--contents {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
   }
 
-  /* Phones: two columns and no intro paragraph, so the whole list fits without scrolling. */
+  .doc-panel__decor {
+    display: none;
+  }
+
+  .doc-page .panels__panel {
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  }
+
   .doc-contents {
-    gap: 0 var(--space-2);
-    margin-top: 0;
+    gap: var(--space-2);
+    padding-bottom: var(--space-4);
   }
 
   .doc-contents a {
-    padding: 0 var(--space-2);
-    font-size: 0.875rem;
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    font-size: 0.9375rem;
     line-height: 1.2;
   }
+}
 
-  .doc-panel--contents .prose p:first-child:not(:last-child) {
-    display: none;
+/* Contents: a narrower intro column keeps the cards close to it; the cards fill the rest of the group. */
+@media (min-width: 900px) {
+  .panels__panel > .doc-panel--contents {
+    width: min(100%, var(--doc-w));
+    grid-template-columns: minmax(0, 17em) minmax(0, 1fr);
+    justify-content: start;
+  }
+
+  .doc-panel--contents .doc-contents {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15em), 1fr));
   }
 }
 
-/* A faint mark fills the empty corner on short pages (About). Decoration only. */
-.doc-page {
-  position: relative;
-  isolation: isolate;
+.doc-contents__go {
+  flex: none;
+  margin-left: auto;
+  color: var(--brand-glow);
 }
 
-.doc-page__mark {
-  position: absolute;
-  right: clamp(16px, 6vw, 96px);
-  bottom: 88px;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.14;
+[data-theme="light"] .doc-contents__go {
+  color: var(--brand);
 }
 
-.doc-page__mark svg {
-  width: clamp(140px, 24vw, 340px);
-  height: auto;
-}
-
-@media (max-width: 899px) {
-  .doc-page__mark {
+/* Phones: the contents list needs the room, so the generic intro line gives way to the note
+   about draft text (when there is one). The list then fits above the panel dots. */
+@media (max-width: 639px) {
+  .doc-panel--contents .prose > p:first-child:not(:only-child) {
     display: none;
+  }
+
+  .doc-contents {
+    padding-bottom: 0;
+  }
+}
+
+/* Wide: a roomier intro column so the whole note shows above the dots instead of fading out. */
+@media (min-width: 900px) {
+  .panels__panel > .doc-panel--contents {
+    grid-template-columns: minmax(0, 24em) minmax(0, 1fr);
   }
 }

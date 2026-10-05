@@ -89,10 +89,16 @@ test.describe("handbook journeys", () => {
     await stablePanelIds(page);
     await expect(page.locator("#treatment")).toHaveAttribute("data-active", "true");
     await focusCarousel(page);
+    // Prevention is left out when it repeats the treatment word for word (samePlan), so the next
+    // panel is either prevention or the images.
     await page.keyboard.press("ArrowRight");
-    await expect.poll(() => page.evaluate(() => window.location.hash)).toMatch(/#prevention/);
-    await page.keyboard.press("ArrowRight");
-    await expect.poll(() => page.evaluate(() => window.location.hash)).toBe("#images");
+    await expect
+      .poll(() => page.evaluate(() => window.location.hash))
+      .toMatch(/#(prevention|images)/);
+    if ((await page.evaluate(() => window.location.hash)) === "#prevention") {
+      await page.keyboard.press("ArrowRight");
+      await expect.poll(() => page.evaluate(() => window.location.hash)).toBe("#images");
+    }
     await expect(page.getByText("Reference photos coming soon")).toBeVisible();
   });
 

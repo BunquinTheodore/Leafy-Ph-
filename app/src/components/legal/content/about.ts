@@ -27,17 +27,7 @@ export const aboutSections: readonly LegalSection[] = [
   {
     id: "team",
     title: "The team",
-    paragraphs: [
-      "Leafy is built by a small team that grew out of DAHON. Each part has its own owner.",
-    ],
+    paragraphs: ["Leafy is built by a small team. Each part has its own owner."],
     items: TEAM_MEMBERS.map((member) => `${member.name}, ${member.role}: ${member.summary}`),
-  },
-  {
-    id: "the-name",
-    title: "Where the name comes from",
-    paragraphs: [
-      "Dahon means leaf in Filipino. DAHON was the earlier prototype that Leafy grew from, and we keep the name as a thank you to where it started.",
-      "Leafy is the product name. It stays simple on purpose, like the leaf it is built around.",
-    ],
   },
 ];

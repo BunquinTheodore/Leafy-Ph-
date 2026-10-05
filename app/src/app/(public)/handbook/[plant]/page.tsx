@@ -7,6 +7,7 @@ import { PlantPanels } from "@/components/handbook/PlantPanels";
 import { getCatalog } from "@/lib/handbook/catalog";
 import { guessViewportSize } from "@/lib/handbook/device";
 import { breadcrumbJsonLd } from "@/lib/handbook/jsonld";
+import { buildSearchIndex } from "@/lib/handbook/search";
 
 interface Params {
   params: Promise<{ plant: string }>;
@@ -32,11 +33,20 @@ export default async function PlantPage({ params }: Params) {
   const { plant: slug } = await params;
   const plant = await loadPlant(slug);
   if (!plant) notFound();
+  const otherPlants =
+    plant.diseases.length === 0
+      ? buildSearchIndex(
+          (await (await getCatalog()).plants())
+            .filter((other) => other.slug !== plant.slug && other.disease_count > 0)
+            .slice(0, 3),
+          [],
+        )
+      : [];
   const origin = process.env.APP_ORIGIN ?? "http://localhost:3000";
   const eyebrow = [plant.family, plant.plant_type].filter(Boolean).join(" · ");
   return (
     <HandbookStage>
-      <div className="hb">
+      <div className="hb" data-layout="reading">
         <div className="hb__head">
           <div className="hb__titles">
             <Breadcrumbs
@@ -47,7 +57,11 @@ export default async function PlantPage({ params }: Params) {
             {plant.scientific_name ? <p className="hb__sci">{plant.scientific_name}</p> : null}
           </div>
         </div>
-        <PlantPanels plant={plant} initialSize={guessViewportSize(await headers())} />
+        <PlantPanels
+          plant={plant}
+          otherPlants={otherPlants}
+          initialSize={guessViewportSize(await headers())}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

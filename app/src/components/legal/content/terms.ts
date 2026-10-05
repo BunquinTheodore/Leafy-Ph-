@@ -4,8 +4,7 @@ export const termsContent: LegalDocumentContent = {
   eyebrow: "Legal",
   title: "Terms of Use",
   draftNote: DRAFT_NOTE,
-  intro:
-    "These terms explain how Leafy may be used and what you can expect from it. They are short and written in plain words. Use the contents list to jump to a section, or move sideways with the arrows.",
+  intro: "These terms explain, in plain words, how Leafy may be used. Jump to any section below.",
   sections: [
     {
       id: "about-these-terms",
@@ -20,7 +19,7 @@ export const termsContent: LegalDocumentContent = {
       title: "Your account",
       paragraphs: ["Please look after your account."],
       items: [
-        "Give a real email address that you can open.",
+        "Give your own email address: it is how you sign in.",
         "Keep your password to yourself and tell us if you think someone else has it.",
         "One account is for one person.",
         "You can delete your account at any time from the account page.",

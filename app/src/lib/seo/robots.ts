@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-/** Never crawled: member pages, one time token pages, the team brand guide and the API. */
+/** Never crawled: member pages, the team brand guide and the API. */
 export const PRIVATE_PATHS = [
   "/api/",
   "/brand",
@@ -8,8 +8,6 @@ export const PRIVATE_PATHS = [
   "/scan",
   "/scans",
   "/account",
-  "/reset-password",
-  "/verify-email",
 ] as const;
 
 export function robotsConfig(origin: string): MetadataRoute.Robots {

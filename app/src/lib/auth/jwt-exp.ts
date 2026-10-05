@@ -1,5 +1,5 @@
-/** Reads the `exp` claim (seconds) of a JWT without verifying it. Only for scheduling refreshes. */
-export function readJwtExp(token: string | undefined): number | null {
+/** Decodes a JWT payload without verifying it. Only for hints and scheduling, never for trust. */
+export function readJwtPayload(token: string | undefined): Record<string, unknown> | null {
   if (!token) return null;
   const parts = token.split(".");
   const payloadPart = parts[1];
@@ -9,14 +9,18 @@ export function readJwtExp(token: string | undefined): number | null {
     const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
     const json = new TextDecoder().decode(Uint8Array.from(atob(padded), (c) => c.charCodeAt(0)));
     const payload: unknown = JSON.parse(json);
-    if (typeof payload === "object" && payload !== null && "exp" in payload) {
-      const exp = (payload as { exp: unknown }).exp;
-      return typeof exp === "number" && Number.isFinite(exp) ? exp : null;
-    }
-    return null;
+    return typeof payload === "object" && payload !== null
+      ? (payload as Record<string, unknown>)
+      : null;
   } catch {
     return null;
   }
+}
+
+/** Reads the `exp` claim (seconds) of a JWT without verifying it. Only for scheduling refreshes. */
+export function readJwtExp(token: string | undefined): number | null {
+  const exp = readJwtPayload(token)?.exp;
+  return typeof exp === "number" && Number.isFinite(exp) ? exp : null;
 }
 
 export const DEFAULT_REFRESH_SKEW_SECONDS = 30;

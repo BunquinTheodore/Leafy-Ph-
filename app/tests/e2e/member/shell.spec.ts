@@ -70,41 +70,20 @@ test.describe("member shell", () => {
   });
 });
 
-test.describe("verify email banner", () => {
-  test("verified members do not see it", async ({ page, context }) => {
+test.describe("no email gate", () => {
+  test("a member with an unverified address sees no banner and can scan", async ({
+    page,
+    context,
+  }) => {
+    await resetMock({ user: { email_verified: false, email_verified_at: null } });
     await signIn(context);
     await page.goto("/dashboard");
     await expect(page.getByRole("region", { name: "Email verification" })).toHaveCount(0);
-  });
-
-  test("resends the link and shows a 60 second cooldown", async ({ page, context }) => {
-    await resetMock({ user: { email_verified: false, email_verified_at: null } });
-    await signIn(context);
-    await page.goto("/dashboard");
-
-    const banner = page.getByRole("region", { name: "Email verification" });
-    await expect(banner.getByText("Check your email to verify your account.")).toBeVisible();
-    const button = banner.getByRole("button");
-    await expect(button).toHaveText("Resend email");
-    await button.click();
-
-    await expect(button).toHaveText(/Resend in (60|59)s/);
-    await expect(button).toBeDisabled();
-    await expect(banner.getByText(/sent a new link/i)).toBeVisible();
-    expect(await callsTo("POST", "/auth/resend-verification")).toHaveLength(1);
-
-    // Still waiting after a reload: the cooldown is remembered for the session.
-    await page.reload();
-    await expect(banner.getByRole("button")).toBeDisabled();
-    expect(await callsTo("POST", "/auth/resend-verification")).toHaveLength(1);
-  });
-
-  test("scan stays unavailable until the email is verified", async ({ page, context }) => {
-    await resetMock({ user: { email_verified: false, email_verified_at: null } });
-    await signIn(context);
-    await page.goto("/dashboard");
-    await expect(page.getByRole("button", { name: "Scan a leaf" })).toBeDisabled();
-    await expect(page.getByText("Verify your email to scan")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Scan a leaf" }).first()).toHaveAttribute(
+      "href",
+      "/scan",
+    );
+    expect(await callsTo("POST", "/auth/resend-verification")).toHaveLength(0);
   });
 });
 

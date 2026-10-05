@@ -6,7 +6,7 @@ import type { ViewportSize } from "@/lib/handbook/device";
 import { SlidePanels, type Panel } from "../slide-panels/SlidePanels";
 import { CompactCard } from "./CompactCard";
 import { PlantCard } from "./PlantCard";
-import { useViewportSize } from "./useViewportSize";
+import { useUltraWide, useViewportSize } from "./useViewportSize";
 
 export type RailVariant = "plants" | "compact";
 
@@ -15,6 +15,9 @@ const PER_PANEL: Record<RailVariant, readonly [number, number, number]> = {
   plants: [4, 6, 4],
   compact: [6, 4, 4],
 };
+
+/** Plants per panel on screens 1900px and wider (one row of six). */
+const ULTRA_PLANTS = 6;
 
 export function chunk<T>(items: readonly T[], size: number): T[][] {
   const pages: T[][] = [];
@@ -25,7 +28,9 @@ export function chunk<T>(items: readonly T[], size: number): T[][] {
 
 export function usePerPanel(variant: RailVariant, initialSize: ViewportSize): number {
   const size = useViewportSize(initialSize);
+  const ultra = useUltraWide();
   const [wide, medium, narrow] = PER_PANEL[variant];
+  if (ultra && size === "desktop" && variant === "plants") return ULTRA_PLANTS;
   return size === "desktop" ? wide : size === "tablet" ? medium : narrow;
 }
 
@@ -56,7 +61,7 @@ export function CatalogRail({
             {page.map((entry, position) => (
               <li key={entry.href} className="min-w-0">
                 {entry.kind === "plant" && variant === "plants" ? (
-                  <PlantCard entry={entry} priority={index === 0 && position < 4} />
+                  <PlantCard entry={entry} priority={index === 0 && position < 6} />
                 ) : (
                   <CompactCard entry={entry} />
                 )}

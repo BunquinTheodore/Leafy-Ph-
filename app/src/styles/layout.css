@@ -7,7 +7,8 @@
   justify-content: space-between;
   gap: var(--space-4);
   height: var(--header-h);
-  padding: 0 var(--gutter);
+  /* Logo and nav sit on the same edges as the page container. */
+  padding: 0 var(--edge);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   -webkit-backdrop-filter: blur(14px);
@@ -95,6 +96,30 @@
   scroll-snap-align: start;
   scroll-snap-stop: always;
   content-visibility: auto;
+  /* Slides share the wide container: centered, same left edge, vertically balanced. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.panels__panel > * {
+  width: min(100%, var(--container-max));
+  min-width: 0;
+}
+
+/* Centers short slides; a tall slide starts at the top and scrolls inside the panel. */
+.panels__panel > :first-child {
+  margin-top: auto;
+}
+
+.panels__panel > :last-child {
+  margin-bottom: auto;
+}
+
+/* A slide that scrolls inside shows a bottom fade until the end is reached, so clipping reads as scrollable. */
+.panels__panel[data-more="true"] {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent);
 }
 
 /* Lazy pictures several panels away are not fetched until the panel gets near (see isNearActive). */
@@ -108,17 +133,21 @@
 }
 
 .panels__controls {
-  display: flex;
-  flex-wrap: wrap;
+  /* Arrows sit on the container edges, the dots stay centered between them. */
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: center;
   gap: var(--space-4);
+  width: 100%;
+  max-width: calc(var(--container-max) + 2 * var(--gutter));
+  margin-inline: auto;
+  box-sizing: border-box;
   padding: var(--space-3) var(--gutter) var(--space-4);
 }
 
 .panels__dots {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
   min-width: 0;
   max-width: 100%;
@@ -196,8 +225,37 @@
 
 .panels__hint {
   text-align: center;
-  font-size: 0.8125rem;
-  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Phones: dots shrink to share one row (never wrap), controls and panel padding get tighter. */
+@media (max-width: 720px) {
+  .panels__controls {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 var(--gutter) var(--space-2);
+  }
+
+  .panels__dots > li {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 44px;
+  }
+
+  .panels__dot {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .panels__panel {
+    padding-block: var(--space-4);
+  }
+
+  .panels__hint {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -213,125 +271,5 @@
 @keyframes panel-fade {
   from {
     opacity: 0;
-  }
-}
-
-/* ---- Landing hero ---- */
-.hero {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  display: grid;
-  align-items: center;
-  padding: var(--space-6) var(--gutter);
-}
-
-.hero__scene {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-}
-
-.hero__poster {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center end;
-  padding-right: 10vw;
-  background:
-    radial-gradient(
-      60% 70% at 78% 45%,
-      color-mix(in srgb, var(--brand-deep) 55%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      50% 50% at 15% 85%,
-      color-mix(in srgb, var(--brand-deep) 28%, transparent),
-      transparent 70%
-    );
-  transition: opacity var(--dur-scene) var(--ease);
-}
-
-.hero__poster svg {
-  width: clamp(160px, 26vw, 360px);
-  height: auto;
-  opacity: 0.55;
-}
-
-.hero__scene[data-ready="true"] .hero__poster {
-  opacity: 0;
-}
-
-.hero__canvas {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity var(--dur-scene) var(--ease);
-}
-
-.hero__scene[data-ready="true"] .hero__canvas {
-  opacity: 1;
-}
-
-.hero__content {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: clamp(16px, 3vh, 28px);
-  max-width: min(100%, 78rem);
-}
-
-.hero__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-/* Soft scrim so text stays readable where the leaf sits behind it on small screens. */
-.hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--bg) 78%, transparent),
-    color-mix(in srgb, var(--bg) 62%, transparent) 46%,
-    transparent 66%
-  );
-}
-
-/* Compact: the leaf moves above the text so nothing overlaps. */
-@media (max-width: 1100px) {
-  .hero {
-    align-items: end;
-    padding-bottom: clamp(32px, 9vh, 72px);
-  }
-
-  .hero::after {
-    background: linear-gradient(
-      0deg,
-      color-mix(in srgb, var(--bg) 82%, transparent),
-      transparent 70%
-    );
-  }
-
-  .hero__poster {
-    place-items: start center;
-    padding: 6vh 0 0;
-  }
-}
-
-@media (max-width: 720px) {
-  /* Full width, so the buttons always stack: a content sized row would wrap or not depending on
-     which font is loaded, which moved the whole hero when Poppins arrived. */
-  .hero__actions {
-    align-self: stretch;
-  }
-
-  .hero__actions .btn {
-    flex: 1 1 100%;
   }
 }

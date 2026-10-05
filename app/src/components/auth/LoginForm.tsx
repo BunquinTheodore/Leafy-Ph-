@@ -122,8 +122,10 @@ export function LoginForm({ next, note }: LoginFormProps) {
       <Button type="submit" size="lg" loading={loading} disabled={remaining > 0}>
         {enAuth.login.submit}
       </Button>
+      <p className="auth-form__help m-0" data-testid="forgot-help">
+        {enAuth.login.forgotHelp}
+      </p>
       <p className="auth-form__links">
-        <Link href={buildAuthHref("/forgot-password", next)}>{enAuth.login.forgot}</Link>
         <span>
           {enAuth.login.noAccount}{" "}
           <Link href={buildAuthHref("/register", next)} className="auth-link">

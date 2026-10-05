@@ -42,7 +42,6 @@ export const test = base.extend({
 });
 export { expect };
 
-export const MAILPIT = process.env.MAILPIT_URL ?? "http://127.0.0.1:8025";
 export const S3 = process.env.S3_URL ?? "http://127.0.0.1:9000";
 export const PASSWORD = "a long passphrase here";
 export const API_DIR = resolve(__dirname, "../../../api");
@@ -54,46 +53,6 @@ export function uniqueEmail(prefix: string): string {
   counter += 1;
   const stamp = `${Date.now().toString(36)}${counter}${Math.random().toString(36).slice(2, 6)}`;
   return `${prefix}.${stamp}@example.com`;
-}
-
-interface MailSummary {
-  ID: string;
-  Subject: string;
-  Created: string;
-}
-
-/** Polls Mailpit until a message to `to` whose subject contains `subject` arrives. */
-export async function waitForMail(
-  request: APIRequestContext,
-  to: string,
-  subject: string,
-  minCount = 1,
-): Promise<{ id: string; text: string }> {
-  const query = encodeURIComponent(`to:${to}`);
-  let found: MailSummary[] = [];
-  await expect
-    .poll(
-      async () => {
-        const reply = await request.get(`${MAILPIT}/api/v1/search?query=${query}`);
-        const body = (await reply.json()) as { messages?: MailSummary[] };
-        found = (body.messages ?? []).filter((message) => message.Subject.includes(subject));
-        return found.length;
-      },
-      { message: `mail "${subject}" to ${to}`, timeout: 20_000 },
-    )
-    .toBeGreaterThanOrEqual(minCount);
-  const latest = [...found].sort((a, b) => b.Created.localeCompare(a.Created))[0];
-  const detail = await request.get(`${MAILPIT}/api/v1/message/${latest?.ID}`);
-  const message = (await detail.json()) as { Text: string };
-  return { id: latest?.ID ?? "", text: message.Text };
-}
-
-/** The first app link in a mail body (the path and query only, so it works on any base URL). */
-export function linkFrom(text: string, pathname: string): string {
-  const match = new RegExp(String.raw`https?://\S+?${pathname}\?token=[A-Za-z0-9_-]+`).exec(text);
-  if (!match) throw new Error(`No ${pathname} link in the mail:\n${text}`);
-  const url = new URL(match[0]);
-  return `${url.pathname}${url.search}`;
 }
 
 export async function registerViaUi(
@@ -110,14 +69,15 @@ export async function registerViaUi(
   await page.waitForURL("**/dashboard");
 }
 
-export async function verifyViaMail(
-  page: Page,
-  request: APIRequestContext,
-  email: string,
-): Promise<void> {
-  const mail = await waitForMail(request, email, "Verify your Leafy email");
-  await page.goto(linkFrom(mail.text, "/verify-email"));
-  await expect(page.getByRole("heading", { name: "Email verified" })).toBeVisible();
+/**
+ * Continue with Google through the mock provider (the web builds a test signed Firebase ID token,
+ * the API trusts it only with GOOGLE_MOCK=1). `email` picks the identity; ends on `next`.
+ */
+export async function googleSignInViaUi(page: Page, email: string, next?: string): Promise<void> {
+  const params = new URLSearchParams({ mock_google_email: email });
+  if (next) params.set("next", next);
+  await page.goto(`/login?${params.toString()}`);
+  await page.getByRole("button", { name: "Continue with Google" }).click();
 }
 
 export async function signInViaUi(page: Page, email: string, password = PASSWORD): Promise<void> {
@@ -128,7 +88,7 @@ export async function signInViaUi(page: Page, email: string, password = PASSWORD
   await page.waitForURL("**/dashboard");
 }
 
-/** A registered, verified member in its own browser context; returns the page and the email. */
+/** A registered member in its own browser context; returns the page and the email. */
 export async function newMember(
   browser: Browser,
   baseURL: string,
@@ -138,7 +98,6 @@ export async function newMember(
   const page = waitForHydration(await context.newPage());
   const email = uniqueEmail(prefix);
   await registerViaUi(page, { email });
-  await verifyViaMail(page, context.request, email);
   return { page, email, close: () => context.close() };
 }
 

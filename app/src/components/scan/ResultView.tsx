@@ -12,7 +12,7 @@ import { SlidePanels } from "../slide-panels/SlidePanels";
 import { Button, LinkButton } from "../ui/Button";
 import { useToast } from "../ui/Toast";
 import { deleteWithUndo } from "./delete";
-import { buildResultPanels } from "./ResultPanels";
+import { buildResultPanels, VerdictBadge } from "./ResultPanels";
 
 const copy = scanCopy.result;
 
@@ -88,7 +88,10 @@ export function ResultView({
     >
       <header className="rv__head">
         <div className="rv__titles">
-          <p className="eyebrow m-0 rv__eyebrow">{headline.eyebrow}</p>
+          <div className="rv__kicker">
+            <p className="eyebrow m-0 rv__eyebrow">{headline.eyebrow}</p>
+            <VerdictBadge scan={scan} />
+          </div>
           <h1 id="rv-title" ref={titleRef} tabIndex={-1} className="display display-sm rv__title">
             {headline.title}
           </h1>

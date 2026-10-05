@@ -4,6 +4,9 @@ const DEFAULT_MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 const MAX_ALLOWED_UPLOAD_BYTES = 64 * 1024 * 1024;
 const MAX_TRUSTED_PROXY_HOPS = 5;
 
+/** A bare DNS host (no scheme, path or port) so it can only ever become one CSP host source. */
+const HOSTNAME = /^(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$/i;
+
 const truthy = z
   .union([z.boolean(), z.string()])
   .optional()
@@ -13,6 +16,9 @@ const trimmedUrl = z
   .string()
   .url()
   .transform((value) => value.replace(/\/+$/, ""));
+
+const mockRequested = (value: { GOOGLE_MOCK: boolean; NEXT_PUBLIC_AUTH_MOCK: boolean }) =>
+  value.GOOGLE_MOCK || value.NEXT_PUBLIC_AUTH_MOCK;
 
 const schema = z
   .object({
@@ -28,9 +34,15 @@ const schema = z
       .max(MAX_ALLOWED_UPLOAD_BYTES)
       .optional()
       .default(DEFAULT_MAX_UPLOAD_BYTES),
-    GOOGLE_CLIENT_ID: z.string().optional().default(""),
-    GOOGLE_REDIRECT_URI: z.string().url().optional(),
     GOOGLE_MOCK: truthy,
+    NEXT_PUBLIC_AUTH_MOCK: truthy,
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z
+      .string()
+      .trim()
+      .regex(HOSTNAME, "must be a bare host name such as your-project.firebaseapp.com")
+      .or(z.literal(""))
+      .optional()
+      .default(""),
     TRUSTED_PROXY_HOPS: z.coerce
       .number()
       .int()
@@ -39,12 +51,12 @@ const schema = z
       .optional()
       .default(0),
   })
-  .refine((value) => !(value.GOOGLE_MOCK && value.COOKIE_SECURE), {
-    message: "GOOGLE_MOCK must not be enabled when COOKIE_SECURE=true (production)",
+  .refine((value) => !(mockRequested(value) && value.COOKIE_SECURE), {
+    message: "GOOGLE_MOCK / NEXT_PUBLIC_AUTH_MOCK must not be enabled when COOKIE_SECURE=true",
     path: ["GOOGLE_MOCK"],
   })
-  .refine((value) => !(value.GOOGLE_MOCK && value.ENV === "prod"), {
-    message: "GOOGLE_MOCK must not be enabled when ENV=prod",
+  .refine((value) => !(mockRequested(value) && value.ENV === "prod"), {
+    message: "GOOGLE_MOCK / NEXT_PUBLIC_AUTH_MOCK must not be enabled when ENV=prod",
     path: ["GOOGLE_MOCK"],
   })
   .refine((value) => value.COOKIE_PREFIX === "" || value.COOKIE_SECURE, {
@@ -58,9 +70,10 @@ export interface AppEnv {
   readonly cookieSecure: boolean;
   readonly cookiePrefix: "" | "__Host-";
   readonly maxUploadBytes: number;
-  readonly googleClientId: string;
-  readonly googleRedirectUri: string;
+  /** Fake Google sign in for tests and local development. Never true in production. */
   readonly googleMock: boolean;
+  /** Firebase auth domain (host only) for the CSP; empty when Google sign in is not configured. */
+  readonly firebaseAuthDomain: string;
   /** Reverse proxies in front of Next whose X-Forwarded-For entry is trusted. 0 means none. */
   readonly trustedProxyHops: number;
 }
@@ -74,10 +87,8 @@ export function parseEnv(source: Record<string, string | undefined>): AppEnv {
     cookieSecure: parsed.COOKIE_SECURE,
     cookiePrefix: parsed.COOKIE_PREFIX,
     maxUploadBytes: parsed.MAX_UPLOAD_BYTES,
-    googleClientId: parsed.GOOGLE_CLIENT_ID,
-    googleRedirectUri:
-      parsed.GOOGLE_REDIRECT_URI ?? `${parsed.APP_ORIGIN}/api/auth/google/callback`,
-    googleMock: parsed.GOOGLE_MOCK,
+    googleMock: parsed.GOOGLE_MOCK || parsed.NEXT_PUBLIC_AUTH_MOCK,
+    firebaseAuthDomain: parsed.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN.toLowerCase(),
     trustedProxyHops: parsed.TRUSTED_PROXY_HOPS,
   });
 }
@@ -93,9 +104,9 @@ export function getEnv(): AppEnv {
     COOKIE_SECURE: process.env.COOKIE_SECURE,
     COOKIE_PREFIX: process.env.COOKIE_PREFIX,
     MAX_UPLOAD_BYTES: process.env.MAX_UPLOAD_BYTES,
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
     GOOGLE_MOCK: process.env.GOOGLE_MOCK,
+    NEXT_PUBLIC_AUTH_MOCK: process.env.NEXT_PUBLIC_AUTH_MOCK,
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
     TRUSTED_PROXY_HOPS: process.env.TRUSTED_PROXY_HOPS,
   });
   return cached;

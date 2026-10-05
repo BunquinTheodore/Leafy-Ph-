@@ -5,7 +5,7 @@
 
 /*
  * Stages give back the footer row. This also covers the member shell, which already subtracts
- * --chrome-extra (banner, bottom nav): the extra selector wins over `body .stage-fill` there.
+ * --chrome-extra (bottom nav): the extra selector wins over `body .stage-fill` there.
  */
 body:has(.site-footer) .stage-fill {
   height: calc(100vh - var(--header-h) - var(--chrome-extra, 0px) - var(--footer-h));
@@ -18,7 +18,8 @@ body:has(.site-footer) .stage-fill {
   justify-content: space-between;
   gap: var(--space-4);
   height: var(--footer-h);
-  padding: 0 var(--gutter);
+  /* Brand note and links sit on the page container edges. */
+  padding: 0 var(--edge);
   border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   font-size: 0.8125rem;
@@ -35,7 +36,7 @@ body:has(.site-footer) .stage-fill {
 .site-footer nav {
   display: flex;
   align-items: center;
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 .site-footer a {
@@ -64,7 +65,7 @@ body:has(.site-footer) .stage-fill {
     --footer-h: 48px;
   }
 
-  .site-footer__origin {
+  .site-footer__brand {
     display: none;
   }
 

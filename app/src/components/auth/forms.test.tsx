@@ -7,11 +7,8 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace, refresh, push: vi.fn() }),
 }));
 
-import { ForgotPasswordForm } from "./ForgotPasswordForm";
-import { GoogleButton } from "./GoogleButton";
 import { LoginForm } from "./LoginForm";
 import { RegisterForm } from "./RegisterForm";
-import { ResetPasswordForm } from "./ResetPasswordForm";
 
 const reply = (status: number, body: unknown, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), {
@@ -141,10 +138,14 @@ describe("LoginForm", () => {
       "href",
       "/register?next=%2Fscan",
     );
-    expect(screen.getByRole("link", { name: "Forgot your password?" })).toHaveAttribute(
-      "href",
-      "/forgot-password?next=%2Fscan",
+  });
+
+  it("explains how to recover a forgotten password without any email link", () => {
+    render(<LoginForm note={null} />);
+    expect(screen.getByTestId("forgot-help")).toHaveTextContent(
+      "Forgot your password? Sign in with Google, then set a new one in Account.",
     );
+    expect(screen.queryByRole("link", { name: /forgot/i })).not.toBeInTheDocument();
   });
 
   it("can show and hide the password", () => {
@@ -199,7 +200,7 @@ describe("RegisterForm", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("explains an email that is already used and links to sign in and reset", async () => {
+  it("explains an email that is already used and links to sign in", async () => {
     fetchMock.mockResolvedValue(failure(409, "email_taken"));
     render(<RegisterForm next="/scan" />);
     fill();
@@ -208,10 +209,7 @@ describe("RegisterForm", () => {
     for (const link of screen.getAllByRole("link", { name: "Sign in" })) {
       expect(link).toHaveAttribute("href", "/login?next=%2Fscan");
     }
-    expect(screen.getByRole("link", { name: "Reset password" })).toHaveAttribute(
-      "href",
-      "/forgot-password?next=%2Fscan",
-    );
+    expect(screen.queryByRole("link", { name: "Reset password" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Your name")).toHaveValue("Ada Lovelace");
   });
 
@@ -235,93 +233,5 @@ describe("RegisterForm", () => {
       "href",
       "/privacy",
     );
-  });
-});
-
-describe("ForgotPasswordForm", () => {
-  it("shows the same calm confirmation for any email", async () => {
-    fetchMock.mockResolvedValue(success({ sent: true }));
-    render(<ForgotPasswordForm />);
-    type("Email", "nobody@example.com");
-    submit("Send reset link");
-    expect(await screen.findByText(/If an account exists for that email/)).toBeInTheDocument();
-    expect(lastCall().body).toEqual({ email: "nobody@example.com" });
-    expect(
-      screen.getByRole("button", { name: /You can send another link in 1:00/ }),
-    ).toBeDisabled();
-  });
-
-  it("validates the email first", async () => {
-    render(<ForgotPasswordForm />);
-    type("Email", "nope");
-    submit("Send reset link");
-    expect(await screen.findByText(/valid email/)).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-});
-
-describe("ResetPasswordForm", () => {
-  it("posts the token and the new password, then offers sign in", async () => {
-    fetchMock.mockResolvedValue(success({ reset: true }));
-    render(<ResetPasswordForm token="tok-123" />);
-    type("New password", "another long passphrase");
-    submit("Update password");
-    expect(await screen.findByText("Password updated")).toBeInTheDocument();
-    expect(lastCall()).toEqual({
-      url: "/api/auth/reset-password",
-      body: { token: "tok-123", new_password: "another long passphrase" },
-    });
-    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
-  });
-
-  it("shows the expired state with a way to ask for a new link", async () => {
-    fetchMock.mockResolvedValue(failure(400, "token_invalid_or_expired"));
-    render(<ResetPasswordForm token="old" />);
-    type("New password", "another long passphrase");
-    submit("Update password");
-    expect(await screen.findByText("This link has expired")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Send a new link" })).toHaveAttribute(
-      "href",
-      "/forgot-password",
-    );
-  });
-
-  it("treats a missing token as an expired link without calling the API", () => {
-    render(<ResetPasswordForm token={null} />);
-    expect(screen.getByText("This link has expired")).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("removes the token from the address bar", () => {
-    window.history.replaceState(null, "", "/reset-password?token=secret&x=1");
-    render(<ResetPasswordForm token="secret" />);
-    expect(window.location.search).toBe("?x=1");
-  });
-});
-
-describe("GoogleButton", () => {
-  it("is a link to the start handler and keeps a safe next", () => {
-    render(<GoogleButton next="/scan" />);
-    expect(screen.getByRole("link", { name: "Continue with Google" })).toHaveAttribute(
-      "href",
-      "/api/auth/google?next=%2Fscan",
-    );
-  });
-
-  it("drops an unsafe next", () => {
-    render(<GoogleButton next="https://evil.example" />);
-    expect(screen.getByRole("link", { name: "Continue with Google" })).toHaveAttribute(
-      "href",
-      "/api/auth/google",
-    );
-  });
-
-  it("shows a busy state after the click and ignores a second click", () => {
-    render(<GoogleButton />);
-    const link = screen.getByRole("link", { name: "Continue with Google" });
-    link.addEventListener("click", (event) => event.preventDefault());
-    fireEvent.click(link);
-    expect(link).toHaveAttribute("aria-busy", "true");
-    expect(link).toHaveTextContent("Opening Google");
   });
 });

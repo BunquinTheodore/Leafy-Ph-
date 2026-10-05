@@ -13,9 +13,9 @@ const IDLE_TIMEOUT_MS = 800;
 const HANDOFF_DELAY_MS = 350;
 
 /**
- * Decorative three.js scene behind a landing panel. The poster is real HTML/CSS; the canvas
+ * Decorative three.js scene in its own cell beside a landing heading. The poster is real HTML/CSS; the canvas
  * mounts only while the panel is on screen and unmounts when it leaves, so there is one
- * WebGL context at a time. Hidden below 900px by CSS (poster only on phones).
+ * WebGL context at a time. Hidden below 960px by CSS.
  */
 export function AccentScene({ variant }: { variant: AccentVariant }) {
   const host = useRef<HTMLDivElement>(null);
@@ -49,7 +49,13 @@ export function AccentScene({ variant }: { variant: AccentVariant }) {
   }, [visible]);
 
   return (
-    <div ref={host} className="lp-scene" data-ready={ready} aria-hidden="true">
+    <div
+      ref={host}
+      className="lp-scene decor-cell"
+      data-decor
+      data-ready={ready}
+      aria-hidden="true"
+    >
       <div className="lp-scene__poster" />
       <div className="lp-scene__canvas">
         {mounted ? <AccentSceneCanvas variant={variant} onReady={() => setReady(true)} /> : null}

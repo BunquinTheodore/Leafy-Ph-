@@ -9,7 +9,7 @@ import { useInView } from "./useInView";
 const HeroSceneCanvas = dynamic(() => import("./HeroSceneCanvas"), { ssr: false });
 
 /**
- * The hero background. A static poster (mark and glow) is always in the HTML as the LCP safe
+ * The hero leaf scene (its own grid cell, decoration only). A static poster (mark and glow) is always in the HTML as the LCP safe
  * layer; the three.js canvas loads once the page has settled and fades in over it. No WebGL keeps the poster.
  */
 export function HeroScene() {
@@ -21,7 +21,13 @@ export function HeroScene() {
   const mounted = idle && visible;
 
   return (
-    <div ref={host} className="hero__scene" data-ready={ready && mounted} aria-hidden="true">
+    <div
+      ref={host}
+      className="hero__scene decor-cell"
+      data-decor
+      data-ready={ready && mounted}
+      aria-hidden="true"
+    >
       <div className="hero__poster">
         <LogoMark height={300} />
       </div>

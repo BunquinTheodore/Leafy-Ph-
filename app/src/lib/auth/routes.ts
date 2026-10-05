@@ -1,7 +1,7 @@
 export type RouteKind = "protected" | "guest" | "public";
 
 const PROTECTED_PREFIXES = ["/dashboard", "/scan", "/scans", "/account"] as const;
-const GUEST_PREFIXES = ["/login", "/register", "/forgot-password"] as const;
+const GUEST_PREFIXES = ["/login", "/register"] as const;
 
 const matches = (pathname: string, prefix: string) =>
   pathname === prefix || pathname.startsWith(`${prefix}/`);

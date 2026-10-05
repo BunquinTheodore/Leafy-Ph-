@@ -341,7 +341,6 @@ describe("file validation", () => {
 describe("error copy", () => {
   it("maps API codes to plain kinds without exclamation marks", () => {
     const codes = [
-      "email_not_verified",
       "rate_limited",
       "scan_quota_exceeded",
       "invalid_image",
@@ -358,7 +357,7 @@ describe("error copy", () => {
       expect(view.title.length).toBeGreaterThan(0);
       expect(`${view.title}${view.body}`).not.toContain("!");
     }
-    expect(describeScanError({ code: "email_not_verified", status: 403 }).kind).toBe("unverified");
+    expect(describeScanError({ code: "email_not_verified", status: 403 }).kind).toBe("generic");
     expect(describeScanError({ code: "ml_unavailable", status: 503 }).title).toBe(
       "Analysis isn't available right now",
     );

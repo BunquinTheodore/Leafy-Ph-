@@ -17,7 +17,6 @@ describe("classifyRoute", () => {
     ["/account", "protected"],
     ["/login", "guest"],
     ["/register", "guest"],
-    ["/forgot-password", "guest"],
     ["/", "public"],
     ["/handbook/tomato", "public"],
     ["/scanner", "public"],

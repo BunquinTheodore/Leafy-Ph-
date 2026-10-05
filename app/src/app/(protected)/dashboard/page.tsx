@@ -37,12 +37,5 @@ async function loadDashboard(): Promise<{ stats: DashboardStats | null; scans: S
 export default async function DashboardPage() {
   const user = await requireUser();
   const { stats, scans } = await loadDashboard();
-  return (
-    <DashboardView
-      firstName={user.first_name}
-      verified={user.email_verified}
-      stats={stats}
-      scans={scans}
-    />
-  );
+  return <DashboardView firstName={user.first_name} stats={stats} scans={scans} />;
 }

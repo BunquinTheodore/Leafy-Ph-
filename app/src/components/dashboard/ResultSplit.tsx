@@ -13,15 +13,15 @@ const percent = (fraction: number) => `${Math.round(fraction * 100)}%`;
 
 function Legend({ segments }: { segments: readonly Segment[] }) {
   return (
-    <ul className="split__legend" aria-label={copy.splitTitle}>
+    <ul className="rsplit__legend" aria-label={copy.splitTitle}>
       {segments.map((segment) => {
         const Shape = SHAPES[segment.key];
         return (
-          <li key={segment.key} className="split__row" data-key={segment.key}>
-            <Shape size={14} strokeWidth={2} aria-hidden="true" className="split__shape" />
-            <span className="split__name">{segment.label}</span>
-            <span className="stat split__count">{segment.count}</span>
-            <span className="split__pct">{percent(segment.fraction)}</span>
+          <li key={segment.key} className="rsplit__row" data-key={segment.key}>
+            <Shape size={14} strokeWidth={2} aria-hidden="true" className="rsplit__shape" />
+            <span className="rsplit__name">{segment.label}</span>
+            <span className="stat rsplit__count">{segment.count}</span>
+            <span className="rsplit__pct">{percent(segment.fraction)}</span>
           </li>
         );
       })}
@@ -33,10 +33,10 @@ function Legend({ segments }: { segments: readonly Segment[] }) {
 export function ResultSplit({ stats }: { stats: DashboardStats }) {
   const segments = splitSegments(stats);
   return (
-    <Card glass className="split" data-testid="result-split">
-      <h2 className="h3 split__title">{copy.splitTitle}</h2>
+    <Card glass className="rsplit" data-testid="result-split">
+      <h2 className="h3 rsplit__title">{copy.splitTitle}</h2>
       <p className="sr-only">{copy.splitLabel(stats.healthy, stats.diseased, stats.unknown)}</p>
-      <div className="split__body">
+      <div className="rsplit__body">
         <StatOrb segments={segments} />
         <Legend segments={segments} />
       </div>

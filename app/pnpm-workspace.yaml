@@ -1,4 +1,7 @@
 allowBuilds:
   unrs-resolver: true
+  # firebase pulls these in; neither postinstall is needed for the web build.
+  "@firebase/util": false
+  protobufjs: false
 overrides:
   "next>postcss": "^8.5.28"

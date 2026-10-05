@@ -139,9 +139,9 @@ test.describe("account panels", () => {
     await panel.getByRole("button", { name: "Delete my account" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete account" }).click();
 
-    const link = panel.getByRole("link", { name: "Sign in with Google again" });
-    await expect(link).toBeVisible();
-    await expect(link).toHaveAttribute("href", "/api/auth/google?next=%2Faccount%23danger");
+    const button = panel.getByRole("button", { name: "Sign in with Google again" });
+    await expect(button).toBeVisible();
+    await expect(button).toBeEnabled();
     expect((await mockState()).deleted).toBe(false);
     expect((await callsTo("DELETE", "/users/me")).at(-1)?.body).toEqual({ confirmation: "DELETE" });
   });

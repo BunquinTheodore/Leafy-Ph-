@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import {
   currentUserId,
   expect,
+  googleSignInViaUi,
   newMember,
   PASSWORD,
   photo,
@@ -72,7 +73,7 @@ test.describe("account", () => {
 
   test("a Google only member sets a first password and then signs in with it", async ({ page }) => {
     const email = uniqueEmail("google.pw");
-    await page.goto(`/api/auth/google?email=${encodeURIComponent(email)}`);
+    await googleSignInViaUi(page, email);
     await page.waitForURL("**/dashboard");
 
     const panel = await openPanel(page, "password");
@@ -81,7 +82,9 @@ test.describe("account", () => {
     await panel.getByLabel("New password").fill("a first password 88");
     await panel.getByRole("button", { name: "Set password" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Password set." })).toBeVisible();
-    await expect(panel.getByLabel("Current password")).toBeVisible();
+    // The Google session is still fresh, so the panel offers "Change password" without the old one.
+    await expect(panel.getByRole("button", { name: "Change password" })).toBeVisible();
+    await expect(panel.getByLabel("Current password")).toHaveCount(0);
 
     await page.context().clearCookies();
     await signInViaUi(page, email, "a first password 88");

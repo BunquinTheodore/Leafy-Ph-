@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { axePath, lineCount, mintToken, setTheme } from "./support/helpers";
+import { axePath, lineCount, setTheme } from "./support/helpers";
 
 // axe-core is injected as a script, which the strict nonce CSP rightly blocks.
 test.use({ bypassCSP: true });
@@ -16,17 +16,13 @@ const MAX_HEIGHT_RATIO = 1.15;
 
 interface Route {
   name: string;
-  url: (token: { reset: string; verify: string }) => string;
+  url: () => string;
 }
 
 const ROUTES: Route[] = [
   { name: "login", url: () => "/login" },
   { name: "login-session-expired", url: () => "/login?reason=session_expired&next=%2Fscan" },
   { name: "register", url: () => "/register" },
-  { name: "forgot-password", url: () => "/forgot-password" },
-  { name: "reset-password", url: ({ reset }) => `/reset-password?token=${reset}` },
-  { name: "reset-password-expired", url: () => "/reset-password" },
-  { name: "verify-email-expired", url: () => "/verify-email" },
   { name: "about", url: () => "/about" },
   { name: "privacy", url: () => "/privacy" },
   { name: "terms", url: () => "/terms" },
@@ -77,20 +73,16 @@ test.describe("layout rules, screenshots and accessibility", () => {
 
   for (const viewport of VIEWPORTS) {
     for (const theme of THEMES) {
-      test(`${viewport.name} ${theme}`, async ({ page, request }) => {
+      test(`${viewport.name} ${theme}`, async ({ page }) => {
         test.setTimeout(180_000);
         await page.setViewportSize({ width: viewport.width, height: viewport.height });
-        const tokens = {
-          reset: await mintToken(request, "reset"),
-          verify: await mintToken(request, "verify", "expired"),
-        };
         await page.emulateMedia({
           colorScheme: theme,
           reducedMotion: "no-preference",
         });
 
         for (const route of ROUTES) {
-          const url = route.url(tokens);
+          const url = route.url();
           await page.goto(`${url}${url.includes("?") ? "&" : "?"}nosplash`);
           await setTheme(page, theme);
           await page.waitForTimeout(900);

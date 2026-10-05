@@ -1,7 +1,6 @@
 import type { BrowserApiError } from "@/lib/api/browser";
 
 export type ScanErrorKind =
-  | "unverified"
   | "rate_limited"
   | "quota"
   | "invalid_image"
@@ -28,12 +27,6 @@ export function describeScanError(
   error: Pick<BrowserApiError, "code" | "status" | "retryAfterSeconds">,
 ): ScanErrorView {
   switch (error.code) {
-    case "email_not_verified":
-      return {
-        kind: "unverified",
-        title: "Verify your email to scan",
-        body: "We sent you a link when you signed up. Open it, or ask for a new one below.",
-      };
     case "rate_limited":
       return {
         kind: "rate_limited",

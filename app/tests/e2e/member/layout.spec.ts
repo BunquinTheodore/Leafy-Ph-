@@ -230,8 +230,8 @@ for (const viewport of VIEWPORTS) {
         }
       });
 
-      test("dashboard empty and unverified states fit", async ({ page, context }) => {
-        await resetMock({ scans: [], user: { email_verified: false, email_verified_at: null } });
+      test("dashboard empty state fits", async ({ page, context }) => {
+        await resetMock({ scans: [] });
         await signIn(context, theme);
         await page.goto("/dashboard");
         await expect(page.getByRole("heading", { name: "Scan your first leaf" })).toBeVisible();
@@ -241,7 +241,7 @@ for (const viewport of VIEWPORTS) {
         await headingsAreShort(page);
         await noOverlappingControls(page);
         await page.screenshot({
-          path: `${SCREENS}/dashboard-empty-unverified-${viewport.name}-${theme}.png`,
+          path: `${SCREENS}/dashboard-empty-${viewport.name}-${theme}.png`,
         });
       });
     });

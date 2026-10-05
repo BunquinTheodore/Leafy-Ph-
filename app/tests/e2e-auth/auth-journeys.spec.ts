@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { mintToken, mockCalls, resetMock, uniqueEmail } from "./support/helpers";
+import { expect, test, type Page } from "@playwright/test";
+import { googleAge, mockCalls, resetMock, uniqueEmail } from "./support/helpers";
 
 const PASSWORD = "a long passphrase here";
 
@@ -25,19 +25,14 @@ test.describe("register", () => {
     expect(call?.body).toMatchObject({ email, first_name: "Ada", last_name: "Lovelace" });
   });
 
-  test("an email that is already used explains itself and offers sign in and reset", async ({
-    page,
-  }) => {
+  test("an email that is already used explains itself and offers sign in", async ({ page }) => {
     await page.goto("/register");
     await page.getByLabel("Your name").fill("Ada Lovelace");
     await page.getByLabel("Email").fill("taken@example.com");
     await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
     await page.getByRole("button", { name: "Create account" }).click();
     await expect(page.getByText("That email already has an account.")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Reset password" })).toHaveAttribute(
-      "href",
-      "/forgot-password",
-    );
+    await expect(page.getByRole("link", { name: "Reset password" })).toHaveCount(0);
     // What was typed is still there.
     await expect(page.getByLabel("Your name")).toHaveValue("Ada Lovelace");
     await expect(page.getByLabel("Password", { exact: true })).toHaveValue(PASSWORD);
@@ -188,7 +183,7 @@ test.describe("login", () => {
       if (name.includes("Continue with Google")) break;
       await page.keyboard.press("Tab");
     }
-    await expect(page.getByRole("link", { name: "Continue with Google" })).toBeFocused();
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(page.getByLabel("Email")).toBeFocused();
     await page.keyboard.type("nobody@example.com");
@@ -218,128 +213,190 @@ test.describe("login", () => {
 });
 
 test.describe("google sign in", () => {
-  test("Continue with Google signs in through the mock provider", async ({ page, context }) => {
-    await page.goto("/login?next=%2Fscan");
-    await page.getByRole("link", { name: "Continue with Google" }).click();
+  test("Continue with Google signs in through the mock provider and honours next", async ({
+    page,
+    context,
+    request,
+  }) => {
+    const email = uniqueEmail("gnew");
+    await page.goto(`/login?next=%2Fscan&mock_google_email=${encodeURIComponent(email)}`);
+    await page.getByRole("button", { name: "Continue with Google" }).click();
     await page.waitForURL("**/scan");
     const names = (await context.cookies()).map((cookie) => cookie.name);
     expect(names).toEqual(expect.arrayContaining(["leafy_at", "leafy_rt"]));
-    expect(names).not.toContain("leafy_oauth");
+    const call = (await mockCalls(request)).find((c) => c.key === "POST /api/v1/auth/google");
+    expect(call?.body).toHaveProperty("id_token");
+    expect(JSON.stringify(call?.body)).not.toContain("idToken");
   });
 
-  test("the register page has the same Google button", async ({ page }) => {
+  test("the register page has the same button and signs in", async ({ page }) => {
     await page.goto("/register");
-    await expect(page.getByRole("link", { name: "Continue with Google" })).toHaveAttribute(
-      "href",
-      "/api/auth/google",
+    await page.getByRole("button", { name: "Continue with Google" }).click();
+    await page.waitForURL("**/dashboard");
+  });
+
+  test("the session cookies stay httpOnly and the token never reaches the page", async ({
+    page,
+    context,
+  }) => {
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Continue with Google" }).click();
+    await page.waitForURL("**/dashboard");
+    const cookies = await context.cookies();
+    for (const name of ["leafy_at", "leafy_rt"])
+      expect(cookies.find((c) => c.name === name)?.httpOnly).toBe(true);
+    expect(await page.evaluate(() => document.cookie)).not.toContain("leafy_at");
+  });
+
+  test("an email Google has not verified is refused with a calm note", async ({
+    page,
+    context,
+  }) => {
+    await page.goto("/login?mock_google_email=unverified%40example.com");
+    await page.getByRole("button", { name: "Continue with Google" }).click();
+    await expect(page.locator("form").getByRole("alert")).toContainText(
+      /has not verified that email/,
     );
+    expect(await context.cookies()).toEqual([]);
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toBeEnabled();
+  });
+
+  test("a failed sign in explains itself and can be retried", async ({ page }) => {
+    await page.goto("/login?mock_google_email=broken%40example.com");
+    await page.getByRole("button", { name: "Continue with Google" }).click();
+    await expect(page.locator("form").getByRole("alert")).toContainText(
+      /Google sign in did not work/,
+    );
+  });
+
+  test("a network error to our server is reported and nothing is stored", async ({
+    page,
+    context,
+  }) => {
+    await page.route("**/api/auth/google", (route) => route.abort());
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Continue with Google" }).click();
+    await expect(page.locator("form").getByRole("alert")).toContainText(/could not reach Leafy/);
+    expect(await context.cookies()).toEqual([]);
+  });
+
+  test("the old redirect routes are gone", async ({ request }) => {
+    expect((await request.get("/api/auth/google")).status()).toBe(405);
+    expect((await request.get("/api/auth/google/callback?code=x&state=y")).status()).toBe(404);
+  });
+
+  test("a cross site POST to the route is refused", async ({ request }) => {
+    const res = await request.post("/api/auth/google", {
+      headers: { origin: "https://evil.example", "content-type": "application/json" },
+      data: { idToken: "x".repeat(40) },
+    });
+    expect(res.status()).toBe(403);
   });
 });
 
-test.describe("forgot and reset password", () => {
-  test("forgot password always gives the same calm confirmation", async ({ page }) => {
-    await page.goto("/forgot-password");
-    await page.getByLabel("Email").fill("nobody@example.com");
-    await page.getByRole("button", { name: "Send reset link" }).click();
-    await expect(page.getByText(/If an account exists for that email/)).toBeVisible();
-    await expect(page.getByRole("button", { name: /You can send another link in/ })).toBeDisabled();
-    await expect(page.getByRole("link", { name: "Back to sign in" })).toBeVisible();
-  });
+test.describe("password recovery without email", () => {
+  const NEW_PASSWORD = "another long passphrase";
 
-  test("a valid link sets the password, hides the token and works once", async ({
-    page,
-    request,
-  }) => {
-    const token = await mintToken(request, "reset");
-    const response = await page.goto(`/reset-password?token=${token}`);
-    expect(response?.headers()["referrer-policy"]).toBe("no-referrer");
-    await expect(page.locator('meta[name="referrer"]')).toHaveAttribute("content", "no-referrer");
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("New password");
-    await page.waitForFunction(() => !location.search.includes("token="));
-
-    await page.getByLabel("New password", { exact: true }).fill("another long passphrase");
-    await page.getByRole("button", { name: "Update password" }).click();
-    await expect(page.getByText("Password updated")).toBeVisible();
-    await expect(
-      page.locator(".auth-state").getByRole("link", { name: "Sign in" }),
-    ).toHaveAttribute("href", "/login");
-
-    await page.goto(`/reset-password?token=${token}`);
-    await page.getByLabel("New password", { exact: true }).fill("another long passphrase");
-    await page.getByRole("button", { name: "Update password" }).click();
-    await expect(page.getByText("This link has expired")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Send a new link" })).toHaveAttribute(
-      "href",
-      "/forgot-password",
-    );
-  });
-
-  test("a missing or unknown token shows the expired state", async ({ page }) => {
-    await page.goto("/reset-password");
-    await expect(page.getByText("This link has expired")).toBeVisible();
-    await page.goto("/reset-password?token=nope");
-    await page.getByLabel("New password", { exact: true }).fill("another long passphrase");
-    await page.getByRole("button", { name: "Update password" }).click();
-    await expect(page.getByText("This link has expired")).toBeVisible();
-  });
-});
-
-test.describe("verify email", () => {
-  test("verifies on load with a single POST and offers a way on", async ({ page, request }) => {
-    const token = await mintToken(request, "verify");
-    const response = await page.goto(`/verify-email?token=${token}`);
-    expect(response?.headers()["referrer-policy"]).toBe("no-referrer");
-    await expect(page.getByText("Email verified")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Continue to Leafy" })).toHaveAttribute(
-      "href",
-      "/dashboard",
-    );
-    const verifyCalls = (await mockCalls(request)).filter(
-      (call) => call.key === "POST /api/v1/auth/verify-email",
-    );
-    expect(verifyCalls).toHaveLength(1);
-  });
-
-  test("an expired link says so and asks a signed out visitor to sign in", async ({
-    page,
-    request,
-  }) => {
-    const token = await mintToken(request, "verify", "expired");
-    await page.goto(`/verify-email?token=${token}`);
-    await expect(page.getByText("This link has expired")).toBeVisible();
-    await page.getByRole("button", { name: "Send a new link" }).click();
-    await expect(page.getByText(/Sign in first/)).toBeVisible();
-  });
-
-  test("a signed in visitor can request a new link, then waits for the cooldown", async ({
-    page,
-    request,
-  }) => {
+  async function registerThenSignOut(page: Page, email: string) {
     await page.goto("/register");
     await page.getByLabel("Your name").fill("Ada Lovelace");
-    await page.getByLabel("Email").fill(uniqueEmail("verify"));
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+    await page.getByRole("button", { name: "Create account" }).click();
+    await page.waitForURL("**/dashboard");
+    await page.context().clearCookies();
+  }
+
+  /** Waits for hydration, so typed values are not reset by a late client render. */
+  async function openPasswordPanel(page: Page) {
+    await page.goto("/account#password");
+    await page.waitForLoadState("networkidle");
+  }
+
+  async function signInWithGoogle(page: Page, email: string) {
+    await page.goto(`/login?next=%2Faccount&mock_google_email=${encodeURIComponent(email)}`);
+    await page.getByRole("button", { name: "Continue with Google" }).click();
+    await page.waitForURL("**/account");
+  }
+
+  test("the login page explains the way back in, with no reset link or email form", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/login");
+    await expect(page.getByTestId("forgot-help")).toHaveText(
+      "Forgot your password? Sign in with Google, then set a new one in Account.",
+    );
+    await expect(page.getByRole("link", { name: /forgot/i })).toHaveCount(0);
+    expect((await request.get("/forgot-password")).status()).toBe(404);
+  });
+
+  test("a fresh Google sign in sets a new password without the current one", async ({
+    page,
+    request,
+  }) => {
+    const email = uniqueEmail("recover");
+    await registerThenSignOut(page, email);
+    await signInWithGoogle(page, email);
+
+    await openPasswordPanel(page);
+    await expect(page.getByLabel("Current password")).toHaveCount(0);
+    await expect(page.getByText(/You signed in with Google a moment ago/)).toBeVisible();
+    await page.getByLabel("New password", { exact: true }).fill(NEW_PASSWORD);
+    await page.getByRole("button", { name: "Change password" }).click();
+    await expect(page.getByText("Password changed.")).toBeVisible();
+
+    const call = (await mockCalls(request)).find((c) => c.key === "POST /api/v1/users/me/password");
+    expect(call?.body).toEqual({ new_password: NEW_PASSWORD });
+
+    await page.context().clearCookies();
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(NEW_PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.waitForURL("**/dashboard");
+  });
+
+  test("a stale Google session still has to give the current password", async ({
+    page,
+    request,
+  }) => {
+    const email = uniqueEmail("stale");
+    await registerThenSignOut(page, email);
+    await googleAge(request, 11 * 60);
+    await signInWithGoogle(page, email);
+
+    await openPasswordPanel(page);
+    await expect(page.getByLabel("Current password")).toBeVisible();
+    await page.getByLabel("Current password").fill("not the password");
+    await page.getByLabel("New password", { exact: true }).fill(NEW_PASSWORD);
+    await page.getByRole("button", { name: "Change password" }).click();
+    await expect(
+      page.getByText("That password is not correct. Check it and try again."),
+    ).toBeVisible();
+  });
+
+  test("a password only session needs the current password", async ({ page, request }) => {
+    const email = uniqueEmail("pwonly");
+    await page.goto("/register");
+    await page.getByLabel("Your name").fill("Ada Lovelace");
+    await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
     await page.getByRole("button", { name: "Create account" }).click();
     await page.waitForURL("**/dashboard");
 
-    const token = await mintToken(request, "verify", "expired");
-    await page.goto(`/verify-email?token=${token}`);
-    await page.getByRole("button", { name: "Send a new link" }).click();
-    await expect(page.getByText(/new link is on its way/)).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: /You can ask for another link in/ }),
-    ).toBeDisabled();
-  });
+    await openPasswordPanel(page);
+    await expect(page.getByLabel("Current password")).toBeVisible();
+    await page.getByLabel("New password", { exact: true }).fill(NEW_PASSWORD);
+    await page.getByRole("button", { name: "Change password" }).click();
+    await expect(page.getByText("Enter your current password.")).toBeVisible();
+    expect((await mockCalls(request)).some((c) => c.key === "POST /api/v1/users/me/password")).toBe(
+      false,
+    );
 
-  test("a missing token shows the expired state without calling the API", async ({
-    page,
-    request,
-  }) => {
-    await page.goto("/verify-email");
-    await expect(page.getByText("This link has expired")).toBeVisible();
-    const calls = await mockCalls(request);
-    expect(calls.some((call) => call.key.endsWith("/auth/verify-email"))).toBe(false);
+    await page.getByLabel("Current password").fill(PASSWORD);
+    await page.getByRole("button", { name: "Change password" }).click();
+    await expect(page.getByText("Password changed.")).toBeVisible();
   });
 });
 
@@ -356,13 +413,7 @@ test("auth pages raise no Content Security Policy or page errors", async ({ page
     if (response.status() >= 400 && !response.url().includes("_rsc="))
       problems.push(`${response.status()} ${response.url()}`);
   });
-  for (const path of [
-    "/login",
-    "/register",
-    "/forgot-password",
-    "/reset-password",
-    "/verify-email",
-  ]) {
+  for (const path of ["/login", "/register"]) {
     await page.goto(`${path}?nosplash`);
     await page.waitForTimeout(1800); // let the leaves load after idle
   }

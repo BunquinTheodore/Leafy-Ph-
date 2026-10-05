@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BRAND_NAME, BRAND_ORIGIN_NOTE } from "@/lib/brand";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
 import "./site-footer.css";
 
 const LINKS = [
@@ -16,8 +16,8 @@ const LINKS = [
 export function SiteFooter() {
   return (
     <footer className="site-footer">
-      <p className="site-footer__origin">
-        {BRAND_NAME} began as DAHON. {BRAND_ORIGIN_NOTE}
+      <p className="site-footer__brand">
+        {BRAND_NAME} | {BRAND_TAGLINE}
       </p>
       <nav aria-label="Footer">
         {LINKS.map((link) => (

@@ -1,27 +1,23 @@
-/* Landing: sideways panels, each one a full stage. */
+/* Landing: sideways panels, each one a balanced group centered in the shared wide container.
+   Scenes live in their own cells (data-decor), never behind text. Sizes use em so they scale up
+   with --ui-scale on wide screens. */
 
 .lp .panels__panel {
   position: relative;
   isolation: isolate;
 }
 
-/* The hero fills its panel edge to edge. */
-.lp .panels__panel:first-child {
-  padding: 0;
-}
-
-.hero--embedded {
-  height: 100%;
+.lp-body,
+.lp-cta,
+.hero {
+  font-size: calc(1rem * var(--ui-scale));
 }
 
 .lp-body {
   display: grid;
   align-content: center;
-  gap: var(--space-6);
-  height: 100%;
+  gap: clamp(20px, 4vh, 48px);
   width: 100%;
-  max-width: 1400px;
-  margin-inline: auto;
 }
 
 .lp-head {
@@ -30,35 +26,51 @@
   justify-items: start;
 }
 
+.lp-head .eyebrow,
+.hero .eyebrow {
+  font-size: 0.8125em;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.hero .eyebrow {
+  letter-spacing: 0.2em;
+}
+
 .lp-head .h2 {
   max-width: 24ch;
+  font-size: calc(clamp(1.5rem, 1rem + 1.6vw, 2.5rem) * var(--ui-scale));
 }
 
-.lp-split {
+/* Heading on the left, its scene right beside it in a cell of its own. */
+.lp-row {
   display: grid;
-  gap: var(--space-6) var(--space-12);
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
   align-items: center;
-  grid-template-columns: minmax(0, 1fr);
+  column-gap: var(--split-gap);
 }
 
-@media (min-width: 900px) {
-  .lp-split {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  }
+.lp-headrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  column-gap: var(--split-gap);
+  row-gap: var(--space-3);
 }
 
-/* Scene layer behind a panel (poster first, canvas fades in once ready). */
+/* Scene cell: poster first (real CSS), canvas fades in once ready. */
 .lp-scene {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
   display: none;
-  pointer-events: none;
+  align-self: stretch;
+  height: clamp(90px, 16vh, 220px);
+  -webkit-mask-image: radial-gradient(closest-side, #000 55%, transparent);
+  mask-image: radial-gradient(closest-side, #000 55%, transparent);
 }
 
-@media (min-width: 900px) {
+@media (min-width: 960px) {
   .lp-scene {
-    display: block;
+    display: grid;
   }
 }
 
@@ -66,9 +78,9 @@
   position: absolute;
   inset: 0;
   background: radial-gradient(
-    42% 60% at 80% 50%,
+    closest-side,
     color-mix(in srgb, var(--brand-deep) 50%, transparent),
-    transparent 72%
+    transparent 90%
   );
   transition: opacity var(--dur-scene) var(--ease);
 }
@@ -88,19 +100,150 @@
   opacity: 1;
 }
 
-/* Keep drifting leaves off the text column: the scene shows on the right side only. */
-.lp-scene__canvas {
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, transparent 40%, #000 62%);
-  mask-image: linear-gradient(90deg, transparent 0, transparent 40%, #000 62%);
+/* ---- Hero: headline across the container, text right under it, leaf scene beside the text ---- */
+.hero {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    "head head"
+    "body scene";
+  align-items: start;
+  column-gap: var(--split-gap);
+  row-gap: clamp(14px, 3vh, 36px);
 }
 
-/* ---- Steps ---- */
-.steps {
+.hero__copy {
+  display: contents;
+}
+
+.hero__head {
+  grid-area: head;
+  container-type: inline-size;
   display: grid;
   gap: var(--space-3);
+  justify-items: start;
+}
+
+/* One line that fills the container: the size follows the container width. */
+.hero .display-hero {
+  font-size: clamp(1.5rem, 8.6cqi, 14rem);
+  letter-spacing: 0.1em;
+}
+
+.hero__body {
+  grid-area: body;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(16px, 3vh, 28px);
+}
+
+.hero__body .blurb {
+  font-size: calc(clamp(1.0625rem, 1rem + 0.5vw, 1.375rem) * var(--ui-scale));
+  max-width: 34ch;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.hero__scene {
+  grid-area: scene;
+  align-self: start;
+  width: 100%;
+  height: clamp(190px, 36vh, 480px);
+  -webkit-mask-image: radial-gradient(closest-side, #000 70%, transparent);
+  mask-image: radial-gradient(closest-side, #000 70%, transparent);
+}
+
+.hero__poster {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--brand-deep) 55%, transparent),
+    transparent 92%
+  );
+  transition: opacity var(--dur-scene) var(--ease);
+}
+
+.hero__poster svg {
+  width: auto;
+  height: 78%;
+  max-width: 60%;
+  opacity: 0.55;
+}
+
+.hero__scene[data-ready="true"] .hero__poster {
+  opacity: 0;
+}
+
+.hero__canvas {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--dur-scene) var(--ease);
+}
+
+.hero__scene[data-ready="true"] .hero__canvas {
+  opacity: 1;
+}
+
+@media (max-width: 959px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "scene"
+      "head"
+      "body";
+    row-gap: clamp(8px, 2vh, 24px);
+  }
+
+  .hero__scene {
+    height: clamp(110px, 22vh, 260px);
+  }
+}
+
+@media (max-height: 700px) and (max-width: 959px) {
+  .hero__scene {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  /* Full width, so the buttons always stack and the layout does not depend on the loaded font. */
+  .hero__actions {
+    align-self: stretch;
+  }
+
+  .hero__actions .btn {
+    flex: 1 1 100%;
+  }
+}
+
+/* ---- Steps: three cards across the row ---- */
+.steps {
+  display: grid;
+  gap: clamp(12px, 1.6vw, 28px);
   margin: 0;
   padding: 0;
   list-style: none;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 960px) {
+  .steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.steps > li {
+  display: grid;
 }
 
 .step {
@@ -111,12 +254,21 @@
   padding: var(--space-4) var(--space-6);
 }
 
+@media (min-width: 960px) {
+  .step {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: var(--space-4);
+    padding: clamp(20px, 3vh, 36px) var(--space-4);
+  }
+}
+
 .step__icon {
   position: relative;
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: 3.25em;
+  height: 3.25em;
   border-radius: 50%;
   border: 1px solid color-mix(in srgb, var(--brand-glow) 55%, transparent);
   background: color-mix(in srgb, var(--brand) 14%, transparent);
@@ -129,14 +281,14 @@
   left: -6px;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 1.4em;
+  height: 1.4em;
   border-radius: 50%;
   background: var(--brand);
   color: var(--on-brand);
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.75em;
 }
 
 .step h3,
@@ -144,7 +296,7 @@
   margin: 0 0 4px;
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+  font-size: 1.2em;
   line-height: 1.25;
 }
 
@@ -152,32 +304,74 @@
 .reason p {
   margin: 0;
   color: var(--text-muted);
-  font-size: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+  font-size: 1.02em;
   line-height: 1.5;
   text-wrap: pretty;
 }
 
-/* ---- Plants we cover ---- */
+/* ---- Plants we cover: two centered rows of square thumbnails that fill the width ---- */
 .lp-plants {
-  display: grid;
-  gap: var(--space-2);
+  --cols: 5;
+  --plant-gap: clamp(8px, 1.2vw, 20px);
+  container-type: inline-size;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--plant-gap);
   margin: 0;
   padding: 0;
   list-style: none;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
-@media (min-width: 700px) {
+@media (min-width: 600px) {
   .lp-plants {
-    gap: var(--space-3);
+    --cols: var(--cols-wide, 7);
   }
 }
 
-@media (min-width: 1100px) {
+/* Phones: two rows that scroll sideways, so no orphan row and tiles stay easy to tap. */
+@media (max-width: 599px) {
   .lp-plants {
-    gap: var(--space-4);
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    display: grid;
+    grid-template-rows: repeat(2, auto);
+    grid-auto-flow: column;
+    grid-auto-columns: 84px;
+    justify-content: start;
+    overflow-x: auto;
+    padding-bottom: 4px;
   }
+
+  .lp-plants > li {
+    width: auto;
+  }
+}
+
+.lp-plants > li {
+  width: calc((100cqi - (var(--cols) - 1) * var(--plant-gap) - 1px) / var(--cols));
+}
+
+/* Two rows must fit the stage height: header, controls, heading row and name lines taken off. */
+@media (min-width: 600px) {
+  .lp-plants {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, var(--tile-max, 1fr)));
+    justify-content: space-between;
+  }
+
+  .lp-plants > li {
+    width: auto;
+    min-width: 0;
+  }
+}
+
+@media (min-width: 960px) {
+  .lp-plants {
+    --tile-max: max(72px, calc((100dvh - 500px) / 2));
+  }
+}
+
+.lp-plants .duotone {
+  aspect-ratio: 1;
 }
 
 .thumb {
@@ -206,6 +400,16 @@
   border: 1px solid var(--border);
 }
 
+.thumb__all {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--brand-glow) 55%, transparent);
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand-glow);
+}
+
 .thumb:hover .duotone::before,
 .thumb:focus-visible .duotone::before {
   opacity: 0.65;
@@ -220,32 +424,19 @@
 .thumb__name {
   font-family: var(--font-heading);
   font-weight: 500;
-  font-size: 0.8125rem;
+  font-size: 0.8125em;
   text-align: center;
 }
 
-@media (max-width: 720px) {
-  .lp-head .h2 {
-    font-size: 1.5rem;
-  }
-
-  .thumb__name {
-    font-size: 0.6875rem;
-    line-height: 1.15;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-  }
-}
-
-/* ---- Reasons ---- */
+/* ---- Reasons: four cards across the row ---- */
 .reasons {
   display: grid;
-  gap: var(--space-3);
+  gap: clamp(12px, 1.6vw, 28px);
   margin: 0;
   padding: 0;
   list-style: none;
   grid-template-columns: minmax(0, 1fr);
+  align-items: start;
 }
 
 @media (min-width: 640px) {
@@ -254,16 +445,31 @@
   }
 }
 
+@media (min-width: 1100px) {
+  .reasons {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.reason {
+  height: 100%;
+}
+
+.reasons > li {
+  display: grid;
+}
+
 .reason {
   display: grid;
   gap: var(--space-2);
   align-content: start;
-  height: 100%;
-  padding: var(--space-4) var(--space-6);
+  padding: clamp(16px, 2.6vh, 32px) var(--space-6);
 }
 
 .reason__icon {
   color: var(--brand-glow);
+  width: 1.7em;
+  height: 1.7em;
 }
 
 @media (max-width: 639px) {
@@ -286,9 +492,15 @@
   align-items: start;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 960px) {
   .faq {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1500px) {
+  .faq {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -303,11 +515,11 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  min-height: 52px;
+  min-height: calc(52px * var(--ui-scale));
   padding: var(--space-2) var(--space-4);
   font-family: var(--font-heading);
   font-weight: 500;
-  font-size: 1rem;
+  font-size: 1.05em;
   list-style: none;
 }
 
@@ -340,19 +552,21 @@
   text-wrap: pretty;
 }
 
-/* ---- Final call to action ---- */
+/* ---- Final call to action: title spans most of the container, scene sits under the buttons ---- */
 .lp-cta {
+  container-type: inline-size;
   display: grid;
   justify-items: center;
   align-content: center;
-  gap: var(--space-6);
-  height: 100%;
+  gap: clamp(16px, 3.4vh, 40px);
+  width: 100%;
   text-align: center;
 }
 
-.lp-cta .display {
-  max-width: 20ch;
-  font-size: clamp(1.75rem, 1rem + 3.6vw, 4rem);
+.lp-cta .lp-cta__title {
+  max-width: none;
+  font-size: clamp(1.75rem, 4.9cqi, 9rem);
+  letter-spacing: 0.12em;
 }
 
 .lp-cta__actions {
@@ -362,9 +576,32 @@
   gap: var(--space-3);
 }
 
+.lp-cta .lp-scene {
+  width: 100%;
+  height: clamp(110px, 22vh, 320px);
+}
+
+@media (max-height: 640px) {
+  .lp-cta .lp-scene {
+    display: none;
+  }
+}
+
 @media (max-width: 720px) {
   .lp-cta__actions .btn {
     flex: 1 1 100%;
+  }
+
+  .lp-head .h2 {
+    font-size: 1.5rem;
+  }
+
+  .thumb__name {
+    font-size: 0.6875rem;
+    line-height: 1.15;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
   }
 
   .step {
@@ -373,8 +610,8 @@
   }
 
   .step__icon {
-    width: 44px;
-    height: 44px;
+    width: 2.75em;
+    height: 2.75em;
   }
 }
 
@@ -386,5 +623,39 @@
   .reason p {
     font-size: 0.875rem;
     line-height: 1.4;
+  }
+}
+
+@media (max-width: 599px) {
+  .lp-plants > li {
+    width: auto;
+  }
+}
+
+/* Phones: tighter stacking so the four reason cards fit one panel without an inner scroll. */
+@media (max-width: 599px) {
+  .lp-body {
+    gap: var(--space-3);
+  }
+
+  .reasons {
+    gap: var(--space-2);
+  }
+}
+
+/* Phones: slimmer questions so the open first answer and every question fit one panel. */
+@media (max-width: 599px) {
+  .faq {
+    gap: var(--space-2);
+  }
+
+  .faq summary {
+    min-height: 44px;
+  }
+
+  .faq details > p {
+    padding-bottom: var(--space-3);
+    font-size: 0.9375rem;
+    line-height: 1.45;
   }
 }

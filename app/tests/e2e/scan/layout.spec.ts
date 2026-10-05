@@ -215,12 +215,6 @@ for (const viewport of VIEWPORTS) {
         await expect(page.getByTestId("rate-limit-prompt")).toBeVisible();
         await checkPage(page);
         await page.screenshot({ path: `${SCREENS}/error-rate-limit-${tag}.png` });
-
-        await resetMock({ user: { email_verified: false, email_verified_at: null } });
-        await page.goto("/scan");
-        await expect(page.getByTestId("unverified-prompt")).toBeVisible();
-        await checkPage(page);
-        await page.screenshot({ path: `${SCREENS}/error-unverified-${tag}.png` });
       });
     });
   }

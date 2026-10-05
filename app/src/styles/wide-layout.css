@@ -1,0 +1,244 @@
+/*
+ * Shared wide layout system. See src/styles/LAYOUT.md for usage.
+ * Content is a balanced composition centered in the viewport, scaled up on large screens,
+ * with decoration kept out of the text rectangles.
+ */
+:root {
+  /* Container widths grow with --container-scale on big screens. */
+  --container-scale: 1;
+  /* One page container for every route, so the header logo, titles, slides and pager share a
+     left edge. The narrow and wide names stay as aliases; inner blocks set their own measure. */
+  --container-standard: calc(1360px * var(--container-scale));
+  --container-narrow: var(--container-standard);
+  --container-wide: var(--container-standard);
+  --container-max: var(--container-standard);
+  /* Distance from the viewport edge to the container edge (never below the gutter). */
+  --edge: max(var(--gutter), calc((100% - var(--container-max)) / 2));
+
+  /* Type, card and imagery sizes multiply by this (see .ui-scaled and the helpers below). */
+  --ui-scale: 1;
+
+  /* Heading block and companion block never sit further apart than this. */
+  --split-gap: clamp(24px, 5vw, 120px);
+  --stack-gap: clamp(16px, 2.4vh, 32px);
+  --stage-pad-y: clamp(12px, 2.5vh, 40px);
+}
+
+/* Steps for 1600px and wider. Height gates keep short wide screens (2560x1080) from overflowing. */
+@media (min-width: 1600px) {
+  :root {
+    --container-scale: 1.1;
+  }
+}
+
+@media (min-width: 1600px) and (min-height: 780px) {
+  :root {
+    --ui-scale: 1.1;
+  }
+}
+
+@media (min-width: 1900px) {
+  :root {
+    --container-scale: 1.3;
+  }
+}
+
+@media (min-width: 1900px) and (min-height: 820px) {
+  :root {
+    --ui-scale: 1.2;
+  }
+}
+
+@media (min-width: 2300px) {
+  :root {
+    --container-scale: 1.65;
+  }
+}
+
+@media (min-width: 2300px) and (min-height: 980px) {
+  :root {
+    --ui-scale: 1.45;
+  }
+}
+
+/* ---- Stage: fills the viewport row (add .stage-fill) and centers its container ---- */
+.wide-stage {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  padding: var(--stage-pad-y) var(--gutter);
+  overflow: hidden auto;
+  box-sizing: border-box;
+}
+
+/* margin-block:auto centers when short and falls back to the top when the content overflows. */
+.wide-container {
+  position: relative;
+  z-index: 1;
+  width: min(100%, var(--container-max));
+  margin: auto;
+  min-width: 0;
+}
+
+.wide-container--narrow {
+  --container-max: var(--container-narrow);
+}
+
+.wide-container--standard {
+  --container-max: var(--container-standard);
+}
+
+.wide-container--wide {
+  --container-max: var(--container-wide);
+}
+
+/* Variants also work on the stage or on SlidePanels (data-width), so a whole page picks one width. */
+.wide-stage[data-width="narrow"],
+.panels[data-width="narrow"] {
+  --container-max: var(--container-narrow);
+}
+
+.wide-stage[data-width="standard"],
+.panels[data-width="standard"] {
+  --container-max: var(--container-standard);
+}
+
+.wide-stage[data-width="wide"],
+.panels[data-width="wide"] {
+  --container-max: var(--container-wide);
+}
+
+/* Everything inside scales: use em, or calc(Npx * var(--ui-scale)), for sizes that should grow. */
+.ui-scaled {
+  font-size: calc(1rem * var(--ui-scale));
+}
+
+/* Josefin display title that grows with --ui-scale and still balances onto two lines. */
+.display-scaled {
+  font-size: calc(clamp(1.75rem, 1rem + 2.6vw, 3.75rem) * var(--ui-scale));
+  max-width: 20ch;
+}
+
+/* ---- Vertical stack ---- */
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--stack-gap);
+  min-width: 0;
+}
+
+/* ---- Two column composition. Gap is capped near 120px; stacks below 960px. ---- */
+.split {
+  display: grid;
+  grid-template-columns: var(--split-cols, minmax(0, 1fr) minmax(0, 1fr));
+  align-items: center;
+  column-gap: var(--split-gap);
+  row-gap: var(--stack-gap);
+}
+
+.split--top {
+  align-items: start;
+}
+
+.split--text-wide {
+  --split-cols: minmax(0, 1.25fr) minmax(0, 0.75fr);
+}
+
+.split--media-wide {
+  --split-cols: minmax(0, 0.8fr) minmax(0, 1.2fr);
+}
+
+/* Columns hug the middle instead of drifting to the edges when their content is narrower. */
+.split--hug {
+  --split-cols: repeat(2, minmax(0, max-content));
+  justify-content: center;
+}
+
+.split > * {
+  min-width: 0;
+}
+
+@media (max-width: 959px) {
+  .split,
+  .split--hug {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Cards: grids fill their row, items keep their own height ---- */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(240px * var(--ui-scale))), 1fr));
+  gap: clamp(12px, 1.4vw, 24px);
+  align-items: start;
+}
+
+/* A rail that centers when it does not fill the row and scrolls from the left when it does. */
+.rail {
+  display: flex;
+  gap: clamp(12px, 1.4vw, 24px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  align-items: start;
+}
+
+.rail::-webkit-scrollbar {
+  display: none;
+}
+
+.rail > :first-child {
+  margin-inline-start: auto;
+}
+
+.rail > :last-child {
+  margin-inline-end: auto;
+}
+
+.rail > * {
+  flex: 0 0 auto;
+}
+
+/* ---- Decoration: never over text, never interactive ---- */
+[data-decor] {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* A decoration that is a grid cell of a .split: it owns its column. */
+.decor-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  contain: paint;
+}
+
+/* A decoration that lives in the side margins of a .wide-stage (wide screens only). */
+.decor-margin {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 0;
+  width: max(0px, calc((100% - var(--container-max)) / 2 - var(--gutter)));
+  overflow: hidden;
+}
+
+.decor-margin--start {
+  inset-inline-start: 0;
+}
+
+.decor-margin--end {
+  inset-inline-end: 0;
+}
+
+@media (min-width: 1700px) {
+  .decor-margin {
+    display: block;
+  }
+}

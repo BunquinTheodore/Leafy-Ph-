@@ -1,5 +1,5 @@
 // Layout audit of every route at 1440x900, 768x1024 and 390x844 in dark and light, against the
-// full stack (scripts/dev/run-all.ps1, GOOGLE_MOCK=1, ML_SERVICE=dev-fake).
+// full stack (scripts/dev/run-all.ps1, GOOGLE_MOCK=1 and a web build with NEXT_PUBLIC_AUTH_MOCK=1, ML_SERVICE=dev-fake).
 //
 //   node scripts/screens-audit.mjs
 //   BASE_URL=http://127.0.0.1:3000 OUT=../.dev/screens-audit ONLY=/,/handbook node scripts/screens-audit.mjs
@@ -39,9 +39,6 @@ const PUBLIC = [
   "/brand",
   "/login",
   "/register",
-  "/forgot-password",
-  "/reset-password?token=audit",
-  "/verify-email?token=audit",
   "/this-page-does-not-exist",
 ];
 const MEMBER = ["/dashboard", "/scan", "/scans", "SCAN", "/account"];
@@ -274,7 +271,8 @@ await run(
 
 const signIn = await browser.newContext({ baseURL: base });
 const signInPage = await signIn.newPage();
-await signInPage.goto(`${base}/api/auth/google?email=audit.user@example.com&next=/dashboard`);
+await signInPage.goto(`${base}/login?mock_google_email=audit.user@example.com&next=/dashboard`);
+await signInPage.getByRole("button", { name: "Continue with Google" }).click();
 await signInPage.waitForURL("**/dashboard");
 const scanId = await createScan(signInPage);
 const storage = await signIn.storageState();

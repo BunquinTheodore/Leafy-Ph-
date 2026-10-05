@@ -14,7 +14,6 @@ pytestmark = pytest.mark.integration
 
 EXPECTED_TABLES = {
     "alembic_version",
-    "auth_token",
     "disease",
     "disease_affected_species",
     "disease_entry",
@@ -60,6 +59,38 @@ async def test_upgrade_then_downgrade_then_upgrade(
 
         command.upgrade(config, "head")
         assert await _tables(engine) == EXPECTED_TABLES
+    finally:
+        await engine.dispose()
+
+
+async def _columns(engine: AsyncEngine, table: str) -> set[str]:
+    async with engine.connect() as conn:
+        rows = await conn.execute(
+            text("SELECT column_name FROM information_schema.columns WHERE table_name = :t"),
+            {"t": table},
+        )
+        return {row[0] for row in rows}
+
+
+async def test_auth_token_is_dropped_and_downgrade_restores_it(
+    fresh_database_factory: Callable[[str], str],
+) -> None:
+    url = fresh_database_factory("leafy_migrations_0004")
+    config = alembic_config(url)
+    engine = create_async_engine(url)
+    try:
+        command.upgrade(config, "head")
+        assert "auth_token" not in await _tables(engine)
+        assert "auth_token_type" not in await _enum_types(engine)
+        assert {"auth_method", "auth_at"} <= await _columns(engine, "refresh_token")
+
+        command.downgrade(config, "0003")
+        assert "auth_token" in await _tables(engine)
+        assert "auth_token_type" in await _enum_types(engine)
+        assert not {"auth_method", "auth_at"} & await _columns(engine, "refresh_token")
+
+        command.upgrade(config, "head")
+        assert "auth_token" not in await _tables(engine)
     finally:
         await engine.dispose()
 

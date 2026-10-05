@@ -1,80 +1,20 @@
-"""Atomic single use of email tokens and safe concurrent draining of the storage outbox."""
+"""Safe concurrent draining of the storage outbox."""
 
 import asyncio
-import uuid
 from collections.abc import Sequence
 
 import pytest
 from app.core.clock import FixedClock
-from app.core.config import Settings
-from app.core.errors import AppError
-from app.db.models import AuthTokenType
 from app.db.uow import UnitOfWork
-from app.services.email_token_service import EmailTokenService
 from app.services.purge_service import PurgeService
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-from tests.integration.conftest import insert_user
 from tests.support.fakes import FakeStorage
 
 pytestmark = pytest.mark.integration
 
 Factory = async_sessionmaker[AsyncSession]
-
-
-async def test_a_token_can_be_consumed_exactly_once_under_concurrency(
-    session_factory: Factory, db_settings: Settings, clock: FixedClock
-) -> None:
-    user = await insert_user(session_factory)
-    async with UnitOfWork(session_factory) as uow:
-        raw = await EmailTokenService(uow, db_settings, clock).issue(
-            user.id, AuthTokenType.RESET_PASSWORD
-        )
-        await uow.commit()
-
-    async def attempt() -> uuid.UUID | None:
-        async with UnitOfWork(session_factory) as uow:
-            try:
-                user_id = await EmailTokenService(uow, db_settings, clock).consume(
-                    raw, AuthTokenType.RESET_PASSWORD
-                )
-            except AppError:
-                return None
-            await uow.commit()
-            return user_id
-
-    results = await asyncio.gather(*(attempt() for _ in range(6)))
-    assert [r for r in results if r is not None] == [user.id]
-
-
-async def test_a_rolled_back_consume_leaves_the_token_usable(
-    session_factory: Factory, db_settings: Settings, clock: FixedClock
-) -> None:
-    user = await insert_user(session_factory)
-    async with UnitOfWork(session_factory) as uow:
-        service = EmailTokenService(uow, db_settings, clock)
-        raw = await service.issue(user.id, AuthTokenType.VERIFY_EMAIL)
-        await uow.commit()
-    async with UnitOfWork(session_factory) as uow:
-        await EmailTokenService(uow, db_settings, clock).consume(raw, AuthTokenType.VERIFY_EMAIL)
-        await uow.rollback()
-    async with UnitOfWork(session_factory) as uow:
-        found = await EmailTokenService(uow, db_settings, clock).consume(
-            raw, AuthTokenType.VERIFY_EMAIL
-        )
-        assert found == user.id
-
-
-async def test_oversized_and_empty_tokens_are_rejected_without_a_query(
-    session_factory: Factory, db_settings: Settings, clock: FixedClock
-) -> None:
-    async with UnitOfWork(session_factory) as uow:
-        service = EmailTokenService(uow, db_settings, clock)
-        for bad in ("", "x" * 513):
-            with pytest.raises(AppError) as raised:
-                await service.consume(bad, AuthTokenType.VERIFY_EMAIL)
-            assert raised.value.code.value == "token_invalid_or_expired"
 
 
 async def test_concurrent_drains_never_delete_the_same_row_twice(

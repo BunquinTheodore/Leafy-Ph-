@@ -14,6 +14,8 @@ from app.core.errors import AppError, ErrorCode
 
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_TYPE = "access"  # noqa: S105 - claim value, not a secret
+AUTH_METHOD_PASSWORD = "password"  # noqa: S105 - label, not a secret
+AUTH_METHOD_GOOGLE = "google"
 OPAQUE_TOKEN_BYTES = 32
 _DUMMY_PASSWORD = "dummy-password-used-only-for-timing"  # noqa: S105
 
@@ -51,6 +53,8 @@ class AccessClaims:
     user_id: uuid.UUID
     issued_at: datetime
     expires_at: datetime
+    auth_method: str = AUTH_METHOD_PASSWORD
+    auth_time: datetime | None = None
 
 
 def encode_access_token(
@@ -61,7 +65,10 @@ def encode_access_token(
     audience: str,
     now: datetime,
     ttl_seconds: int,
+    auth_method: str = AUTH_METHOD_PASSWORD,
+    auth_time: datetime | None = None,
 ) -> str:
+    """Sign an access token. `auth_method` and `auth_time` say how and when the user signed in."""
     claims = {
         "sub": str(user_id),
         "iss": issuer,
@@ -70,6 +77,8 @@ def encode_access_token(
         "exp": int((now + timedelta(seconds=ttl_seconds)).timestamp()),
         "typ": ACCESS_TOKEN_TYPE,
         "jti": uuid.uuid4().hex,
+        "auth_method": auth_method,
+        "auth_time": int((auth_time or now).timestamp()),
     }
     return jwt.encode(claims, secret, algorithm=JWT_ALGORITHM)
 
@@ -96,9 +105,23 @@ def decode_access_token(
             user_id=uuid.UUID(str(claims["sub"])),
             issued_at=datetime.fromtimestamp(int(claims["iat"]), tz=now.tzinfo),
             expires_at=expires_at,
+            auth_method=_auth_method(claims),
+            auth_time=_auth_time(claims, now),
         )
     except (jwt.InvalidTokenError, ValueError, TypeError) as exc:
         raise AppError(ErrorCode.INVALID_TOKEN) from exc
+
+
+def _auth_method(claims: dict[str, object]) -> str:
+    method = claims.get("auth_method")
+    return method if method == AUTH_METHOD_GOOGLE else AUTH_METHOD_PASSWORD
+
+
+def _auth_time(claims: dict[str, object], now: datetime) -> datetime | None:
+    raw = claims.get("auth_time")
+    if raw is None:
+        return None
+    return datetime.fromtimestamp(int(str(raw)), tz=now.tzinfo)
 
 
 def generate_opaque_token() -> str:

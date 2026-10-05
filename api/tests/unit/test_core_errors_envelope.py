@@ -10,7 +10,6 @@ def test_every_error_code_has_status_and_message() -> None:
 
 def test_plan_error_codes_exist() -> None:
     required = {
-        "token_invalid_or_expired",
         "refresh_reuse_detected",
         "invalid_credentials",
         "email_taken",

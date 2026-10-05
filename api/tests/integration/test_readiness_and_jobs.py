@@ -4,7 +4,7 @@ from datetime import timedelta
 import httpx
 import pytest
 from app.core.clock import FixedClock
-from app.db.models import AuthToken, AuthTokenType, RefreshToken
+from app.db.models import RefreshToken
 from app.jobs.cleanup_tokens import cleanup_tokens
 from app.main import create_app
 from sqlalchemy import func, select
@@ -50,25 +50,12 @@ async def test_cleanup_removes_only_expired_tokens(
                 refresh_row("a", timedelta(days=-1), timedelta(days=10)),
                 refresh_row("b", timedelta(days=5), timedelta(days=-1)),
                 refresh_row("c", timedelta(days=5), timedelta(days=10)),
-                AuthToken(
-                    user_id=user.id,
-                    type=AuthTokenType.RESET_PASSWORD,
-                    token_hash="d" * 64,
-                    expires_at=now - timedelta(minutes=1),
-                ),
-                AuthToken(
-                    user_id=user.id,
-                    type=AuthTokenType.VERIFY_EMAIL,
-                    token_hash="e" * 64,
-                    expires_at=now + timedelta(hours=1),
-                ),
             ]
         )
         await session.commit()
 
     result = await cleanup_tokens(session_factory, clock)
 
-    assert (result.refresh_tokens, result.auth_tokens) == (2, 1)
+    assert result.refresh_tokens == 2
     async with session_factory() as session:
         assert (await session.execute(select(func.count()).select_from(RefreshToken))).scalar() == 1
-        assert (await session.execute(select(func.count()).select_from(AuthToken))).scalar() == 1

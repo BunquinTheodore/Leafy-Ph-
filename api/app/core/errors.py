@@ -11,19 +11,16 @@ from typing import Any
 
 
 class ErrorCode(StrEnum):
-    TOKEN_INVALID_OR_EXPIRED = "token_invalid_or_expired"
     NOT_AUTHENTICATED = "not_authenticated"
     TOKEN_EXPIRED = "token_expired"
     INVALID_TOKEN = "invalid_token"
     INVALID_CREDENTIALS = "invalid_credentials"
     REFRESH_INVALID = "refresh_invalid"
     REFRESH_REUSE_DETECTED = "refresh_reuse_detected"
-    EMAIL_NOT_VERIFIED = "email_not_verified"
     PASSWORD_INCORRECT = "password_incorrect"
     CSRF_FAILED = "csrf_failed"
     NOT_FOUND = "not_found"
     EMAIL_TAKEN = "email_taken"
-    ALREADY_VERIFIED = "already_verified"
     PAYLOAD_TOO_LARGE = "payload_too_large"
     UNSUPPORTED_MEDIA_TYPE = "unsupported_media_type"
     VALIDATION_ERROR = "validation_error"
@@ -46,19 +43,16 @@ class ErrorCode(StrEnum):
 
 
 ERROR_STATUS: Mapping[ErrorCode, int] = {
-    ErrorCode.TOKEN_INVALID_OR_EXPIRED: 400,
     ErrorCode.NOT_AUTHENTICATED: 401,
     ErrorCode.TOKEN_EXPIRED: 401,
     ErrorCode.INVALID_TOKEN: 401,
     ErrorCode.INVALID_CREDENTIALS: 401,
     ErrorCode.REFRESH_INVALID: 401,
     ErrorCode.REFRESH_REUSE_DETECTED: 401,
-    ErrorCode.EMAIL_NOT_VERIFIED: 403,
     ErrorCode.PASSWORD_INCORRECT: 403,
     ErrorCode.CSRF_FAILED: 403,
     ErrorCode.NOT_FOUND: 404,
     ErrorCode.EMAIL_TAKEN: 409,
-    ErrorCode.ALREADY_VERIFIED: 409,
     ErrorCode.PAYLOAD_TOO_LARGE: 413,
     ErrorCode.UNSUPPORTED_MEDIA_TYPE: 415,
     ErrorCode.VALIDATION_ERROR: 422,
@@ -81,19 +75,16 @@ ERROR_STATUS: Mapping[ErrorCode, int] = {
 }
 
 ERROR_MESSAGES: Mapping[ErrorCode, str] = {
-    ErrorCode.TOKEN_INVALID_OR_EXPIRED: "This link is invalid or has expired.",
     ErrorCode.NOT_AUTHENTICATED: "Please sign in to continue.",
     ErrorCode.TOKEN_EXPIRED: "Your session has expired. Please sign in again.",
     ErrorCode.INVALID_TOKEN: "Your session is not valid. Please sign in again.",
     ErrorCode.INVALID_CREDENTIALS: "The email or password is not correct.",
     ErrorCode.REFRESH_INVALID: "Your session is not valid. Please sign in again.",
     ErrorCode.REFRESH_REUSE_DETECTED: "Your session was ended for safety. Please sign in again.",
-    ErrorCode.EMAIL_NOT_VERIFIED: "Please verify your email to continue.",
     ErrorCode.PASSWORD_INCORRECT: "The password is not correct.",
     ErrorCode.CSRF_FAILED: "The request could not be verified. Please try again.",
     ErrorCode.NOT_FOUND: "We could not find what you asked for.",
     ErrorCode.EMAIL_TAKEN: "That email already has an account.",
-    ErrorCode.ALREADY_VERIFIED: "This email is already verified.",
     ErrorCode.PAYLOAD_TOO_LARGE: "The request is too large.",
     ErrorCode.UNSUPPORTED_MEDIA_TYPE: "This file type is not supported.",
     ErrorCode.VALIDATION_ERROR: "Some details are not valid. Please check and try again.",

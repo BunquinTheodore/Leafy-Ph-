@@ -1,8 +1,8 @@
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 import pytest
-from app.db.models import AuthTokenType, Scan, ScanStage, ScanStatus
+from app.db.models import Scan, ScanStage, ScanStatus
 from app.db.uow import UnitOfWork
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -12,31 +12,6 @@ pytestmark = pytest.mark.integration
 
 NOW = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
 SessionFactory = async_sessionmaker[AsyncSession]
-
-
-async def test_auth_token_is_consumed_exactly_once(session_factory: SessionFactory) -> None:
-    user = await insert_user(session_factory)
-    async with UnitOfWork(session_factory) as uow:
-        await uow.auth_tokens.add(
-            user_id=user.id,
-            token_type=AuthTokenType.VERIFY_EMAIL,
-            token_hash="a" * 64,
-            expires_at=NOW + timedelta(hours=1),
-        )
-        await uow.commit()
-
-    async def consume(token_type: AuthTokenType, at: datetime) -> uuid.UUID | None:
-        async with UnitOfWork(session_factory) as uow:
-            found = await uow.auth_tokens.consume(
-                token_hash="a" * 64, token_type=token_type, now=at
-            )
-            await uow.commit()
-            return found
-
-    assert await consume(AuthTokenType.RESET_PASSWORD, NOW) is None  # wrong type
-    assert await consume(AuthTokenType.VERIFY_EMAIL, NOW + timedelta(hours=2)) is None  # expired
-    assert await consume(AuthTokenType.VERIFY_EMAIL, NOW) == user.id
-    assert await consume(AuthTokenType.VERIFY_EMAIL, NOW) is None  # already used
 
 
 async def test_scans_are_only_visible_to_their_owner(session_factory: SessionFactory) -> None:

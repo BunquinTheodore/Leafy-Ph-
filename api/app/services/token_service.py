@@ -9,7 +9,13 @@ from app.core.config import Settings
 from app.core.context import RequestContext
 from app.core.errors import AppError, ErrorCode
 from app.core.logging import get_logger
-from app.core.security import encode_access_token, generate_opaque_token, sha256_hex
+from app.core.security import (
+    AUTH_METHOD_PASSWORD,
+    encode_access_token,
+    generate_opaque_token,
+    sha256_hex,
+)
+from app.db.models import RefreshToken
 from app.db.uow import UnitOfWork
 
 REASON_LOGOUT = "logout"
@@ -41,7 +47,13 @@ class TokenService:
         self._settings = settings
         self._clock = clock
 
-    def _access_token(self, user_id: uuid.UUID, now: datetime) -> str:
+    def _access_token(
+        self,
+        user_id: uuid.UUID,
+        now: datetime,
+        auth_method: str = AUTH_METHOD_PASSWORD,
+        auth_at: datetime | None = None,
+    ) -> str:
         return encode_access_token(
             user_id=user_id,
             secret=self._settings.jwt_secret.get_secret_value(),
@@ -49,6 +61,8 @@ class TokenService:
             audience=self._settings.jwt_audience,
             now=now,
             ttl_seconds=self._settings.access_token_ttl_seconds,
+            auth_method=auth_method,
+            auth_time=auth_at,
         )
 
     async def _insert_refresh_token(
@@ -59,6 +73,8 @@ class TokenService:
         family_expires_at: datetime,
         now: datetime,
         ctx: RequestContext,
+        auth_method: str,
+        auth_at: datetime | None,
     ) -> tuple[str, uuid.UUID, datetime]:
         raw = generate_opaque_token()
         token_id = uuid.uuid4()
@@ -75,12 +91,26 @@ class TokenService:
             family_expires_at=family_expires_at,
             ip=ctx.ip,
             user_agent=ctx.user_agent,
+            auth_method=auth_method,
+            auth_at=auth_at,
         )
         return raw, token_id, expires_at
 
-    async def issue_session(self, user_id: uuid.UUID, ctx: RequestContext) -> IssuedSession:
-        """Start a new token family. The caller commits."""
+    async def issue_session(
+        self,
+        user_id: uuid.UUID,
+        ctx: RequestContext,
+        *,
+        auth_method: str = AUTH_METHOD_PASSWORD,
+        auth_at: datetime | None = None,
+    ) -> IssuedSession:
+        """Start a new token family. The caller commits.
+
+        `auth_at` is when the user last proved themselves with `auth_method`; it defaults to now.
+        Rotation carries both forward, so a refresh never makes an old sign in look recent.
+        """
         now = self._clock.now()
+        auth_at = auth_at or now
         family_expires_at = now + timedelta(days=self._settings.refresh_family_max_days)
         raw, _, expires_at = await self._insert_refresh_token(
             user_id=user_id,
@@ -88,9 +118,11 @@ class TokenService:
             family_expires_at=family_expires_at,
             now=now,
             ctx=ctx,
+            auth_method=auth_method,
+            auth_at=auth_at,
         )
         return IssuedSession(
-            access_token=self._access_token(user_id, now),
+            access_token=self._access_token(user_id, now, auth_method, auth_at),
             refresh_token=raw,
             expires_in=self._settings.access_token_ttl_seconds,
             refresh_expires_at=expires_at,
@@ -106,7 +138,7 @@ class TokenService:
             raise AppError(ErrorCode.REFRESH_INVALID)
 
         if row.rotated_at is not None:
-            return await self._handle_rotated(row.rotated_at, row.family_id, row.user_id, now)
+            return await self._handle_rotated(row, row.rotated_at, now)
 
         user = await self._uow.users.get(row.user_id)
         if user is None:
@@ -117,26 +149,29 @@ class TokenService:
             family_expires_at=row.family_expires_at,
             now=now,
             ctx=ctx,
+            auth_method=row.auth_method,
+            auth_at=row.auth_at,
         )
         await self._uow.refresh_tokens.mark_rotated(row.id, rotated_at=now, replaced_by=new_id)
         await self._uow.commit()
         return RefreshResult(
-            access_token=self._access_token(row.user_id, now),
+            access_token=self._access_token(row.user_id, now, row.auth_method, row.auth_at),
             expires_in=self._settings.access_token_ttl_seconds,
             refresh_token=raw,
             refresh_expires_at=expires_at,
         )
 
     async def _handle_rotated(
-        self, rotated_at: datetime, family_id: uuid.UUID, user_id: uuid.UUID, now: datetime
+        self, row: RefreshToken, rotated_at: datetime, now: datetime
     ) -> RefreshResult:
+        family_id, user_id = row.family_id, row.user_id
         grace = timedelta(seconds=self._settings.refresh_grace_seconds)
         if now - rotated_at <= grace:
             # A concurrent refresh already rotated this token: hand out access only.
             if await self._uow.users.get(user_id) is None:
                 raise AppError(ErrorCode.REFRESH_INVALID)
             return RefreshResult(
-                access_token=self._access_token(user_id, now),
+                access_token=self._access_token(user_id, now, row.auth_method, row.auth_at),
                 expires_in=self._settings.access_token_ttl_seconds,
                 refresh_token=None,
                 refresh_expires_at=None,

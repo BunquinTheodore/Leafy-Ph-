@@ -5,7 +5,6 @@ from typing import Self
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.repositories.auth_token_repository import AuthTokenRepository
 from app.repositories.catalog_repository import CatalogRepository
 from app.repositories.oauth_identity_repository import OAuthIdentityRepository
 from app.repositories.refresh_token_repository import RefreshTokenRepository
@@ -19,7 +18,6 @@ class UnitOfWork:
     users: UserRepository
     oauth_identities: OAuthIdentityRepository
     refresh_tokens: RefreshTokenRepository
-    auth_tokens: AuthTokenRepository
     scans: ScanRepository
     catalog: CatalogRepository
     storage_outbox: StorageOutboxRepository
@@ -32,7 +30,6 @@ class UnitOfWork:
         self.users = UserRepository(self.session)
         self.oauth_identities = OAuthIdentityRepository(self.session)
         self.refresh_tokens = RefreshTokenRepository(self.session)
-        self.auth_tokens = AuthTokenRepository(self.session)
         self.scans = ScanRepository(self.session)
         self.catalog = CatalogRepository(self.session)
         self.storage_outbox = StorageOutboxRepository(self.session)

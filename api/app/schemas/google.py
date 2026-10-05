@@ -6,20 +6,14 @@ from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from app.schemas.auth import AuthSessionOut
 
-# PKCE verifiers are 43 to 128 characters (RFC 7636).
-CodeVerifier = Annotated[str, StringConstraints(min_length=43, max_length=128)]
-AuthorizationCode = Annotated[str, StringConstraints(min_length=1, max_length=2048)]
-Nonce = Annotated[str, StringConstraints(min_length=16, max_length=256)]
-RedirectUri = Annotated[str, StringConstraints(min_length=1, max_length=2048)]
+# Firebase ID tokens are about 1 KB; the cap only bounds abuse.
+FirebaseIdToken = Annotated[str, StringConstraints(min_length=1, max_length=8192)]
 
 
 class GoogleSignInIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    code: AuthorizationCode
-    code_verifier: CodeVerifier
-    nonce: Nonce
-    redirect_uri: RedirectUri
+    id_token: FirebaseIdToken
 
 
 class GoogleSessionOut(AuthSessionOut):

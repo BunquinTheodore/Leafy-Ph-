@@ -599,39 +599,6 @@
         "title": "Envelope[PasswordChangedOut]",
         "type": "object"
       },
-      "Envelope_PasswordResetOut_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PasswordResetOut"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorBody"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "success": {
-            "title": "Success",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "success"
-        ],
-        "title": "Envelope[PasswordResetOut]",
-        "type": "object"
-      },
       "Envelope_PlantDetailOut_": {
         "properties": {
           "data": {
@@ -929,39 +896,6 @@
         "title": "Envelope[ScanStatsOut]",
         "type": "object"
       },
-      "Envelope_SentOut_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SentOut"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorBody"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "success": {
-            "title": "Success",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "success"
-        ],
-        "title": "Envelope[SentOut]",
-        "type": "object"
-      },
       "Envelope_UserOut_": {
         "properties": {
           "data": {
@@ -993,39 +927,6 @@
           "success"
         ],
         "title": "Envelope[UserOut]",
-        "type": "object"
-      },
-      "Envelope_VerifiedOut_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/VerifiedOut"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorBody"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "success": {
-            "title": "Success",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "success"
-        ],
-        "title": "Envelope[VerifiedOut]",
         "type": "object"
       },
       "ErrorBody": {
@@ -1070,20 +971,6 @@
           "message"
         ],
         "title": "ErrorBody",
-        "type": "object"
-      },
-      "ForgotPasswordIn": {
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "title": "Email",
-            "type": "string"
-          }
-        },
-        "required": [
-          "email"
-        ],
-        "title": "ForgotPasswordIn",
         "type": "object"
       },
       "GoogleSessionOut": {
@@ -1137,36 +1024,15 @@
       "GoogleSignInIn": {
         "additionalProperties": false,
         "properties": {
-          "code": {
-            "maxLength": 2048,
+          "id_token": {
+            "maxLength": 8192,
             "minLength": 1,
-            "title": "Code",
-            "type": "string"
-          },
-          "code_verifier": {
-            "maxLength": 128,
-            "minLength": 43,
-            "title": "Code Verifier",
-            "type": "string"
-          },
-          "nonce": {
-            "maxLength": 256,
-            "minLength": 16,
-            "title": "Nonce",
-            "type": "string"
-          },
-          "redirect_uri": {
-            "maxLength": 2048,
-            "minLength": 1,
-            "title": "Redirect Uri",
+            "title": "Id Token",
             "type": "string"
           }
         },
         "required": [
-          "code",
-          "code_verifier",
-          "nonce",
-          "redirect_uri"
+          "id_token"
         ],
         "title": "GoogleSignInIn",
         "type": "object"
@@ -1230,25 +1096,43 @@
         "type": "object"
       },
       "PasswordChangedOut": {
+        "description": "Every older session is revoked, so the caller continues on this fresh one.",
         "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
           "changed": {
             "default": true,
             "title": "Changed",
             "type": "boolean"
+          },
+          "expires_in": {
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "refresh_expires_at": {
+            "format": "date-time",
+            "title": "Refresh Expires At",
+            "type": "string"
+          },
+          "refresh_token": {
+            "title": "Refresh Token",
+            "type": "string"
+          },
+          "token_type": {
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
           }
         },
+        "required": [
+          "access_token",
+          "refresh_token",
+          "expires_in",
+          "refresh_expires_at"
+        ],
         "title": "PasswordChangedOut",
-        "type": "object"
-      },
-      "PasswordResetOut": {
-        "properties": {
-          "reset": {
-            "default": true,
-            "title": "Reset",
-            "type": "boolean"
-          }
-        },
-        "title": "PasswordResetOut",
         "type": "object"
       },
       "PlantDetailOut": {
@@ -1602,28 +1486,6 @@
           "first_name"
         ],
         "title": "RegisterIn",
-        "type": "object"
-      },
-      "ResetPasswordIn": {
-        "additionalProperties": false,
-        "properties": {
-          "new_password": {
-            "maxLength": 256,
-            "title": "New Password",
-            "type": "string"
-          },
-          "token": {
-            "maxLength": 512,
-            "minLength": 1,
-            "title": "Token",
-            "type": "string"
-          }
-        },
-        "required": [
-          "new_password",
-          "token"
-        ],
-        "title": "ResetPasswordIn",
         "type": "object"
       },
       "ScanCreatedOut": {
@@ -2132,17 +1994,6 @@
         "title": "ScanVerdict",
         "type": "string"
       },
-      "SentOut": {
-        "properties": {
-          "sent": {
-            "default": true,
-            "title": "Sent",
-            "type": "boolean"
-          }
-        },
-        "title": "SentOut",
-        "type": "object"
-      },
       "TopDiseaseOut": {
         "properties": {
           "count": {
@@ -2336,33 +2187,6 @@
         ],
         "title": "VerdictCountsOut",
         "type": "object"
-      },
-      "VerifiedOut": {
-        "properties": {
-          "verified": {
-            "default": true,
-            "title": "Verified",
-            "type": "boolean"
-          }
-        },
-        "title": "VerifiedOut",
-        "type": "object"
-      },
-      "VerifyEmailIn": {
-        "additionalProperties": false,
-        "properties": {
-          "token": {
-            "maxLength": 512,
-            "minLength": 1,
-            "title": "Token",
-            "type": "string"
-          }
-        },
-        "required": [
-          "token"
-        ],
-        "title": "VerifyEmailIn",
-        "type": "object"
       }
     },
     "securitySchemes": {
@@ -2378,47 +2202,6 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/api/v1/auth/forgot-password": {
-      "post": {
-        "operationId": "forgot_password_api_v1_auth_forgot_password_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ForgotPasswordIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Envelope_SentOut_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Forgot Password",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
     "/api/v1/auth/google": {
       "post": {
         "operationId": "google_sign_in_api_v1_auth_google_post",
@@ -2619,114 +2402,6 @@
           }
         },
         "summary": "Register",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
-    "/api/v1/auth/resend-verification": {
-      "post": {
-        "operationId": "resend_verification_api_v1_auth_resend_verification_post",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Envelope_SentOut_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Resend Verification",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
-    "/api/v1/auth/reset-password": {
-      "post": {
-        "operationId": "reset_password_api_v1_auth_reset_password_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResetPasswordIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Envelope_PasswordResetOut_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Reset Password",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
-    "/api/v1/auth/verify-email": {
-      "post": {
-        "operationId": "verify_email_api_v1_auth_verify_email_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyEmailIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Envelope_VerifiedOut_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Verify Email",
         "tags": [
           "auth"
         ]

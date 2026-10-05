@@ -2,7 +2,6 @@
 
 from app.controllers.mappers import to_user_out
 from app.core.context import RequestContext
-from app.core.logging import get_logger
 from app.core.ratelimit import RateLimiter
 from app.db.uow import UnitOfWork
 from app.schemas.auth import (
@@ -13,7 +12,6 @@ from app.schemas.auth import (
     RefreshOut,
     RegisterIn,
 )
-from app.services.account_service import AccountService
 from app.services.auth_service import AuthResult, AuthService
 from app.services.token_service import TokenService
 
@@ -21,10 +19,10 @@ REGISTER_LIMIT = 5
 REGISTER_WINDOW_SECONDS = 3600
 LOGIN_LIMIT = 10
 LOGIN_WINDOW_SECONDS = 900
+# Per account, across all IPs: slows distributed guessing against one password.
+LOGIN_EMAIL_LIMIT = 30
 REFRESH_LIMIT = 60
 REFRESH_WINDOW_SECONDS = 60
-
-_log = get_logger("leafy.auth")
 
 
 class AuthController:
@@ -34,9 +32,7 @@ class AuthController:
         tokens: TokenService,
         uow: UnitOfWork,
         limiter: RateLimiter,
-        account: AccountService | None = None,
     ) -> None:
-        self._account = account
         self._auth = auth
         self._tokens = tokens
         self._uow = uow
@@ -63,22 +59,17 @@ class AuthController:
             last_name=payload.last_name,
             ctx=ctx,
         )
-        await self._send_verification(result)
         return await self._session_out(result)
-
-    async def _send_verification(self, result: AuthResult) -> None:
-        """Email the verify link after sign up. A failure here must not undo the sign up."""
-        if self._account is None:
-            return
-        try:
-            await self._account.issue_verification(result.user)
-        except Exception as exc:
-            _log.error("verification_email_not_queued", error_type=type(exc).__name__)
 
     async def login(self, payload: LoginIn, ctx: RequestContext) -> AuthSessionOut:
         self._limiter.hit(
             f"login:{ctx.ip}:{payload.email}",
             limit=LOGIN_LIMIT,
+            window_seconds=LOGIN_WINDOW_SECONDS,
+        )
+        self._limiter.hit(
+            f"login-email:{payload.email}",
+            limit=LOGIN_EMAIL_LIMIT,
             window_seconds=LOGIN_WINDOW_SECONDS,
         )
         result = await self._auth.authenticate(

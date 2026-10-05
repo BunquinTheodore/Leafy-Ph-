@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PLACEHOLDER_SECRET_PREFIX = "replace-with"  # noqa: S105 - marks the .env.example value
 MIN_JWT_SECRET_LENGTH = 32
+MOCK_ALLOWED_ENVS = frozenset({"dev", "test"})
 
 
 class Settings(BaseSettings):
@@ -25,8 +26,6 @@ class Settings(BaseSettings):
     refresh_token_ttl_days: int = Field(default=30, ge=1, le=90)
     refresh_family_max_days: int = Field(default=90, ge=1, le=365)
     refresh_grace_seconds: int = Field(default=10, ge=0, le=60)
-    verify_email_ttl_hours: int = Field(default=24, ge=1)
-    reset_password_ttl_hours: int = Field(default=1, ge=1)
 
     argon2_time_cost: int = Field(default=2, ge=1)
     argon2_memory_kib: int = Field(default=19456, ge=8)
@@ -43,18 +42,7 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     trusted_proxy_hops: int = Field(default=0, ge=0, le=5)
 
-    app_origin: str = "http://localhost:3000"
-    verify_resend_cooldown_seconds: int = Field(default=60, ge=0, le=3600)
-    fresh_session_seconds: int = Field(default=600, ge=60, le=3600)
-
-    smtp_host: str = "localhost"
-    smtp_port: int = Field(default=1025, ge=1, le=65535)
-    smtp_username: str | None = None
-    smtp_password: SecretStr | None = None
-    smtp_use_tls: bool = False
-    smtp_starttls: bool = False
-    smtp_from: str = "Leafy <no-reply@leafy.local>"
-    smtp_timeout_seconds: int = Field(default=10, ge=1, le=120)
+    fresh_session_seconds: int = Field(default=600, ge=60, le=600)
 
     s3_endpoint_url: str | None = None
     s3_public_endpoint: str = "http://localhost:9000"
@@ -65,10 +53,17 @@ class Settings(BaseSettings):
     s3_catalog_bucket: str = "leafy-catalog"
     s3_presign_ttl_seconds: int = Field(default=600, ge=30, le=3600)
 
-    google_client_id: str | None = None
-    google_client_secret: SecretStr | None = None
-    google_redirect_uri: str = "http://localhost:3000/api/auth/google/callback"
+    # Firebase project that issues the Google sign in ID tokens. Empty disables Google sign in.
+    firebase_project_id: str = ""
     google_mock: bool = False
+    # The mock signing key is public, so the mock must be opted into explicitly, on top of
+    # GOOGLE_MOCK, and only ever in dev or test. Never set this on a reachable deployment.
+    allow_insecure_mocks: bool = False
+
+    @field_validator("firebase_project_id")
+    @classmethod
+    def _strip_firebase_project_id(cls, value: str) -> str:
+        return value.strip()
 
     @field_validator("database_url")
     @classmethod
@@ -89,8 +84,12 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _forbid_mock_google_in_prod(self) -> Self:
-        if self.google_mock and self.env == "prod":
-            raise ValueError("GOOGLE_MOCK must not be enabled in prod")
+        if not self.google_mock:
+            return self
+        if self.env not in MOCK_ALLOWED_ENVS:
+            raise ValueError("GOOGLE_MOCK is only allowed when ENV is dev or test")
+        if not self.allow_insecure_mocks:
+            raise ValueError("GOOGLE_MOCK=1 also needs ALLOW_INSECURE_MOCKS=1 (public signing key)")
         return self
 
     @model_validator(mode="after")

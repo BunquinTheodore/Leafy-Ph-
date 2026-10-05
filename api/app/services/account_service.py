@@ -1,4 +1,4 @@
-"""Account lifecycle: email verification, password reset and change, profile, deletion."""
+"""Account lifecycle: profile, password change and recovery, deletion."""
 
 import asyncio
 import uuid
@@ -7,16 +7,15 @@ from datetime import timedelta
 from app.core.background import BackgroundRunner
 from app.core.clock import Clock
 from app.core.config import Settings
+from app.core.context import RequestContext
 from app.core.errors import AppError, ErrorCode
 from app.core.logging import get_logger
 from app.core.password_policy import password_policy_violation
-from app.core.security import PasswordService
-from app.db.models import AuthTokenType, User
+from app.core.security import AUTH_METHOD_GOOGLE, AccessClaims, PasswordService
+from app.db.models import User
 from app.db.uow import UnitOfWork
-from app.services.email_service import EmailService
-from app.services.email_token_service import EmailTokenService
 from app.services.purge_service import PurgeService
-from app.services.token_service import REASON_PASSWORD_CHANGE, TokenService
+from app.services.token_service import REASON_PASSWORD_CHANGE, IssuedSession, TokenService
 
 DELETE_CONFIRMATION = "DELETE"
 
@@ -33,72 +32,19 @@ class AccountService:
         *,
         uow: UnitOfWork,
         passwords: PasswordService,
-        email_tokens: EmailTokenService,
-        tokens: TokenService,
-        emails: EmailService,
         purge: PurgeService,
+        tokens: TokenService,
         runner: BackgroundRunner,
         settings: Settings,
         clock: Clock,
     ) -> None:
         self._uow = uow
         self._passwords = passwords
-        self._email_tokens = email_tokens
-        self._tokens = tokens
-        self._emails = emails
         self._purge = purge
+        self._tokens = tokens
         self._runner = runner
         self._settings = settings
         self._clock = clock
-
-    # ---- email verification -------------------------------------------------------------
-
-    async def issue_verification(self, user: User) -> None:
-        """Create a verify link and email it after the commit (used right after sign up)."""
-        token = await self._email_tokens.issue(user.id, AuthTokenType.VERIFY_EMAIL)
-        await self._uow.commit()
-        self._runner.spawn(
-            self._emails.send_verification(to=user.email, first_name=user.first_name, token=token)
-        )
-
-    async def verify_email(self, raw_token: str) -> None:
-        user_id = await self._email_tokens.consume(raw_token, AuthTokenType.VERIFY_EMAIL)
-        await self._uow.users.mark_email_verified(user_id, self._clock.now())
-        await self._uow.commit()
-        _log.info("email_verified", user_id=str(user_id))
-
-    async def resend_verification(self, user: User) -> None:
-        if user.email_verified_at is not None:
-            raise AppError(ErrorCode.ALREADY_VERIFIED)
-        wait = await self._email_tokens.seconds_until_resend(user.id, AuthTokenType.VERIFY_EMAIL)
-        if wait > 0:
-            raise AppError(ErrorCode.RATE_LIMITED, headers={"Retry-After": str(wait)})
-        await self.issue_verification(user)
-
-    # ---- password reset -----------------------------------------------------------------
-
-    async def forgot_password(self, email: str) -> None:
-        """Email a reset link when the account exists. The caller always answers the same."""
-        user = await self._uow.users.get_by_email(email)
-        if user is None:
-            return
-        token = await self._email_tokens.issue(user.id, AuthTokenType.RESET_PASSWORD)
-        await self._uow.commit()
-        self._runner.spawn(
-            self._emails.send_password_reset(to=user.email, first_name=user.first_name, token=token)
-        )
-
-    async def reset_password(self, raw_token: str, new_password: str) -> None:
-        """Use the token, set the password and end every session in one transaction."""
-        user_id = await self._email_tokens.consume(raw_token, AuthTokenType.RESET_PASSWORD)
-        user = await self._uow.users.get(user_id)
-        if user is None:
-            raise AppError(ErrorCode.TOKEN_INVALID_OR_EXPIRED)
-        self._require_acceptable(new_password, user.email)
-        await self._store_password(user, new_password)
-        await self._tokens.revoke_all_for_user(user.id, REASON_PASSWORD_CHANGE)
-        await self._uow.commit()
-        self._notify_password_changed(user)
 
     # ---- profile and password -----------------------------------------------------------
 
@@ -116,17 +62,47 @@ class AccountService:
         return user
 
     async def change_password(
-        self, user: User, *, current_password: str | None, new_password: str
-    ) -> None:
-        """Change the password, or set the first one for a Google only account."""
+        self,
+        user: User,
+        claims: AccessClaims,
+        *,
+        current_password: str | None,
+        new_password: str,
+        ctx: RequestContext,
+    ) -> IssuedSession:
+        """Change the password, or set the first one for a Google only account.
+
+        There is no email recovery. A session that came from a Google sign in within the last
+        `fresh_session_seconds` proves control of the account's email, so it may set a new
+        password without the old one, and so may a Google only account setting its first one.
+        Every other session must supply the current password. Every existing session is
+        revoked in the same transaction and the caller receives a fresh one.
+        """
         had_password = user.password_hash is not None
-        if had_password:
+        recovery = self._is_recent_google_sign_in(claims)
+        if had_password and not recovery:
             await self._require_current_password(user, current_password)
+        elif not had_password and not recovery:
+            raise AppError(ErrorCode.REAUTH_REQUIRED)
         self._require_acceptable(new_password, user.email)
         await self._store_password(user, new_password)
+        await self._tokens.revoke_all_for_user(user.id, REASON_PASSWORD_CHANGE)
+        session = await self._tokens.issue_session(user.id, ctx)
         await self._uow.commit()
-        _log.info("password_changed", user_id=str(user.id), first_password=not had_password)
-        self._notify_password_changed(user)
+        _log.info(
+            "password_changed",
+            user_id=str(user.id),
+            first_password=not had_password,
+            recovery=had_password and recovery,
+            ip=ctx.ip,
+        )
+        return session
+
+    def _is_recent_google_sign_in(self, claims: AccessClaims) -> bool:
+        if claims.auth_method != AUTH_METHOD_GOOGLE or claims.auth_time is None:
+            return False
+        age = self._clock.now() - claims.auth_time
+        return timedelta(0) <= age <= timedelta(seconds=self._settings.fresh_session_seconds)
 
     async def _require_current_password(
         self, user: User, supplied: str | None, field: str = "current_password"
@@ -146,11 +122,6 @@ class AccountService:
     async def _store_password(self, user: User, new_password: str) -> None:
         new_hash = await asyncio.to_thread(self._passwords.hash, new_password)
         await self._uow.users.set_password_hash(user.id, new_hash, self._clock.now())
-
-    def _notify_password_changed(self, user: User) -> None:
-        self._runner.spawn(
-            self._emails.send_password_changed(to=user.email, first_name=user.first_name)
-        )
 
     # ---- deletion -----------------------------------------------------------------------
 

@@ -1,96 +1,117 @@
-"""A local stand in for Google (GOOGLE_MOCK=1, and the Google tests).
+"""Local stand ins for Firebase Auth. Neither is ever trusted in prod.
 
-It signs ID tokens with an ephemeral RSA key, publishes the public half as a JWKS and issues
-single use authorization codes, exactly like the real token endpoint. Nothing here is reachable
-in prod: Settings refuses GOOGLE_MOCK=1 when ENV=prod.
+MockFirebaseBackend serves GOOGLE_MOCK=1. The web builds the ID token itself (HS256, shared key
+below, kid "leafy-mock"), so no mock server is needed. MockGoogleProvider signs RS256 tokens with
+an ephemeral RSA key and publishes certificates like the real backend; the Google tests use it.
+Settings refuses GOOGLE_MOCK=1 when ENV=prod, and create_app refuses any mock backend in prod.
 """
 
-import base64
 import hashlib
-import secrets
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
 
 import jwt
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from jwt.algorithms import RSAAlgorithm
+from cryptography.x509.oid import NameOID
 
 from app.core.clock import Clock
-from app.services.infra.google_client import GoogleBackendError
+from app.services.infra.google_client import SigningKeys, issuer_for
 
-MOCK_CLIENT_ID = "mock-google-client-id.apps.googleusercontent.com"
-GOOGLE_ISSUER = "https://accounts.google.com"
+MOCK_PROJECT_ID = "leafy-mock"
+MOCK_KID = "leafy-mock"
+MOCK_ALGORITHM = "HS256"
+# Public by design: it only works while GOOGLE_MOCK=1, which prod refuses.
+MOCK_SIGNING_KEY = "leafy-mock-firebase-signing-key"
 ID_TOKEN_TTL = timedelta(hours=1)
+GOOGLE_PROVIDER = "google.com"
 _RSA_KEY_BITS = 2048
 _DEFAULT_KID = "mock-key-1"
+_CERT_VALIDITY = timedelta(days=30)
 
 
-def pkce_challenge(verifier: str) -> str:
-    digest = hashlib.sha256(verifier.encode("ascii")).digest()
-    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+class MockFirebaseBackend:
+    """Accepts only HS256 tokens with kid "leafy-mock", signed with the shared mock key."""
 
+    algorithm = MOCK_ALGORITHM
 
-@dataclass(frozen=True)
-class _PendingCode:
-    claims: Mapping[str, Any]
-    code_challenge: str | None
-    redirect_uri: str | None
+    def __init__(self, project_id: str = MOCK_PROJECT_ID) -> None:
+        self.project_id = project_id
+
+    async def signing_keys(self, *, force_refresh: bool = False) -> SigningKeys:
+        return {MOCK_KID: MOCK_SIGNING_KEY}
 
 
 class MockGoogleProvider:
+    algorithm = "RS256"
+
     def __init__(
         self,
         clock: Clock,
-        client_id: str = MOCK_CLIENT_ID,
+        project_id: str = MOCK_PROJECT_ID,
         kid: str = _DEFAULT_KID,
         private_key: rsa.RSAPrivateKey | None = None,
     ):
         self._clock = clock
-        self.client_id = client_id
+        self.project_id = project_id
         self.kid = kid
         self._private_key = private_key or rsa.generate_private_key(
             public_exponent=65537, key_size=_RSA_KEY_BITS
         )
-        self._codes: dict[str, _PendingCode] = {}
-        self.exchange_count = 0
+        self.refresh_count = 0
 
-    def jwk(self) -> dict[str, Any]:
-        public = RSAAlgorithm.to_jwk(self._private_key.public_key(), as_dict=True)
-        return {**public, "kid": self.kid, "use": "sig", "alg": "RS256"}
+    def certificate_pem(self) -> str:
+        """The public key as a self signed x509 certificate, like Google's cert endpoint."""
+        name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "mock-securetoken")])
+        now = self._clock.now()
+        certificate = (
+            x509.CertificateBuilder()
+            .subject_name(name)
+            .issuer_name(name)
+            .public_key(self._private_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now - timedelta(days=1))
+            .not_valid_after(now + _CERT_VALIDITY)
+            .sign(self._private_key, hashes.SHA256())
+        )
+        return certificate.public_bytes(serialization.Encoding.PEM).decode("ascii")
 
-    async def signing_keys(self, *, force_refresh: bool = False) -> Sequence[Mapping[str, Any]]:
-        return [self.jwk()]
+    async def signing_keys(self, *, force_refresh: bool = False) -> SigningKeys:
+        if force_refresh:
+            self.refresh_count += 1
+        return {self.kid: self._private_key.public_key()}
 
     def base_claims(
         self,
         *,
         email: str,
         sub: str | None = None,
-        nonce: str | None = None,
         email_verified: bool | str = True,
-        given_name: str | None = "Mock",
-        family_name: str | None = "Googler",
-        name: str | None = None,
+        sign_in_provider: str = GOOGLE_PROVIDER,
+        name: str | None = "Mock Googler",
     ) -> dict[str, Any]:
         now = self._clock.now()
+        stamp = int(now.timestamp())
+        uid = sub or "mock-" + hashlib.sha256(email.encode()).hexdigest()[:20]
         claims: dict[str, Any] = {
-            "iss": GOOGLE_ISSUER,
-            "aud": self.client_id,
-            "sub": sub or "mock-" + hashlib.sha256(email.encode()).hexdigest()[:20],
+            "iss": issuer_for(self.project_id),
+            "aud": self.project_id,
+            "sub": uid,
+            "user_id": uid,
             "email": email,
             "email_verified": email_verified,
-            "iat": int(now.timestamp()),
+            "auth_time": stamp,
+            "iat": stamp,
             "exp": int((now + ID_TOKEN_TTL).timestamp()),
+            "firebase": {
+                "identities": {"email": [email]},
+                "sign_in_provider": sign_in_provider,
+            },
         }
-        optional = {
-            "nonce": nonce,
-            "given_name": given_name,
-            "family_name": family_name,
-            "name": name,
-        }
-        claims.update({key: value for key, value in optional.items() if value is not None})
+        if name is not None:
+            claims["name"] = name
         return claims
 
     def sign(self, claims: Mapping[str, Any], *, kid: str | None = None) -> str:
@@ -112,32 +133,3 @@ class MockGoogleProvider:
             else:
                 claims[key] = value
         return self.sign(claims, kid=kid)
-
-    def create_code(
-        self,
-        *,
-        email: str,
-        nonce: str | None,
-        code_challenge: str | None = None,
-        redirect_uri: str | None = None,
-        **options: Any,
-    ) -> str:
-        """Start a sign in as the browser would: returns the one time authorization code."""
-        code = secrets.token_urlsafe(24)
-        claims = self.base_claims(email=email, nonce=nonce, **options)
-        self._codes[code] = _PendingCode(claims, code_challenge, redirect_uri)
-        return code
-
-    async def exchange_code(self, *, code: str, code_verifier: str, redirect_uri: str) -> str:
-        self.exchange_count += 1
-        pending = self._codes.pop(code, None)  # single use: a replay finds nothing
-        if pending is None:
-            raise GoogleBackendError("invalid_grant")
-        if pending.redirect_uri is not None and pending.redirect_uri != redirect_uri:
-            raise GoogleBackendError("redirect_uri_mismatch")
-        challenge = pending.code_challenge
-        if challenge is not None and not secrets.compare_digest(
-            pkce_challenge(code_verifier), challenge
-        ):
-            raise GoogleBackendError("invalid_grant")
-        return self.sign(pending.claims)

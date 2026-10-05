@@ -190,13 +190,14 @@ async def test_requires_authentication(client: httpx.AsyncClient) -> None:
     assert response.status_code == 401
 
 
-async def test_unverified_email_is_blocked(
-    client: httpx.AsyncClient, engine: AsyncEngine, catalog: dict[str, Any]
+async def test_a_user_who_never_verified_an_email_can_scan(
+    client: httpx.AsyncClient, catalog: dict[str, Any]
 ) -> None:
-    headers = await sign_up(client, engine, "new@example.com", verified=False)
+    headers = await sign_up(client, "new@example.com")
+    me = await client.get("/api/v1/users/me", headers=headers)
+    assert me.json()["data"]["email_verified"] is False
     response = await upload(client, headers)
-    assert response.status_code == 403
-    assert response.json()["error"]["code"] == "email_not_verified"
+    assert response.status_code == 202
     assert (await client.get(SCANS, headers=headers)).status_code == 200
 
 

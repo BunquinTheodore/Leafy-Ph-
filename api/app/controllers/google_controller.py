@@ -21,13 +21,7 @@ class GoogleController:
         self._limiter.hit(
             f"google:{ctx.ip}", limit=GOOGLE_LIMIT, window_seconds=GOOGLE_WINDOW_SECONDS
         )
-        result = await self._service.sign_in(
-            code=payload.code,
-            code_verifier=payload.code_verifier,
-            nonce=payload.nonce,
-            redirect_uri=payload.redirect_uri,
-            ctx=ctx,
-        )
+        result = await self._service.sign_in(id_token=payload.id_token, ctx=ctx)
         providers = await self._uow.oauth_identities.providers_for_user(result.user.id)
         return GoogleSessionOut(
             access_token=result.session.access_token,

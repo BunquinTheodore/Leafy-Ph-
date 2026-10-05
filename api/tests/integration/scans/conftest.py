@@ -10,12 +10,11 @@ from app.core.config import Settings
 from app.db.models import Disease, Plant
 from app.main import create_app
 from fastapi import FastAPI
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from tests.conftest import make_settings
 from tests.integration.accounts_catalog.conftest import PASSWORD, bearer
-from tests.support.fakes import FakeEmailSender, FakeStorage
+from tests.support.fakes import FakeStorage
 from tests.support.images import make_image
 from tests.support.ml_fakes import ScriptedML
 
@@ -45,7 +44,6 @@ def app_settings(
     return make_settings(
         database_url=db_settings.database_url,
         rate_limit_enabled=rate_limit_enabled,
-        app_origin="https://leafy.test",
         scan_quota=scan_quota,
         ml_timeout=ml_timeout,
         scan_stuck_seconds=300,
@@ -69,7 +67,6 @@ async def app(
     application = create_app(
         app_settings,
         clock=clock,
-        email_sender=FakeEmailSender(),
         storage=storage,
         ml_service=ml,
     )
@@ -109,35 +106,25 @@ async def catalog(session_factory: async_sessionmaker[AsyncSession]) -> dict[str
         return {"tomato": tomato.id, "potato": potato.id, "early": early.id, "late": late.id}
 
 
-async def sign_up(
-    client: httpx.AsyncClient, engine: AsyncEngine, email: str, *, verified: bool = True
-) -> dict[str, str]:
+async def sign_up(client: httpx.AsyncClient, email: str) -> dict[str, str]:
+    """Register and return the auth header. No email step: the new user can scan at once."""
     response = await client.post(
         "/api/v1/auth/register",
         json={"email": email, "password": PASSWORD, "first_name": "Leaf", "last_name": "Fan"},
     )
     assert response.status_code == 201, response.text
     data = response.json()["data"]
-    if verified:
-        async with engine.begin() as conn:
-            await conn.execute(
-                text("UPDATE users SET email_verified_at = now() WHERE email = :e"), {"e": email}
-            )
     return bearer(data["access_token"])
 
 
 @pytest.fixture
-async def auth(
-    client: httpx.AsyncClient, engine: AsyncEngine, catalog: dict[str, Any]
-) -> dict[str, str]:
-    return await sign_up(client, engine, "leaf@example.com")
+async def auth(client: httpx.AsyncClient, catalog: dict[str, Any]) -> dict[str, str]:
+    return await sign_up(client, "leaf@example.com")
 
 
 @pytest.fixture
-async def other_auth(
-    client: httpx.AsyncClient, engine: AsyncEngine, catalog: dict[str, Any]
-) -> dict[str, str]:
-    return await sign_up(client, engine, "other@example.com")
+async def other_auth(client: httpx.AsyncClient, catalog: dict[str, Any]) -> dict[str, str]:
+    return await sign_up(client, "other@example.com")
 
 
 async def upload(

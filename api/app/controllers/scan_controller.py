@@ -1,10 +1,9 @@
-"""Scan controller: verified email gate, rate limits, bounded upload read, then the service."""
+"""Scan controller: rate limits, bounded upload read, then the service."""
 
 import uuid
 
 from fastapi import UploadFile
 
-from app.core.errors import AppError, ErrorCode
 from app.core.ratelimit import RateLimiter
 from app.db.models import ScanStatus, ScanVerdict, User
 from app.schemas.scan import (
@@ -36,8 +35,6 @@ class ScanController:
             self._limiter.hit(f"scan:{name}:{user.id}", limit=limit, window_seconds=window)
 
     async def create(self, user: User, image: UploadFile) -> ScanCreatedOut:
-        if user.email_verified_at is None:
-            raise AppError(ErrorCode.EMAIL_NOT_VERIFIED)
         self._limit_scan_runs(user)
         # One byte more than the cap is enough to know the file is too large.
         raw = await image.read(self._max_upload_bytes + 1)

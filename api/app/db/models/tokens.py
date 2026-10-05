@@ -1,8 +1,7 @@
-import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -30,30 +29,10 @@ class RefreshToken(Base):
     revoked_reason: Mapped[str | None] = mapped_column(String(40))
     ip: Mapped[str | None] = mapped_column(String(64))
     user_agent: Mapped[str | None] = mapped_column(String(300))
-
-
-class AuthTokenType(enum.StrEnum):
-    VERIFY_EMAIL = "verify_email"
-    RESET_PASSWORD = "reset_password"  # noqa: S105 - enum value, not a secret
-
-
-class AuthToken(Base):
-    __tablename__ = "auth_token"
-
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    auth_method: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="password", server_default="password"
     )
-    type: Mapped[AuthTokenType] = mapped_column(
-        Enum(AuthTokenType, name="auth_token_type", values_callable=lambda e: [m.value for m in e]),
-        nullable=False,
-    )
-    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    auth_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class StorageDeletion(Base):

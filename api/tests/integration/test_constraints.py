@@ -6,8 +6,6 @@ from typing import Any
 
 import pytest
 from app.db.models import (
-    AuthToken,
-    AuthTokenType,
     Disease,
     OAuthIdentity,
     OAuthProvider,
@@ -202,14 +200,6 @@ async def test_deleting_a_user_cascades_to_scans_feedback_and_tokens(
         )
     )
     session.add(
-        AuthToken(
-            user_id=user.id,
-            type=AuthTokenType.VERIFY_EMAIL,
-            token_hash="h" * 64,
-            expires_at=NOW + timedelta(hours=1),
-        )
-    )
-    session.add(
         RefreshToken(
             user_id=user.id,
             family_id=uuid.uuid4(),
@@ -224,7 +214,7 @@ async def test_deleting_a_user_cascades_to_scans_feedback_and_tokens(
     await session.execute(delete(User).where(User.id == user.id))
     await session.commit()
 
-    for model in (Scan, ScanFeedback, OAuthIdentity, AuthToken, RefreshToken):
+    for model in (Scan, ScanFeedback, OAuthIdentity, RefreshToken):
         assert (await session.execute(select(model))).first() is None
 
 

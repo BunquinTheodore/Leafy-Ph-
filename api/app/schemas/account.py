@@ -1,13 +1,12 @@
-"""Account and email flow DTOs."""
+"""Account DTOs."""
 
+from datetime import datetime
 from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.core.password_policy import password_policy_violation
-from app.schemas.auth import EmailAddress, PersonName
-
-EmailTokenValue = Annotated[str, StringConstraints(min_length=1, max_length=512)]
+from app.schemas.auth import PersonName
 
 
 class _StrictModel(BaseModel):
@@ -24,18 +23,6 @@ class _NewPasswordMixin(_StrictModel):
         if reason is not None:
             raise ValueError(reason)
         return self
-
-
-class VerifyEmailIn(_StrictModel):
-    token: EmailTokenValue
-
-
-class ForgotPasswordIn(_StrictModel):
-    email: EmailAddress
-
-
-class ResetPasswordIn(_NewPasswordMixin):
-    token: EmailTokenValue
 
 
 class UpdateProfileIn(_StrictModel):
@@ -58,20 +45,15 @@ class DeleteAccountIn(_StrictModel):
     confirmation: str | None = Field(default=None, max_length=20)
 
 
-class VerifiedOut(BaseModel):
-    verified: bool = True
-
-
-class SentOut(BaseModel):
-    sent: bool = True
-
-
-class PasswordResetOut(BaseModel):
-    reset: bool = True
-
-
 class PasswordChangedOut(BaseModel):
+    """Every older session is revoked, so the caller continues on this fresh one."""
+
     changed: bool = True
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"  # noqa: S105 - OAuth token type label
+    expires_in: int
+    refresh_expires_at: datetime
 
 
 class AccountDeletedOut(BaseModel):

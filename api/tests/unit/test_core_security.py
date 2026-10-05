@@ -136,3 +136,35 @@ def test_opaque_tokens_are_unique_and_long() -> None:
 def test_sha256_hex_is_stable_hex() -> None:
     digest = sha256_hex("abc")
     assert digest == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+
+
+def test_access_token_records_a_password_sign_in_by_default() -> None:
+    claims = _decode(_token())
+    assert claims.auth_method == "password"  # type: ignore[attr-defined]
+    assert claims.auth_time == NOW  # type: ignore[attr-defined]
+
+
+def test_access_token_carries_the_google_auth_time() -> None:
+    signed_in = NOW - timedelta(minutes=4)
+    claims = _decode(_token(auth_method="google", auth_time=signed_in))
+    assert claims.auth_method == "google"  # type: ignore[attr-defined]
+    assert claims.auth_time == signed_in  # type: ignore[attr-defined]
+
+
+def test_an_older_token_without_auth_claims_counts_as_a_password_sign_in() -> None:
+    claims = {
+        "sub": str(uuid.uuid4()),
+        "iss": "leafy-api",
+        "aud": "leafy-web",
+        "iat": int(NOW.timestamp()),
+        "exp": int((NOW + timedelta(minutes=5)).timestamp()),
+        "typ": "access",
+    }
+    decoded = _decode(jwt.encode(claims, SECRET, algorithm="HS256"))
+    assert decoded.auth_method == "password"  # type: ignore[attr-defined]
+    assert decoded.auth_time is None  # type: ignore[attr-defined]
+
+
+def test_an_unknown_auth_method_is_treated_as_a_password_sign_in() -> None:
+    decoded = _decode(_token(auth_method="magic"))
+    assert decoded.auth_method == "password"  # type: ignore[attr-defined]

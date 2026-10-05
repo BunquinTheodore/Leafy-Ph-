@@ -1,4 +1,4 @@
-"""Delete expired refresh and email tokens. Run periodically: python -m app.jobs.cleanup_tokens"""
+"""Delete expired refresh tokens. Run periodically: python -m app.jobs.cleanup_tokens"""
 
 import asyncio
 from dataclasses import dataclass
@@ -15,7 +15,6 @@ from app.db.uow import UnitOfWork
 @dataclass(frozen=True)
 class CleanupResult:
     refresh_tokens: int
-    auth_tokens: int
 
 
 async def cleanup_tokens(
@@ -24,9 +23,8 @@ async def cleanup_tokens(
     now = (clock or SystemClock()).now()
     async with UnitOfWork(session_factory) as uow:
         refresh = await uow.refresh_tokens.delete_expired(now=now)
-        auth = await uow.auth_tokens.delete_expired(now=now)
         await uow.commit()
-    return CleanupResult(refresh_tokens=refresh, auth_tokens=auth)
+    return CleanupResult(refresh_tokens=refresh)
 
 
 async def _main() -> None:
@@ -37,9 +35,7 @@ async def _main() -> None:
         result = await cleanup_tokens(create_session_factory(engine))
     finally:
         await engine.dispose()
-    get_logger("leafy.jobs").info(
-        "tokens_cleaned", refresh=result.refresh_tokens, auth=result.auth_tokens
-    )
+    get_logger("leafy.jobs").info("tokens_cleaned", refresh=result.refresh_tokens)
 
 
 if __name__ == "__main__":

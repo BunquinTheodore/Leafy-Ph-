@@ -19,14 +19,12 @@ from app.core.config import Settings
 from app.core.context import MAX_USER_AGENT_LENGTH, RequestContext
 from app.core.errors import AppError, ErrorCode
 from app.core.ratelimit import RateLimiter
-from app.core.security import PasswordService, decode_access_token
+from app.core.security import AccessClaims, PasswordService, decode_access_token
 from app.db.models import User
 from app.db.uow import UnitOfWork
 from app.services.account_service import AccountService
 from app.services.auth_service import AuthService
 from app.services.catalog_service import CatalogService
-from app.services.email_service import EmailService
-from app.services.email_token_service import EmailTokenService
 from app.services.google_auth_service import GoogleAuthService
 from app.services.infra.google_client import GoogleBackend
 from app.services.infra.storage_service import StorageService
@@ -66,11 +64,6 @@ def get_session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
 def get_background_runner(request: Request) -> BackgroundRunner:
     runner: BackgroundRunner = request.app.state.background
     return runner
-
-
-def get_email_service(request: Request) -> EmailService:
-    service: EmailService = request.app.state.email_service
-    return service
 
 
 def get_storage(request: Request) -> StorageService:
@@ -127,7 +120,6 @@ def get_account_service(
     settings: SettingsDep,
     clock: ClockDep,
     passwords: Annotated[PasswordService, Depends(get_password_service)],
-    emails: Annotated[EmailService, Depends(get_email_service)],
     storage: Annotated[StorageService, Depends(get_storage)],
     runner: Annotated[BackgroundRunner, Depends(get_background_runner)],
     session_factory: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_factory)],
@@ -135,10 +127,8 @@ def get_account_service(
     return AccountService(
         uow=uow,
         passwords=passwords,
-        email_tokens=EmailTokenService(uow, settings, clock),
-        tokens=TokenService(uow, settings, clock),
-        emails=emails,
         purge=PurgeService(session_factory, storage, clock),
+        tokens=TokenService(uow, settings, clock),
         runner=runner,
         settings=settings,
         clock=clock,
@@ -155,10 +145,9 @@ def get_auth_controller(
     clock: ClockDep,
     passwords: Annotated[PasswordService, Depends(get_password_service)],
     limiter: LimiterDep,
-    account: AccountServiceDep,
 ) -> AuthController:
     tokens = TokenService(uow, settings, clock)
-    return AuthController(AuthService(uow, passwords, tokens, clock), tokens, uow, limiter, account)
+    return AuthController(AuthService(uow, passwords, tokens, clock), tokens, uow, limiter)
 
 
 def get_account_controller(
@@ -216,26 +205,38 @@ def get_user_controller(uow: UowDep) -> UserController:
     return UserController(uow)
 
 
-async def get_current_user(
+def get_access_claims(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
-    uow: UowDep,
     settings: SettingsDep,
     clock: ClockDep,
-) -> User:
-    """Validate the bearer token, then reload the user so deleted accounts stop working."""
+) -> AccessClaims:
+    """Validate the bearer token and return its claims (user, how and when they signed in)."""
     if credentials is None:
         raise AppError(ErrorCode.NOT_AUTHENTICATED)
-    claims = decode_access_token(
+    return decode_access_token(
         credentials.credentials,
         secret=settings.jwt_secret.get_secret_value(),
         issuer=settings.jwt_issuer,
         audience=settings.jwt_audience,
         now=clock.now(),
     )
+
+
+CurrentClaims = Annotated[AccessClaims, Depends(get_access_claims)]
+
+
+async def get_current_user(claims: CurrentClaims, uow: UowDep) -> User:
+    """Reload the user from the token so deleted accounts stop working."""
     user = await uow.users.get(claims.user_id)
-    if user is None:
+    if user is None or _issued_before_password_change(claims, user):
         raise AppError(ErrorCode.NOT_AUTHENTICATED)
     return user
+
+
+def _issued_before_password_change(claims: AccessClaims, user: User) -> bool:
+    """A password change ends access tokens issued before it (token times have 1 s precision)."""
+    changed = user.password_changed_at
+    return changed is not None and claims.issued_at < changed.replace(microsecond=0)
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

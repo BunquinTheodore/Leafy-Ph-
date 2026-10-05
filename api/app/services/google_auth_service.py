@@ -1,17 +1,15 @@
-"""Google sign in: code exchange, ID token verification, find or create or link the user.
+"""Google sign in: Firebase ID token verification, find or create or link the user.
 
-Identity is Google's stable `sub`. The email only decides whether a brand new identity links to
-an existing account, and only when Google says the email is verified.
+Identity is the Firebase uid (`sub`) of a google.com sign in. The email only decides whether a
+brand new identity links to an existing account, and only when the email is verified.
 """
 
-import hmac
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import jwt
-from jwt import PyJWK
 from sqlalchemy.exc import IntegrityError
 
 from app.core.clock import Clock
@@ -19,14 +17,19 @@ from app.core.config import Settings
 from app.core.context import RequestContext
 from app.core.errors import AppError, ErrorCode
 from app.core.logging import get_logger
+from app.core.security import AUTH_METHOD_GOOGLE
 from app.db.models import OAuthProvider, User
 from app.db.uow import UnitOfWork
-from app.services.infra.google_client import GoogleBackend, GoogleBackendError
-from app.services.infra.google_mock import MOCK_CLIENT_ID
+from app.services.infra.google_client import (
+    GoogleBackend,
+    GoogleBackendError,
+    SigningKey,
+    issuer_for,
+)
+from app.services.infra.google_mock import MOCK_PROJECT_ID
 from app.services.token_service import IssuedSession, TokenService
 
-ALLOWED_ISSUERS = ("https://accounts.google.com", "accounts.google.com")
-ALLOWED_ALGORITHM = "RS256"
+GOOGLE_SIGN_IN_PROVIDER = "google.com"
 CLOCK_SKEW = timedelta(seconds=60)
 MAX_SUBJECT_LENGTH = 255
 MAX_NAME_LENGTH = 100
@@ -41,6 +44,7 @@ class GoogleClaims:
     email: str
     given_name: str
     family_name: str
+    auth_time: datetime
 
 
 @dataclass(frozen=True)
@@ -71,50 +75,53 @@ def _is_true(value: object) -> bool:
     return value is True or (isinstance(value, str) and value.lower() == "true")
 
 
-class GoogleIdTokenVerifier:
-    def __init__(self, backend: GoogleBackend, *, client_id: str, clock: Clock) -> None:
+class FirebaseIdTokenVerifier:
+    """Verifies a Firebase ID token against Google's securetoken certificates."""
+
+    def __init__(self, backend: GoogleBackend, *, project_id: str, clock: Clock) -> None:
         self._backend = backend
-        self._client_id = client_id
+        self._project_id = project_id
+        self._issuer = issuer_for(project_id)
         self._clock = clock
 
-    async def _key_for(self, kid: str) -> PyJWK | None:
+    async def _key_for(self, kid: str) -> SigningKey | None:
         for force in (False, True):
-            for jwk in await self._backend.signing_keys(force_refresh=force):
-                if jwk.get("kid") == kid:
-                    return PyJWK.from_dict(dict(jwk), algorithm=ALLOWED_ALGORITHM)
+            keys = await self._backend.signing_keys(force_refresh=force)
+            if kid in keys:
+                return keys[kid]
         return None
 
-    async def verify(self, id_token: str, *, nonce: str) -> GoogleClaims:
-        """Check signature, iss, aud, exp, nonce and email_verified; return the identity."""
+    async def verify(self, id_token: str) -> GoogleClaims:
+        """Check signature, iss, aud, times, provider and email; return the identity."""
         try:
             header = jwt.get_unverified_header(id_token)
         except jwt.InvalidTokenError as exc:
             raise _fail("malformed_token") from exc
         kid = header.get("kid")
-        if header.get("alg") != ALLOWED_ALGORITHM or not isinstance(kid, str):
+        if header.get("alg") != self._backend.algorithm or not isinstance(kid, str):
             raise _fail("bad_header")
         try:
             key = await self._key_for(kid)
         except GoogleBackendError as exc:
-            raise _fail("jwks_unavailable") from exc
+            _log.error("google_certs_unavailable")
+            raise AppError(ErrorCode.SERVICE_UNAVAILABLE) from exc
         if key is None:
             raise _fail("unknown_kid")
         claims = self._decode(id_token, key)
         self._check_times(claims)
-        if not hmac.compare_digest(str(claims.get("nonce", "")), nonce):
-            raise _fail("nonce_mismatch")
+        self._check_provider(claims)
         return self._identity(claims)
 
-    def _decode(self, id_token: str, key: PyJWK) -> Mapping[str, Any]:
+    def _decode(self, id_token: str, key: SigningKey) -> Mapping[str, Any]:
         try:
             return jwt.decode(
                 id_token,
-                key.key,
-                algorithms=[ALLOWED_ALGORITHM],
-                audience=self._client_id,
-                issuer=list(ALLOWED_ISSUERS),
+                key,
+                algorithms=[self._backend.algorithm],
+                audience=self._project_id,
+                issuer=self._issuer,
                 options={
-                    "require": ["exp", "iat", "iss", "aud", "sub"],
+                    "require": ["exp", "iat", "auth_time", "iss", "aud", "sub"],
                     # Time is checked against the injected clock below.
                     "verify_exp": False,
                     "verify_iat": False,
@@ -130,15 +137,25 @@ class GoogleIdTokenVerifier:
 
     def _check_times(self, claims: Mapping[str, Any]) -> None:
         now = self._clock.now().timestamp()
+        leeway = CLOCK_SKEW.total_seconds()
         try:
             expires = float(claims["exp"])
             issued = float(claims["iat"])
+            authenticated = float(claims["auth_time"])
         except (TypeError, ValueError) as exc:
             raise _fail("bad_time_claims") from exc
-        if expires <= now - CLOCK_SKEW.total_seconds():
+        if expires <= now - leeway:
             raise _fail("expired")
-        if issued > now + CLOCK_SKEW.total_seconds():
+        if issued > now + leeway:
             raise _fail("issued_in_future")
+        if authenticated > now + leeway or authenticated > issued + leeway:
+            raise _fail("auth_time_in_future")
+
+    def _check_provider(self, claims: Mapping[str, Any]) -> None:
+        firebase = claims.get("firebase")
+        provider = firebase.get("sign_in_provider") if isinstance(firebase, dict) else None
+        if provider != GOOGLE_SIGN_IN_PROVIDER:
+            raise _fail("not_google_provider")
 
     def _identity(self, claims: Mapping[str, Any]) -> GoogleClaims:
         sub = claims.get("sub")
@@ -152,7 +169,11 @@ class GoogleIdTokenVerifier:
             raise AppError(ErrorCode.GOOGLE_EMAIL_UNVERIFIED)
         given, family = _split_names(claims, email)
         return GoogleClaims(
-            sub=sub, email=email.strip().lower(), given_name=given, family_name=family
+            sub=sub,
+            email=email.strip().lower(),
+            given_name=given,
+            family_name=family,
+            auth_time=datetime.fromtimestamp(float(claims["auth_time"]), tz=UTC),
         )
 
 
@@ -172,32 +193,25 @@ class GoogleAuthService:
         self._clock = clock
 
     @property
-    def client_id(self) -> str | None:
-        if self._settings.google_client_id:
-            return self._settings.google_client_id
-        return MOCK_CLIENT_ID if self._settings.google_mock else None
+    def project_id(self) -> str | None:
+        if self._settings.firebase_project_id:
+            return self._settings.firebase_project_id
+        return MOCK_PROJECT_ID if self._settings.google_mock else None
 
-    def _allowed_redirects(self) -> set[str]:
-        return {uri.strip() for uri in self._settings.google_redirect_uri.split(",") if uri.strip()}
-
-    async def sign_in(
-        self, *, code: str, code_verifier: str, nonce: str, redirect_uri: str, ctx: RequestContext
-    ) -> GoogleAuthResult:
-        client_id = self.client_id
-        if client_id is None:
-            raise _fail("not_configured")
-        if redirect_uri not in self._allowed_redirects():
-            raise _fail("redirect_uri_not_allowed")
-        try:
-            id_token = await self._backend.exchange_code(
-                code=code, code_verifier=code_verifier, redirect_uri=redirect_uri
-            )
-        except GoogleBackendError as exc:
-            raise _fail("code_exchange_failed") from exc
-        verifier = GoogleIdTokenVerifier(self._backend, client_id=client_id, clock=self._clock)
-        identity = await verifier.verify(id_token, nonce=nonce)
+    async def sign_in(self, *, id_token: str, ctx: RequestContext) -> GoogleAuthResult:
+        project_id = self.project_id
+        if project_id is None:
+            _log.warning("google_auth_rejected", reason="disabled")
+            raise AppError(ErrorCode.GOOGLE_AUTH_FAILED, details=[{"reason": "disabled"}])
+        verifier = FirebaseIdTokenVerifier(self._backend, project_id=project_id, clock=self._clock)
+        identity = await verifier.verify(id_token)
         user, is_new, linked = await self._resolve_user(identity)
-        session = await self._tokens.issue_session(user.id, ctx)
+        session = await self._tokens.issue_session(
+            user.id,
+            ctx,
+            auth_method=AUTH_METHOD_GOOGLE,
+            auth_at=min(identity.auth_time, self._clock.now()),
+        )
         await self._uow.commit()
         return GoogleAuthResult(
             user=user, session=session, is_new_user=is_new, linked_existing=linked

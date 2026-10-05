@@ -1,4 +1,4 @@
-"""Fixtures for the account, email, Google, catalog and seed tests."""
+"""Fixtures for the account, Google, catalog and seed tests."""
 
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
@@ -8,12 +8,12 @@ import pytest
 from app.core.clock import FixedClock
 from app.core.config import Settings
 from app.main import create_app
-from app.services.infra.google_mock import MOCK_CLIENT_ID, MockGoogleProvider
+from app.services.infra.google_mock import MOCK_PROJECT_ID, MockGoogleProvider
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi import FastAPI
 
 from tests.conftest import make_settings
-from tests.support.fakes import FakeEmailSender, FakeStorage
+from tests.support.fakes import FakeStorage
 
 GOOGLE_REDIRECT = "http://localhost:3000/api/auth/google/callback"
 PASSWORD = "a calm green forest"
@@ -31,20 +31,19 @@ def rate_limit_enabled() -> bool:
 
 
 @pytest.fixture
-def app_settings(db_settings: Settings, rate_limit_enabled: bool) -> Settings:
-    return make_settings(
-        database_url=db_settings.database_url,
-        rate_limit_enabled=rate_limit_enabled,
-        google_client_id=MOCK_CLIENT_ID,
-        google_client_secret="not-a-real-secret",
-        google_redirect_uri=GOOGLE_REDIRECT,
-        app_origin="https://leafy.test",
-    )
+def firebase_project_id() -> str:
+    return MOCK_PROJECT_ID
 
 
 @pytest.fixture
-def outbox() -> FakeEmailSender:
-    return FakeEmailSender()
+def app_settings(
+    db_settings: Settings, rate_limit_enabled: bool, firebase_project_id: str
+) -> Settings:
+    return make_settings(
+        database_url=db_settings.database_url,
+        rate_limit_enabled=rate_limit_enabled,
+        firebase_project_id=firebase_project_id,
+    )
 
 
 @pytest.fixture
@@ -61,14 +60,12 @@ def google(clock: FixedClock) -> MockGoogleProvider:
 async def app(
     app_settings: Settings,
     clock: FixedClock,
-    outbox: FakeEmailSender,
     storage: FakeStorage,
     google: MockGoogleProvider,
 ) -> AsyncIterator[FastAPI]:
     application = create_app(
         app_settings,
         clock=clock,
-        email_sender=outbox,
         storage=storage,
         google_backend=google,
     )
@@ -86,7 +83,7 @@ async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
 
 @pytest.fixture
 def settle(app: FastAPI) -> Settle:
-    """Wait for background work (emails, storage purge) started by earlier requests."""
+    """Wait for background work (storage purge) started by earlier requests."""
     drain: Settle = app.state.background.drain
     return drain
 
@@ -112,22 +109,6 @@ async def google_login(
     email: str = "gina@example.com",
     **claims: Any,
 ) -> httpx.Response:
-    """Run the browser legs against the mock, then call POST /auth/google."""
-    from app.services.infra.google_mock import pkce_challenge
-
-    code = google.create_code(
-        email=email,
-        nonce=NONCE,
-        code_challenge=pkce_challenge(VERIFIER),
-        redirect_uri=GOOGLE_REDIRECT,
-        **claims,
-    )
-    return await client.post(
-        "/api/v1/auth/google",
-        json={
-            "code": code,
-            "code_verifier": VERIFIER,
-            "nonce": NONCE,
-            "redirect_uri": GOOGLE_REDIRECT,
-        },
-    )
+    """Sign a Firebase ID token with the mock key, then call POST /auth/google."""
+    token = google.issue_id_token(email=email, **claims)
+    return await client.post("/api/v1/auth/google", json={"id_token": token})

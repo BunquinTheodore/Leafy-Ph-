@@ -5,7 +5,13 @@ from fastapi import APIRouter, Depends
 from app.controllers.account_controller import AccountController
 from app.controllers.user_controller import UserController
 from app.core.envelope import Envelope, success_envelope
-from app.http.deps import CurrentUser, get_account_controller, get_user_controller
+from app.http.deps import (
+    ContextDep,
+    CurrentClaims,
+    CurrentUser,
+    get_account_controller,
+    get_user_controller,
+)
 from app.schemas.account import (
     AccountDeletedOut,
     ChangePasswordIn,
@@ -36,9 +42,13 @@ async def update_me(
 
 @router.post("/me/password")
 async def change_password(
-    payload: ChangePasswordIn, user: CurrentUser, controller: AccountDep
+    payload: ChangePasswordIn,
+    user: CurrentUser,
+    claims: CurrentClaims,
+    controller: AccountDep,
+    ctx: ContextDep,
 ) -> Envelope[PasswordChangedOut]:
-    return success_envelope(await controller.change_password(user, payload))
+    return success_envelope(await controller.change_password(user, claims, payload, ctx))
 
 
 @router.delete("/me")

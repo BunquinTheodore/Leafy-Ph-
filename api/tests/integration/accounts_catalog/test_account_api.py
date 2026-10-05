@@ -19,7 +19,7 @@ from tests.integration.accounts_catalog.conftest import (
     google_login,
     register,
 )
-from tests.support.fakes import FakeEmailSender, FakeStorage
+from tests.support.fakes import FakeStorage
 
 pytestmark = pytest.mark.integration
 
@@ -97,9 +97,7 @@ async def test_patch_me_requires_authentication(client: httpx.AsyncClient) -> No
 # ---- password ---------------------------------------------------------------------------
 
 
-async def test_change_password_needs_the_current_password(
-    client: httpx.AsyncClient, outbox: FakeEmailSender, settle: Settle
-) -> None:
+async def test_change_password_needs_the_current_password(client: httpx.AsyncClient) -> None:
     session = await register(client)
     headers = bearer(session["access_token"])
     path = f"{ME}/password"
@@ -119,9 +117,7 @@ async def test_change_password_needs_the_current_password(
         path, headers=headers, json={"current_password": PASSWORD, "new_password": NEW_PASSWORD}
     )
     assert ok.status_code == 200
-    assert ok.json()["data"] == {"changed": True}
-    await settle()
-    assert outbox.to("leaf@example.com")[-1].subject == "Your Leafy password was changed"
+    assert ok.json()["data"]["changed"] is True
     login = await client.post(
         "/api/v1/auth/login", json={"email": "leaf@example.com", "password": NEW_PASSWORD}
     )
@@ -156,12 +152,13 @@ async def test_a_google_only_user_sets_a_first_password_without_a_current_one(
     assert password_login.status_code == 200
 
 
-async def test_after_setting_a_password_the_current_one_is_required(
-    client: httpx.AsyncClient, google: Any
+async def test_after_setting_a_password_the_current_one_is_required_once_the_sign_in_is_old(
+    client: httpx.AsyncClient, google: Any, clock: FixedClock
 ) -> None:
     login = await google_login(client, google, email="gina@example.com")
     headers = bearer(login.json()["data"]["access_token"])
     await client.post(f"{ME}/password", headers=headers, json={"new_password": NEW_PASSWORD})
+    clock.advance(minutes=11)
     again = await client.post(
         f"{ME}/password", headers=headers, json={"new_password": "another long one"}
     )

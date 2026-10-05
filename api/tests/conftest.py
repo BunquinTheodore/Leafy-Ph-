@@ -18,6 +18,7 @@ def make_settings(**overrides: Any) -> Settings:
         "argon2_memory_kib": 64,
         "argon2_parallelism": 1,
         "log_level": "WARNING",
+        "allow_insecure_mocks": True,
     }
     values.update(overrides)
     return Settings(_env_file=None, **values)

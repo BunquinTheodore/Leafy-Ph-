@@ -25,6 +25,8 @@ class RefreshTokenRepository:
         family_expires_at: datetime,
         ip: str | None,
         user_agent: str | None,
+        auth_method: str = "password",
+        auth_at: datetime | None = None,
     ) -> RefreshToken:
         row = RefreshToken(
             id=token_id,
@@ -36,6 +38,8 @@ class RefreshTokenRepository:
             family_expires_at=family_expires_at,
             ip=ip,
             user_agent=user_agent,
+            auth_method=auth_method,
+            auth_at=auth_at,
         )
         self._session.add(row)
         await self._session.flush()

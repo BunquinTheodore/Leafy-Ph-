@@ -1,5 +1,6 @@
 """Result feedback, the stuck scan janitor and the CSV export."""
 
+import asyncio
 import csv
 import io
 import threading
@@ -164,6 +165,13 @@ async def test_janitor_fails_only_stuck_processing_scans(
     ml.gate = threading.Event()
     stuck = (await upload(client, auth)).json()["data"]["id"]
     fresh = (await upload(client, auth)).json()["data"]["id"]
+    # Both workers must be parked inside predict() (past their last stage write, which bumps
+    # updated_at) before the test backdates rows, otherwise the backdate can be overwritten.
+    for _ in range(200):
+        if len(ml.calls) >= 3:
+            break
+        await asyncio.sleep(0.05)
+    assert len(ml.calls) >= 3
     long_ago = clock.now() - timedelta(hours=2)
     async with engine.begin() as conn:
         await conn.execute(

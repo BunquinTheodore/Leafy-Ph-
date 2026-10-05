@@ -1,34 +1,8 @@
-"""In memory stand ins for email and object storage, used by tests only."""
+"""In memory stand in for object storage, used by tests only."""
 
-import re
 from collections.abc import Sequence
 
-from app.services.infra.email_service import EmailDeliveryError, OutgoingEmail
 from app.services.infra.storage_service import StorageError
-
-_TOKEN_IN_LINK = re.compile(r"token=([^\s&\"<]+)")
-
-
-class FakeEmailSender:
-    """Records messages. Set `fail = True` to simulate an SMTP outage."""
-
-    def __init__(self) -> None:
-        self.sent: list[OutgoingEmail] = []
-        self.fail = False
-
-    async def send(self, message: OutgoingEmail) -> None:
-        if self.fail:
-            raise EmailDeliveryError("simulated outage")
-        self.sent.append(message)
-
-    def to(self, address: str) -> list[OutgoingEmail]:
-        return [m for m in self.sent if m.to == address]
-
-    def last_token(self, address: str) -> str:
-        """The token inside the link of the newest message sent to `address`."""
-        match = _TOKEN_IN_LINK.search(self.to(address)[-1].text)
-        assert match is not None, "no token link in the email"
-        return match.group(1)
 
 
 class FakeStorage:

@@ -50,9 +50,8 @@ p code, .api-note code, .callout code, .lede code { line-height: 1; }
     <thead><tr><th>Handler</th><th>Purpose</th></tr></thead>
     <tbody>
       <tr><td><div class="hl"><code>/api/auth/register</code><code>/api/auth/login</code><code>/api/auth/logout</code><code>/api/auth/refresh</code></div></td><td>Call FastAPI, then set or clear the <code>leafy_at</code> and <code>leafy_rt</code> cookies.</td></tr>
-      <tr><td><div class="hl"><code>/api/auth/verify-email</code><code>/api/auth/resend-verification</code><code>/api/auth/forgot-password</code><code>/api/auth/reset-password</code></div></td><td>Email token flows. Reset and account delete clear cookies.</td></tr>
-      <tr><td><div class="hl"><code>/api/auth/google</code><code>/api/auth/google/callback</code></div></td><td>Start the OAuth redirect, then verify <code>state</code> and hand the code to FastAPI.</td></tr>
-      <tr><td><div class="hl"><code>/api/me</code><code>/api/me/password</code></div></td><td>Profile, password and account delete.</td></tr>
+      <tr><td><div class="hl"><code>/api/auth/google</code></div></td><td>POST. Same origin check, then hand the Firebase ID token to FastAPI and set the session cookies.</td></tr>
+      <tr><td><div class="hl"><code>/api/me</code><code>/api/me/password</code></div></td><td>Profile, password and account delete. Account delete clears the cookies.</td></tr>
       <tr><td><div class="hl"><code>/api/scans</code><code>/api/scans/[id]</code></div></td><td>Create, poll, list, retry, delete and feedback for scans.</td></tr>
     </tbody>
   </table>
@@ -68,28 +67,10 @@ p code, .api-note code, .callout code, .lede code { line-height: 1; }
       <tr><td><code>POST /auth/login</code></td><td>No</td><td>Email, password</td><td>Session</td><td><div class="er"><span class="st">401</span><code>invalid_credentials</code> <span class="x">uniform</span></div></td><td class="lim"><span>10 per 15 min</span><span>per ip and email</span></td></tr>
       <tr><td><code>POST /auth/refresh</code></td><td>No</td><td><code class="wrap">{refresh_token}</code></td><td>New session</td><td><div class="er"><span class="st">401</span><code>refresh_invalid</code></div><div class="er"><span class="st">401</span><code>refresh_reuse_detected</code></div></td><td>None</td></tr>
       <tr><td><code>POST /auth/logout</code></td><td>No</td><td><code class="wrap">{refresh_token}</code></td><td>Success, idempotent</td><td>None</td><td>None</td></tr>
-      <tr><td><code>POST /auth/verify-email</code></td><td>No</td><td>Token</td><td>Email verified</td><td><div class="er"><span class="st">400</span><code>token_invalid_or_expired</code></div></td><td>None</td></tr>
-      <tr><td><code>POST /auth/resend-verification</code></td><td>Yes</td><td>None</td><td>Success</td><td><div class="er"><span class="st">409</span><code>already_verified</code></div><div class="er"><span class="st">429</span><code>rate_limited</code></div></td><td class="lim"><span>Cooldown</span><span>60&nbsp;s</span></td></tr>
-      <tr><td><code>POST /auth/forgot-password</code></td><td>No</td><td>Email</td><td>Always 200</td><td>None, never reveals if the account exists</td><td>None</td></tr>
-      <tr><td><code>POST /auth/reset-password</code></td><td>No</td><td>Token, new password</td><td>Success, all sessions end</td><td><div class="er"><span class="st">400</span><code>token_invalid_or_expired</code></div></td><td>None</td></tr>
-      <tr><td><code>POST /auth/google</code></td><td>No</td><td><code class="wrap">{code, code_verifier, nonce, redirect_uri}</code></td><td>Session</td><td><div class="er"><span class="st">400</span><code>google_auth_failed</code></div><div class="er"><span class="st">400</span><code>google_email_unverified</code></div></td><td class="lim"><span>10 per 15 min</span><span>per ip</span></td></tr>
+      <tr><td><code>POST /auth/google</code></td><td>No</td><td><code class="wrap">{id_token}</code></td><td>Session</td><td><div class="er"><span class="st">400</span><code>google_auth_failed</code></div><div class="er"><span class="st">400</span><code>google_email_unverified</code></div></td><td class="lim"><span>10 per 15 min</span><span>per ip</span></td></tr>
     </tbody>
   </table>
-  <p class="muted api-note">Session means the <code>AuthSessionOut</code> object with the access and refresh tokens. Reset and verify tokens are single use and return one uniform error for unknown, used or expired.</p>
-</section>
-
-<section class="sheet landscape">
-  <h2>User endpoints</h2>
-  <table class="table api-table ep">
-    <colgroup><col style="width:29%"><col style="width:7%"><col style="width:22%"><col style="width:19%"><col style="width:23%"></colgroup>
-    <thead><tr><th>Endpoint</th><th>Auth</th><th>Request</th><th>Response</th><th>Errors</th></tr></thead>
-    <tbody>
-      <tr><td><code>GET /users/me</code></td><td>Yes</td><td>None</td><td>Profile, including <code>auth_methods</code></td><td><div class="er"><span class="st">401</span><code>not_authenticated</code></div></td></tr>
-      <tr><td><code>PATCH /users/me</code></td><td>Yes</td><td>First and last name</td><td>Updated profile</td><td><div class="er"><span class="st">422</span><code>validation_error</code></div></td></tr>
-      <tr><td><code>POST /users/me/password</code></td><td>Yes</td><td><code>current_password</code> only if the user has one, plus new password (10 to 128 characters, not the email, not common)</td><td>Success</td><td><div class="er"><span class="st">403</span><code>password_incorrect</code></div><div class="er"><span class="st">422</span><code>validation_error</code></div></td></tr>
-      <tr><td><code>DELETE /users/me</code></td><td>Yes</td><td>Password, or DELETE typed after a fresh sign in for Google only users</td><td>Account and all scans removed</td><td><div class="er"><span class="st">403</span><code>password_incorrect</code></div></td></tr>
-    </tbody>
-  </table>
+  <p class="muted api-note">Session means the <code>AuthSessionOut</code> object with the access and refresh tokens. Leafy sends no email, so there are no verify, resend, forgot or reset endpoints.</p>
   <h2>Catalog and health endpoints</h2>
   <table class="table api-table ep">
     <colgroup><col style="width:29%"><col style="width:7%"><col style="width:22%"><col style="width:19%"><col style="width:23%"></colgroup>
@@ -105,12 +86,39 @@ p code, .api-note code, .callout code, .lede code { line-height: 1; }
 </section>
 
 <section class="sheet landscape">
+  <h2>User endpoints</h2>
+  <table class="table api-table ep">
+    <colgroup><col style="width:29%"><col style="width:7%"><col style="width:22%"><col style="width:19%"><col style="width:23%"></colgroup>
+    <thead><tr><th>Endpoint</th><th>Auth</th><th>Request</th><th>Response</th><th>Errors</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /users/me</code></td><td>Yes</td><td>None</td><td>Profile, including <code>auth_methods</code></td><td><div class="er"><span class="st">401</span><code>not_authenticated</code></div></td></tr>
+      <tr><td><code>PATCH /users/me</code></td><td>Yes</td><td>First and last name</td><td>Updated profile</td><td><div class="er"><span class="st">422</span><code>validation_error</code></div></td></tr>
+      <tr><td><code>POST /users/me/password</code></td><td>Yes</td><td><code>current_password</code> unless the user has none (Google only) or the session came from a Google sign in under 10 minutes ago, plus new password (10 to 128 characters, not the email, not common)</td><td>Success. Other sessions end</td><td><div class="er"><span class="st">403</span><code>password_incorrect</code></div><div class="er"><span class="st">422</span><code>validation_error</code></div></td></tr>
+      <tr><td><code>DELETE /users/me</code></td><td>Yes</td><td>Password, or DELETE typed after a fresh sign in for Google only users</td><td>Account and all scans removed</td><td><div class="er"><span class="st">403</span><code>password_incorrect</code></div></td></tr>
+    </tbody>
+  </table>
+  <h2>Rate limits</h2>
+  <table class="table api-table">
+    <colgroup><col style="width:36%"><col style="width:26%"><col style="width:38%"></colgroup>
+    <thead><tr><th>Action</th><th>Limit</th><th>Scope</th></tr></thead>
+    <tbody>
+      <tr><td>Register</td><td>5 per hour</td><td>Per ip</td></tr>
+      <tr><td>Login</td><td>10 per 15 minutes</td><td>Per ip and email</td></tr>
+      <tr><td>Google sign in</td><td>10 per 15 minutes</td><td>Per ip</td></tr>
+      <tr><td>Create scan</td><td>10 per minute, 100 per day</td><td>Per user</td></tr>
+      <tr><td>Stored scans</td><td>500 by default (<code>SCAN_QUOTA</code>)</td><td>Per user, then <code>scan_quota_exceeded</code></td></tr>
+      <tr><td>Upload size</td><td>8 MiB</td><td>Next.js, ASGI middleware and the streaming read</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="sheet landscape">
   <h2>Scan endpoints</h2>
   <table class="table api-table ep">
     <colgroup><col style="width:22%"><col style="width:7%"><col style="width:26%"><col style="width:20%"><col style="width:25%"></colgroup>
     <thead><tr><th>Endpoint</th><th>Auth</th><th>Request</th><th>Response</th><th>Errors</th></tr></thead>
     <tbody>
-      <tr><td><code>POST /scans</code></td><td>Yes, verified</td><td class="lim"><span>Multipart <code>image</code></span><span>Limit 10/min, 100/day (see Rate limits)</span></td><td>202 with <code>id</code>, <code>status</code> (<code>processing</code>) and <code>stage</code></td><td><div class="er"><span class="st">403</span><code>email_not_verified</code></div><div class="er"><span class="st">413</span><code>payload_too_large</code></div><div class="er"><span class="st">415</span><code>unsupported_media_type</code></div><div class="er"><span class="st">422</span><code>invalid_image</code></div><div class="er"><span class="st">429</span><code>rate_limited</code></div><div class="er"><span class="st">409</span><code>scan_quota_exceeded</code></div><div class="er"><span class="st">503</span><code>storage_unavailable</code></div></td></tr>
+      <tr><td><code>POST /scans</code></td><td>Yes</td><td class="lim"><span>Multipart <code>image</code></span><span>Limit 10/min, 100/day (see Rate limits)</span></td><td>202 with <code>id</code>, <code>status</code> (<code>processing</code>) and <code>stage</code></td><td><div class="er"><span class="st">413</span><code>payload_too_large</code></div><div class="er"><span class="st">415</span><code>unsupported_media_type</code></div><div class="er"><span class="st">422</span><code>invalid_image</code></div><div class="er"><span class="st">429</span><code>rate_limited</code></div><div class="er"><span class="st">409</span><code>scan_quota_exceeded</code></div><div class="er"><span class="st">503</span><code>storage_unavailable</code></div></td></tr>
       <tr><td><code>GET /scans/{id}</code></td><td>Yes</td><td class="lim"><span>None</span><span>Poll every 1&nbsp;s, back off to 2&nbsp;s</span></td><td>Scan with <code>status</code>, <code>stage</code>, <code>failure_code</code></td><td><div class="er"><span class="st">404</span><code>not_found</code></div></td></tr>
       <tr><td><code>POST /scans/{id}/retry</code></td><td>Yes</td><td>None</td><td>Prediction re-runs on the stored image</td><td><div class="er"><span class="st">409</span><code>scan_not_failed</code></div></td></tr>
       <tr><td><code>GET /scans</code></td><td>Yes</td><td>Keyset <code>cursor</code>, <code>limit</code> 1 to 50, filters <code>status</code>, <code>verdict</code>, <code>plant</code></td><td>Page of scans with live status badges</td><td><div class="er"><span class="st">400</span><code>invalid_cursor</code></div></td></tr>
@@ -129,21 +137,17 @@ p code, .api-note code, .callout code, .lede code { line-height: 1; }
     <colgroup><col style="width:34%"><col style="width:9%"><col style="width:57%"></colgroup>
     <thead><tr><th>Code</th><th class="num">HTTP</th><th>Meaning</th></tr></thead>
     <tbody>
-      <tr><td><code>token_invalid_or_expired</code></td><td class="num">400</td><td>Email link is unknown, used or expired. One uniform answer.</td></tr>
       <tr><td><code>not_authenticated</code></td><td class="num">401</td><td>No valid access token on a protected call.</td></tr>
       <tr><td><code>token_expired</code></td><td class="num">401</td><td>Access token expired. Next.js refreshes and retries once.</td></tr>
       <tr><td><code>invalid_token</code></td><td class="num">401</td><td>Access token is malformed or fails verification.</td></tr>
       <tr><td><code>invalid_credentials</code></td><td class="num">401</td><td>Wrong email or password. Same message for both, and for Google only accounts.</td></tr>
       <tr><td><code>refresh_invalid</code></td><td class="num">401</td><td>Refresh token unknown, expired or revoked.</td></tr>
       <tr><td><code>refresh_reuse_detected</code></td><td class="num">401</td><td>A rotated token was replayed after the 10 s grace window. The whole family is revoked.</td></tr>
-      <tr><td><code>email_not_verified</code></td><td class="num">403</td><td>Only <code>POST /scans</code> is blocked for unverified users.</td></tr>
-      <tr><td><code>password_incorrect</code></td><td class="num">403</td><td>Current password is wrong on change or delete.</td></tr>
+      <tr><td><code>password_incorrect</code></td><td class="num">403</td><td>Current password is wrong or missing on change (when no recent Google session applies) or on delete.</td></tr>
       <tr><td><code>csrf_failed</code> (Next only)</td><td class="num">403</td><td>Origin check failed on a state changing handler.</td></tr>
       <tr><td><code>email_taken</code></td><td class="num">409</td><td>Registering with an email that already has an account.</td></tr>
-      <tr><td><code>already_verified</code></td><td class="num">409</td><td>Resend requested for a verified email.</td></tr>
-      <tr><td><code>google_auth_failed</code></td><td class="num">400</td><td>Generic Google failure. Details are logged.</td></tr>
-      <tr><td><code>google_email_unverified</code></td><td class="num">400</td><td>Google reports the email as unverified.</td></tr>
-      <tr><td><code>invalid_state</code> (Next only)</td><td class="num">400</td><td>OAuth <code>state</code> does not match the cookie.</td></tr>
+      <tr><td><code>google_auth_failed</code></td><td class="num">400</td><td>Generic Google failure, or Google sign in is disabled (empty <code>FIREBASE_PROJECT_ID</code>). Details are logged.</td></tr>
+      <tr><td><code>google_email_unverified</code></td><td class="num">400</td><td>The Firebase token has no verified email.</td></tr>
       <tr><td><code>not_found</code></td><td class="num">404</td><td>Missing resource, or a scan owned by someone else.</td></tr>
       <tr><td><code>payload_too_large</code></td><td class="num">413</td><td>Body over the 8 MiB cap.</td></tr>
       <tr><td><code>unsupported_media_type</code></td><td class="num">415</td><td>Upload is not JPEG, PNG or WebP.</td></tr>
@@ -167,19 +171,5 @@ p code, .api-note code, .callout code, .lede code { line-height: 1; }
     </tbody>
   </table>
   <p class="muted api-note">Additions in the built API, not in the original plan: <code>service_unavailable</code> (503), <code>method_not_allowed</code> (405) and <code>reauth_required</code> (403, a Google only user needs a fresh sign in before deleting). The 502 for <code>prediction_failed</code> and 409 for <code>scan_quota_exceeded</code> are also build decisions; the plan lists the codes without statuses.</p>
-  <h2>Rate limits</h2>
-  <table class="table api-table">
-    <colgroup><col style="width:36%"><col style="width:26%"><col style="width:38%"></colgroup>
-    <thead><tr><th>Action</th><th>Limit</th><th>Scope</th></tr></thead>
-    <tbody>
-      <tr><td>Register</td><td>5 per hour</td><td>Per ip</td></tr>
-      <tr><td>Login</td><td>10 per 15 minutes</td><td>Per ip and email</td></tr>
-      <tr><td>Google sign in</td><td>10 per 15 minutes</td><td>Per ip</td></tr>
-      <tr><td>Resend verification</td><td>1 per 60 seconds</td><td>Per user (cooldown)</td></tr>
-      <tr><td>Create scan</td><td>10 per minute, 100 per day</td><td>Per user</td></tr>
-      <tr><td>Stored scans</td><td>500 by default (<code>SCAN_QUOTA</code>)</td><td>Per user, then <code>scan_quota_exceeded</code></td></tr>
-      <tr><td>Upload size</td><td>8 MiB</td><td>Next.js, ASGI middleware and the streaming read</td></tr>
-    </tbody>
-  </table>
   <div class="callout note api-note"><span class="callout-title">How limits behave</span><p>Limits use slowapi in memory for v1, so they reset when the API restarts. Redis is the upgrade path. A limited call answers 429 <code>rate_limited</code> with <code>Retry-After</code>, and the UI shows a countdown.</p></div>
 </section>

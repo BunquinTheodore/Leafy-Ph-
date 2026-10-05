@@ -13,7 +13,6 @@
       <tr><td><code>users</code></td><td>Accounts</td><td>One row per person: email, optional password hash.</td></tr>
       <tr><td><code>oauth_<wbr>identity</code></td><td>Accounts</td><td>Links a user to a Google identity by its stable <code>sub</code>.</td></tr>
       <tr><td><code>refresh_token</code></td><td>Tokens</td><td>Rotating refresh tokens grouped in families, stored hashed.</td></tr>
-      <tr><td><code>auth_token</code></td><td>Tokens</td><td>Single use verify and reset tokens, stored hashed.</td></tr>
       <tr><td><code>plant</code></td><td>Catalog</td><td>13 plants with growth conditions and an image.</td></tr>
       <tr><td><code>disease</code></td><td>Catalog</td><td>27 diseases, each belonging to one plant.</td></tr>
       <tr><td><code>disease_entry</code></td><td>Catalog</td><td>Ordered symptom, treatment and prevention text.</td></tr>
@@ -170,7 +169,6 @@
         <tr><td><code>email</code></td><td>citext</td><td>Not null, unique, case insensitive.</td></tr>
         <tr><td><code>password_hash</code></td><td>text</td><td>Nullable. argon2id hash. Null for Google only users.</td></tr>
         <tr><td><code>first_name</code>, <code>last_name</code></td><td>varchar(100)</td><td>Not null, default empty.</td></tr>
-        <tr><td><code>email_<wbr>verified_<wbr>at</code></td><td>timestamptz</td><td>Nullable. Set when the email is verified or Google verified it.</td></tr>
         <tr><td><code>password_<wbr>changed_<wbr>at</code></td><td>timestamptz</td><td>Nullable.</td></tr>
         <tr><td><code>created_at</code>, <code>updated_at</code></td><td>timestamptz</td><td>Not null, default now.</td></tr>
       </tbody>
@@ -191,22 +189,6 @@
       </tbody>
     </table>
     <p class="table-note">Unique <code>(provider, provider_sub)</code>. A user must keep a password or an identity, enforced in the service layer.</p>
-  </div>
-  <div class="keep">
-    <h3>auth_token</h3>
-    <table class="table">
-      <colgroup><col style="width:28%"><col style="width:20%"><col style="width:52%"></colgroup>
-      <thead><tr><th>Column</th><th>Type</th><th>Constraints and notes</th></tr></thead>
-      <tbody>
-        <tr><td><code>id</code></td><td>uuid</td><td>Primary key.</td></tr>
-        <tr><td><code>user_id</code></td><td>uuid</td><td>Not null, FK to <code>users.id</code>, cascade, indexed.</td></tr>
-        <tr><td><code>type</code></td><td>enum</td><td>Not null. <code>verify_email</code> or <code>reset_password</code>.</td></tr>
-        <tr><td><code>token_hash</code></td><td>varchar(64)</td><td>Not null, unique. sha256 of a random 256 bit token.</td></tr>
-        <tr><td><code>created_at</code></td><td>timestamptz</td><td>Not null, default now.</td></tr>
-        <tr><td><code>expires_at</code></td><td>timestamptz</td><td>Not null. Verify 24 h, reset 1 h.</td></tr>
-        <tr><td><code>used_at</code></td><td>timestamptz</td><td>Nullable. Single use, consumed atomically.</td></tr>
-      </tbody>
-    </table>
   </div>
 </section>
 
@@ -232,7 +214,7 @@
         <tr><td><code>user_agent</code></td><td>varchar(300)</td><td>Nullable.</td></tr>
       </tbody>
     </table>
-    <p class="table-note">Only the sha256 hash of a refresh, verify or reset token is stored, so a database leak does not hand out working tokens.</p>
+    <p class="table-note">Only the sha256 hash of a refresh token is stored, so a database leak does not hand out working tokens. Leafy sends no email, so there is no verify or reset token table.</p>
   </div>
 
 

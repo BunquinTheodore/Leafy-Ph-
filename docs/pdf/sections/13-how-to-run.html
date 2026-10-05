@@ -2,7 +2,7 @@
   <header class="section-head">
     <p class="eyebrow">Section {{num}}</p>
     <h1 class="section-title">How to run</h1>
-    <p class="lede">Five commands on Windows, no Docker. The script starts Postgres, storage, Mailpit, the migrations, the seed, the API and the web build, with throwaway local secrets and the mock Google provider.</p>
+    <p class="lede">Five commands on Windows, no Docker. The script starts Postgres, storage, the migrations, the seed, the API and the web build, with throwaway local secrets and the Google mock mode.</p>
   </header>
 
   <h2>Quickstart</h2>
@@ -21,7 +21,6 @@ start http://127.0.0.1:3000               # 4. open the app
     <tbody>
       <tr><td><code>http://127.0.0.1:3000</code></td><td>The app, a Next.js production build.</td></tr>
       <tr><td><code>http://127.0.0.1:8000/docs</code></td><td>The API and its interactive docs.</td></tr>
-      <tr><td><code>http://127.0.0.1:8025</code></td><td>Mailpit inbox. Verification and reset emails land here.</td></tr>
       <tr><td><code>127.0.0.1:5433</code></td><td>Project local Postgres. Port 5432 is never touched.</td></tr>
     </tbody>
   </table>
@@ -35,7 +34,7 @@ start http://127.0.0.1:3000               # 4. open the app
     <tbody>
       <tr><td><code>-MlService stub</code></td><td>Use the unimplemented stub. Every scan fails with Analysis isn&rsquo;t available right now.</td></tr>
       <tr><td><code>-SkipBuild</code></td><td>Reuse the last <code>next build</code>.</td></tr>
-      <tr><td><code>-E2E</code></td><td>Rate limits off, a 1 second resend cooldown, and a second stack with the stub (API <code>:8001</code>, web <code>:3001</code>).</td></tr>
+      <tr><td><code>-E2E</code></td><td>Rate limits off, and a second stack with the stub (API <code>:8001</code>, web <code>:3001</code>).</td></tr>
       <tr><td><code>-Stop</code></td><td>Stop the API, the web servers and the dev services.</td></tr>
     </tbody>
   </table>
@@ -60,11 +59,11 @@ start http://127.0.0.1:3000               # 4. open the app
       <tr><td><code>LEGAL_CONTACT_EMAIL</code></td><td>Put the real contact address into the Privacy Policy and Terms of Use.</td></tr>
       <tr><td><code>TEAM_MEMBERS</code></td><td>Add the three real names for the About page.</td></tr>
       <tr><td>Privacy Policy and Terms</td><td>The text is a plain language draft. Get a legal review.</td></tr>
-      <tr><td>Google sign in</td><td>Create the OAuth client, set <code>GOOGLE_CLIENT_ID</code>, <code>GOOGLE_CLIENT_SECRET</code>, <code>GOOGLE_REDIRECT_URI</code> and <code>GOOGLE_MOCK=0</code>.</td></tr>
+      <tr><td>Google sign in</td><td>Enable Google in Firebase Auth, set <code>FIREBASE_PROJECT_ID</code> in <code>api/.env</code> and the <code>NEXT_PUBLIC_FIREBASE_*</code> values in <code>app/.env.local</code>, keep <code>GOOGLE_MOCK=0</code>.</td></tr>
       <tr><td>ML model</td><td>Plug it in with <code>ML_SERVICE=package.module:ClassName</code> (see the ML integration section).</td></tr>
       <tr><td><code>S3_PUBLIC_ENDPOINT</code></td><td>Set the real public storage host for both <code>api</code> and <code>app</code>.</td></tr>
       <tr><td>Photo provenance</td><td>Check licensing for the handbook images.</td></tr>
     </tbody>
   </table>
-  <p class="muted small">The full suite signs in with Google through the mock provider: <code>/api/auth/google?email=someone@example.com</code> picks the identity. With Docker instead, copy <code>.env.example</code> to <code>.env</code>, edit the secrets, and use <code>docker compose</code>. The Dockerfiles are not written yet.</p>
+  <p class="muted small">The full suite signs in with Google through mock mode (<code>GOOGLE_MOCK=1</code> and <code>NEXT_PUBLIC_AUTH_MOCK=1</code>): a fake popup returns a test signed ID token that the API trusts only in mock mode. With Docker instead, copy <code>.env.example</code> to <code>.env</code>, edit the secrets, and use <code>docker compose</code>.</p>
 </section>

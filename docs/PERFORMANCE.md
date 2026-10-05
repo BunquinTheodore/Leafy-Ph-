@@ -192,7 +192,7 @@ height), which changes the tab order of every carousel, so it was left for a dec
 `app/scripts/axe-audit.mjs` (`pnpm a11y:axe`) runs @axe-core/playwright with the wcag2a, wcag2aa,
 wcag21a, wcag21aa, wcag22aa and best-practice tags on every route, at 1440x900 and 390x844, in dark
 and light, stepping through every panel of every carousel. Public routes: `/`, handbook list, plant,
-disease, login, register, forgot and reset password, verify email, about, privacy, terms, brand, 404.
+disease, login, register, about, privacy, terms, brand, 404.
 Member routes: dashboard, scan, scans, one scan, account.
 
 Result on the final build: **76 scans, 0 serious, 0 critical.** Before the pass the same run found

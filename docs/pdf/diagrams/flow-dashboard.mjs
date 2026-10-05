@@ -3,7 +3,7 @@ import { FLOW_LAYOUT, layoutDiagram } from '../lib/diagram.mjs';
 
 export default async function flowDashboard(ctx) {
   return layoutDiagram({
-    alt: 'Dashboard. Opening /dashboard while signed out goes to /login?next=/dashboard. The dashboard loads the user, the scan stats and the recent scans and shows stat tiles, the top 5 diseases and a recent scans rail. The primary button opens /scan. A verify email banner shows when the email is unverified and an empty account shows a guided first scan prompt.',
+    alt: 'Dashboard. Opening /dashboard while signed out goes to /login?next=/dashboard. The dashboard loads the user, the scan stats and the recent scans and shows stat tiles, the top 5 diseases and a recent scans rail. The primary button opens /scan. An empty account shows a guided first scan prompt.',
     nodes: [
       { id: 'scan', row: 0, col: 0, title: '/scan', sub: 'Primary action' },
       { id: 'cta', row: 0, col: 1, title: 'Scan a leaf button', sub: 'One obvious next action' },
@@ -12,7 +12,6 @@ export default async function flowDashboard(ctx) {
       { id: 'dash', row: 1, col: 1, title: 'Dashboard', sub: 'GET /users/me, /scans/stats, /scans', kind: 'primary' },
       { id: 'top5', row: 1, col: 2, title: 'Top 5 diseases', sub: 'From completed scans' },
       { id: 'handbook', row: 1, col: 3, title: 'Disease page', sub: 'Plant scoped handbook URL' },
-      { id: 'banner', row: 2, col: 0, title: 'Verify email banner', sub: 'Only when unverified, with Resend' },
       { id: 'empty', row: 2, col: 1, title: 'Guided first scan', sub: 'Empty account prompt' },
       { id: 'rail', row: 2, col: 2, title: 'Recent scans rail', sub: 'Newest first, live badges' },
       { id: 'detail', row: 2, col: 3, title: '/scans/[id]', sub: 'Open a scan' },
@@ -27,7 +26,6 @@ export default async function flowDashboard(ctx) {
       { from: 'top5', to: 'handbook', label: 'open' },
       { from: 'rail', to: 'detail', label: 'open' },
       { from: 'dash', to: 'empty', label: 'no scans', style: 'optional', fromSide: 'bottom', toSide: 'top', fromAt: 0.6 },
-      { from: 'dash', to: 'banner', label: 'unverified', style: 'optional', fromSide: 'bottom', toSide: 'right', fromAt: 0.15 },
     ],
     options: { gapX: 84, gapY: 52, maxNodeW: 150, padY: 12, portSep: 24, ...FLOW_LAYOUT },
   }, ctx);

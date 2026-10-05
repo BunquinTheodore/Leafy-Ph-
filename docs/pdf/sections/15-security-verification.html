@@ -10,20 +10,18 @@
     <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
     <thead><tr><th>Area</th><th>Control</th></tr></thead>
     <tbody>
-      <tr><td>Cookies</td><td>httpOnly, Secure in production with the <code>__Host-</code> prefix, SameSite=Lax (Strict would drop the session from email links), Path <code>/</code>. <code>leafy_at</code> lasts 900 s, <code>leafy_rt</code> 30 days.</td></tr>
+      <tr><td>Cookies</td><td>httpOnly, Secure in production with the <code>__Host-</code> prefix, SameSite=Lax, Path <code>/</code>. <code>leafy_at</code> lasts 900 s, <code>leafy_rt</code> 30 days.</td></tr>
       <tr><td>Request origin</td><td>Origin check (<code>assertSameOrigin</code>) on every state changing Next handler. <code>sanitizeNext</code> accepts only paths that start with <code>/</code> and not <code>//</code>.</td></tr>
       <tr><td>Network exposure</td><td>FastAPI is not published in production. It trusts <code>X-Forwarded-For</code> only from the compose network.</td></tr>
-      <tr><td>Passwords</td><td>argon2id, with a dummy hash check on unknown email so timing does not reveal accounts. Length 10 to 128, not the email, not in a common list.</td></tr>
-      <tr><td>Tokens</td><td>Refresh and email tokens are stored hashed (sha256). Refresh rotation with reuse detection revokes the whole family. Email tokens are single use with atomic consume.</td></tr>
-      <tr><td>Uniform errors</td><td>One message for wrong credentials, one for bad email links, and forgot password is safe against enumeration (always 200).</td></tr>
-      <tr><td>Uploads</td><td>8 MiB cap enforced at Next, in ASGI middleware and in the streaming read. Magic byte sniff, Pillow decode, 40M pixel cap, EXIF and GPS stripped by re-encoding, server generated keys. Long edge capped at 2048 px and re-encoded as JPEG; the model receives this sanitized JPEG.</td></tr>
+      <tr><td>Passwords</td><td>argon2id, with a dummy hash check on unknown email. Length 10 to 128, not the email, not common. With no email, a new password without the current one is accepted only after a Google sign in under 10 minutes old.</td></tr>
+      <tr><td>Tokens and errors</td><td>Refresh tokens are stored hashed (sha256). Rotation with reuse detection revokes the whole family. One message for wrong credentials. There is no email channel, so nothing to enumerate or intercept.</td></tr>
+      <tr><td>Uploads</td><td>8 MiB cap at Next, in ASGI middleware and in the streaming read. Magic byte sniff, Pillow decode, 40M pixel cap, EXIF and GPS stripped by re-encoding, server generated keys. The model receives the sanitized JPEG (long edge at most 2048 px).</td></tr>
       <tr><td>Rate limits</td><td>Per ip, email and user limits (slowapi in memory for v1).</td></tr>
       <tr><td>Storage</td><td>Presigned URLs signed against <code>S3_PUBLIC_ENDPOINT</code>. Private scan bucket links last 10 minutes.</td></tr>
-      <tr><td>Browser headers</td><td>CSP with nonce, HSTS, <code>frame-ancestors 'none'</code>, nosniff. Token pages send <code>Referrer-Policy: no-referrer</code>.</td></tr>
-      <tr><td>Google sign in</td><td>PKCE, state and nonce. Exact redirect URI allowlist. ID token checked server side (signature via cached JWKS, <code>iss</code>, <code>aud</code>, <code>exp</code>, <code>nonce</code>, <code>email_verified</code>). Secret only on the API. OAuth cookie single use and 10 minutes long.</td></tr>
+      <tr><td>Browser headers</td><td>CSP with nonce, HSTS, <code>frame-ancestors 'none'</code>, nosniff.</td></tr>
+      <tr><td>Google sign in</td><td>Firebase ID token checked server side with no Admin SDK: RS256 signature via cached securetoken certificates, <code>iss</code>, <code>aud</code>, <code>exp</code>, <code>iat</code>, <code>auth_time</code>, provider and <code>email_verified</code>. No secret anywhere. Mock mode refused in prod. CSP opened only for the popup hosts.</td></tr>
       <tr><td>Data access</td><td>Every scan query is scoped by <code>user_id</code>. Another user's scan answers 404.</td></tr>
-      <tr><td>Logging</td><td>No secrets or tokens in logs. Static error messages, never <code>str(exc)</code>. Audit log line for Google link and create events.</td></tr>
-      <tr><td>Supply chain</td><td><code>pip-audit</code>, <code>pnpm audit</code> and a gitleaks secrets scan in CI. No third party analytics or trackers.</td></tr>
+      <tr><td>Logging and supply chain</td><td>No secrets or tokens in logs, static error messages, an audit log line for Google link and create events. <code>pip-audit</code>, <code>pnpm audit</code> and a gitleaks scan in CI. No third party analytics or trackers.</td></tr>
     </tbody>
   </table>
 </section>
@@ -90,12 +88,12 @@
     <thead><tr><th>Check</th><th>Pass condition</th></tr></thead>
     <tbody>
       <tr><td>Documentation PDF</td><td>Passes the overlap and clipping checks and the page by page visual review. Bookmarks, links and embedded fonts work. Matches the plan section by section.</td></tr>
-      <tr><td>Compose stack</td><td><code>docker compose up</code>: postgres, minio and mailpit healthy. Migrations and <code>python -m app.seeds --check</code> pass (13 plants, 27 diseases).</td></tr>
+      <tr><td>Compose stack</td><td><code>docker compose up</code>: postgres and minio healthy. Migrations and <code>python -m app.seeds --check</code> pass (13 plants, 27 diseases).</td></tr>
       <tr><td>API tests</td><td><code>pytest</code> green with 80 percent or more coverage, including ownership (user B gets 404), refresh rotation and reuse, and account deletion while S3 is down.</td></tr>
       <tr><td class="ws-fix">ML contract</td><td>With a fake ML service, <code>POST /scans</code> stores the image in MinIO and returns disease details. The stub returns 503.</td></tr>
-      <tr><td>Browser flow</td><td>Register, verify via Mailpit, upload, result panels, history, delete, logout. A signed out <code>/dashboard</code> redirects to <code>/login</code>.</td></tr>
-      <tr><td>E2E, layout and speed</td><td>Playwright passes at 360, 768 and 1440 widths. The splash shows on a hard refresh, disappears within 2.2 s, and does not show on client navigation or in Lighthouse runs. Speed: Lighthouse CI meets the thresholds on the four main routes, and PageSpeed Insights on the deployed URL confirms (both wait for hosting).</td></tr>
-      <tr><td>Google tests</td><td>Run against a fake Google (<code>GOOGLE_MOCK=1</code>, ID tokens signed with a test key): new user, existing user link, unverified email rejected, wrong <code>aud</code>, <code>iss</code> or <code>nonce</code>, expired token, replayed code, state mismatch, Google only user password login fails uniformly, set password for a Google only user, delete account without a password.</td></tr>
+      <tr><td>Browser flow</td><td>Register, upload, result panels, history, delete, logout, plus the recovery journey (Google sign in, then a new password without the current one). A signed out <code>/dashboard</code> redirects to <code>/login</code>.</td></tr>
+      <tr><td>E2E, layout and speed</td><td>Playwright passes at 360, 768 and 1440 widths. The splash shows on a hard refresh, hides within 2.2 s, and skips client navigation and Lighthouse runs. Lighthouse CI and PageSpeed Insights meet the thresholds (both wait for hosting).</td></tr>
+      <tr><td>Google and recovery tests</td><td>Fake Google (<code>GOOGLE_MOCK=1</code>): new user, link, unverified email, wrong <code>aud</code>, <code>iss</code> or provider, bad signature, unknown <code>kid</code>, expired, disabled, set password, delete. Recovery: fresh Google session resets, stale one cannot, password session needs the current password.</td></tr>
 
     </tbody>
   </table>
@@ -173,7 +171,7 @@
     <thead><tr><th>Item</th><th>Plan</th></tr></thead>
     <tbody>
       <tr><td>CI</td><td><code>.github/workflows/ci.yml</code> runs ruff, pytest (with a Postgres service), <code>pnpm lint</code>, <code>typecheck</code>, <code>test</code> and <code>build</code>, and a gitleaks secrets scan. Lighthouse CI is configured in <code>app/lighthouserc.json</code> but is not a CI job yet.</td></tr>
-      <tr><td>Local hooks and docs</td><td><code>pre-commit</code> hooks, <code>CONTRIBUTING.md</code>, and a README with a 5 command quickstart, env table, folder map, Google setup steps and the ML integration pointer.</td></tr>
+      <tr><td>Local hooks and docs</td><td><code>pre-commit</code> hooks, <code>CONTRIBUTING.md</code>, and a README with a 5 command quickstart, env table, folder map, Firebase Google setup steps and the ML integration pointer.</td></tr>
       <tr><td>Logging and health</td><td>Structured JSON logs with request ids. <code>/healthz</code> and <code>/readyz</code>.</td></tr>
       <tr><td>Analytics and errors</td><td>No third party analytics or trackers by default. Error reporting hook point (Sentry or similar) is an optional env flag, off by default.</td></tr>
       <tr><td>Content upkeep</td><td>Handbook text lives in the committed seed JSON, reviewed by the team. Editing it means changing the JSON and re-running the idempotent seed. Image alt text and short display names for long disease titles are seed fields, so the title rule is enforced at the source.</td></tr>
@@ -202,7 +200,7 @@
     <thead><tr><th>Item</th><th>Owner and next step</th></tr></thead>
     <tbody>
       <tr><td>Real <code>predict()</code> implementation</td><td>Teammate. The only missing piece of the app. Plug in with <code>ML_SERVICE=pkg.mod:Class</code> using <code>docs/ML_INTEGRATION.md</code> (see the ML integration section).</td></tr>
-      <tr><td>Google OAuth client id and secret</td><td>Team creates the client in Google Cloud Console. Until then the Google mock is used.</td></tr>
+      <tr><td>Firebase console setup and a real Google check</td><td>Team enables Google in Firebase Auth, checks authorized domains and restricts the browser key. Until then mock mode is used, and a real Google login is a manual check.</td></tr>
       <tr><td>Sample image licensing and corrupted blobs in the DAHON dump</td><td>Team reviews before a public deploy. Unreadable blobs are skipped by the extraction tool.</td></tr>
       <tr><td>Privacy Policy and Terms drafts</td><td>Team and a legal check. Drafts are not legal advice.</td></tr>
       <tr><td>Tagline choice</td><td>Pick one at the brand review: &ldquo;Know your leaf.&rdquo;, &ldquo;Read the leaf. Save the plant.&rdquo; or &ldquo;Plant health, understood.&rdquo;</td></tr>
@@ -221,19 +219,20 @@
     <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
     <tbody>
       <tr><td>Access token</td><td>Short lived (15 min) JWT sent as a bearer token to the API.</td></tr>
-      <tr><td>Refresh token</td><td>Opaque token valid 30 days that is replaced on every use. A family lasts at most 90 days.</td></tr>
-      <tr><td>Reuse detection</td><td>Replaying an already rotated refresh token after the grace window revokes the whole family.</td></tr>
-      <tr><td>PKCE</td><td>Proof key for code exchange. A secret created per sign in that stops a stolen authorization code from being used.</td></tr>
-      <tr><td>Nonce</td><td>A one time value tied to the Google ID token so it cannot be replayed.</td></tr>
+      <tr><td>Refresh token</td><td>Opaque token, valid 30 days, replaced on every use.</td></tr>
+      <tr><td>Reuse detection</td><td>Replaying a rotated refresh token revokes the whole family.</td></tr>
+      <tr><td>Firebase ID token</td><td>A signed JWT from Firebase Auth that proves who signed in with Google. FastAPI verifies the signature with Google's public certificates.</td></tr>
+      <tr><td>Authorized domains</td><td>Sites in Firebase Auth settings that may open the Google popup.</td></tr>
       <tr><td>Envelope</td><td>The fixed JSON shape <code>{success, data, error}</code> of every API response.</td></tr>
       <tr><td>Slug</td><td>A lowercase URL name for a plant or disease, such as <code>early-blight</code>.</td></tr>
+      <tr><td>Recent Google session</td><td>A Google sign in under 10 minutes old. It may set a new password without the current one.</td></tr>
       <tr><td>Verdict</td><td>The scan outcome: <code>disease</code>, <code>healthy</code> or <code>unknown</code>.</td></tr>
       <tr><td>Stage</td><td>The step of a processing scan: <code>validating</code>, <code>analyzing</code> or <code>saving</code>.</td></tr>
-      <tr><td>Keyset cursor</td><td>Paging by the last seen <code>(created_at, id)</code> instead of an offset, so deep pages stay fast.</td></tr>
+      <tr><td>Keyset cursor</td><td>Paging by the last seen <code>(created_at, id)</code>, not an offset.</td></tr>
       <tr><td>Presigned URL</td><td>A temporary signed link that lets the browser read one stored image directly.</td></tr>
-      <tr><td>Outbox</td><td>The <code>storage_deletion</code> table that records image keys to delete, so deletes survive an S3 outage.</td></tr>
-      <tr><td>ISR</td><td>Incremental static regeneration: pages built ahead and refreshed on a timer (1 hour for the handbook).</td></tr>
-      <tr><td>Wave and gate</td><td>A wave is a batch of parallel work. A gate is the set of checks that must pass before the next wave.</td></tr>
+      <tr><td>Outbox</td><td>The <code>storage_deletion</code> table of image keys to delete later.</td></tr>
+      <tr><td>ISR</td><td>Incremental static regeneration: pages rebuilt on a timer.</td></tr>
+      <tr><td>Wave and gate</td><td>A wave is parallel work. A gate is the checks before the next wave.</td></tr>
       <tr><td>LCP, INP, CLS</td><td>Web vitals for load speed, responsiveness and layout stability.</td></tr>
       <tr><td>DAHON</td><td>The original prototype. The word means leaf in Filipino. It is credited as the origin, not used as the brand.</td></tr>
     </tbody>

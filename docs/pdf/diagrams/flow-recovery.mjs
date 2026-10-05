@@ -1,27 +1,27 @@
-// Flow 3b: forgot and reset password.
+// Flow 3b: forgot password. No email: a recent Google sign in lets the user set a new password.
 import { FLOW_LAYOUT, layoutDiagram } from '../lib/diagram.mjs';
 
 export default async function flowRecovery(ctx) {
   return layoutDiagram({
-    alt: 'Forgot and reset password. The user enters an email on /forgot-password and always sees the same message. If an account exists an email with a one hour link is sent. The link opens /reset-password with the token; a valid token lets the user set a new password, ends all other sessions and sends a password changed notice, then the user signs in again. An invalid or expired token shows one uniform error and a way to ask again.',
+    alt: 'Forgot password, with no email. The login page shows the help text: Forgot your password? Sign in with Google using the same email, then set a new password in Account. Continue with Google links to the existing account and starts a fresh session. In Account, Password, a Google session younger than 10 minutes asks only for the new password, which ends every other session. An older Google session, or a password sign in, still asks for the current password, and the user can sign in with Google again to start a fresh session. Then the user signs in with the new password.',
     nodes: [
-      { id: 'forgot', row: 0, col: 0, title: '/forgot-password', sub: 'Enter your email', kind: 'primary' },
-      { id: 'sent', row: 0, col: 1, title: 'Same message always', sub: 'If an account exists, we sent a reset link' },
-      { id: 'mail', row: 0, col: 2, title: 'Reset email', sub: 'Link valid for 1 hour. Read it in Mailpit while developing', kind: 'external' },
-      { id: 'reset', row: 0, col: 3, title: '/reset-password', sub: 'Opened from the link with ?token=. New password with a strength hint' },
-      { id: 'err', row: 1, col: 0, title: 'Link invalid or expired', sub: 'One uniform error: token_invalid_or_expired' },
-      { id: 'updated', row: 1, col: 3, title: 'Password updated', sub: 'Ends every session and sends a password changed email' },
-      { id: 'login', row: 2, col: 3, title: '/login', sub: 'Please sign in', kind: 'primary' },
+      { id: 'help', row: 0, col: 0, title: '/login help text', sub: 'Forgot your password? Sign in with Google using the same email', kind: 'primary' },
+      { id: 'google', row: 0, col: 1, title: 'Continue with Google', noWrapTitle: true, sub: 'Same email as the account. It links to it', kind: 'external' },
+      { id: 'fresh', row: 0, col: 2, title: 'Fresh Google session', sub: 'Firebase sign in under 10 minutes ago' },
+      { id: 'account', row: 0, col: 3, title: 'Account, Password', sub: 'POST /users/me/password. New password only', kind: 'primary' },
+      { id: 'stale', row: 1, col: 2, title: 'Older session', sub: 'Over 10 minutes, or a password sign in. Asks for the current password' },
+      { id: 'updated', row: 1, col: 3, title: 'Password updated', sub: 'Ends every other session. No email is sent' },
+      { id: 'login', row: 2, col: 3, title: '/login', sub: 'Sign in with the new password', kind: 'primary' },
     ],
     edges: [
-      { from: 'forgot', to: 'sent', label: 'submit' },
-      { from: 'sent', to: 'mail', label: 'mail', style: 'response' },
-      { from: 'mail', to: 'reset', label: 'tap link' },
-      { from: 'reset', to: 'updated', label: 'valid token' },
-      { from: 'reset', to: 'err', label: 'bad token', fromSide: 'bottom', toSide: 'right', fromAt: 0.25 },
+      { from: 'help', to: 'google', label: 'tap' },
+      { from: 'google', to: 'fresh', label: 'signed in', style: 'response' },
+      { from: 'fresh', to: 'account', label: 'open Account' },
+      { from: 'account', to: 'updated', label: 'fresh: valid' },
+      { from: 'account', to: 'stale', label: 'stale', fromSide: 'bottom', toSide: 'right', fromAt: 0.25, style: 'optional' },
+      { from: 'stale', to: 'google', label: 'sign in again', style: 'optional', fromSide: 'left', toSide: 'bottom' },
       { from: 'updated', to: 'login', label: 'continue' },
-      { from: 'err', to: 'forgot', label: 'ask again', style: 'optional', fromSide: 'top', toSide: 'bottom' },
     ],
-    options: { gapX: 52, gapY: 52, maxNodeW: 190, ...FLOW_LAYOUT },
+    options: { gapX: 36, gapY: 52, maxNodeW: 176, ...FLOW_LAYOUT },
   }, ctx);
 }

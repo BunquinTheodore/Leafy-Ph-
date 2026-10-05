@@ -34,7 +34,6 @@ const DESKTOP = [
   ['outcome-healthy-dark', 'scan/outcome-healthy-desktop-dark.png'],
   ['outcome-unknown-light', 'scan/outcome-unknown-desktop-light.png'],
   ['outcome-failed-dark', 'scan/outcome-failed-desktop-dark.png'],
-  ['outcome-unverified-light', 'scan/error-unverified-desktop-light.png'],
 ];
 const PHONE = [
   ['phone-landing-dark', 'public/landing-hero-390x844-dark.png'],

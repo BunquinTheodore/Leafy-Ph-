@@ -7,10 +7,10 @@ export default async function flowAccount(ctx) {
     nodes: [
       { id: 'acct', row: 0, col: 0, title: '/account', sub: 'Three sideways panels', kind: 'primary' },
       { id: 'profile', row: 0, col: 1, title: 'Profile', sub: 'First and last name. Shows how you sign in: password and or Google' },
-      { id: 'password', row: 0, col: 2, title: 'Password', sub: 'Current and new, with a strength hint' },
+      { id: 'password', row: 0, col: 2, title: 'Password', sub: 'Current and new, with a strength hint. After a recent Google sign in, new only' },
       { id: 'danger', row: 0, col: 3, title: 'Danger zone', sub: 'Delete account' },
       { id: 'save', row: 1, col: 1, title: 'Save profile', sub: 'PATCH /users/me. A toast confirms' },
-      { id: 'change', row: 1, col: 2, title: 'Change or set password', sub: 'POST /users/me/password. Google only users set a first one, no current password needed' },
+      { id: 'change', row: 1, col: 2, title: 'Change or set password', sub: 'POST /users/me/password. No current password for a Google session under 10 min, or a first password' },
       { id: 'confirm', row: 1, col: 3, title: 'Confirm delete', sub: 'Lists what is removed. Password, or type DELETE after a fresh sign in (under 10 min)' },
       { id: 'inline', row: 2, col: 2, title: 'Inline error', sub: '403 password_incorrect. Nothing is deleted' },
       { id: 'goodbye', row: 2, col: 3, title: 'Goodbye page', sub: 'Signed out. Scans and files are removed', kind: 'primary' },

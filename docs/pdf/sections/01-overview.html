@@ -20,7 +20,7 @@
     <tbody>
       <tr><td>Web</td><td>Next.js 15 App Router, TypeScript strict, Tailwind, React Three Fiber for 3D scenes.</td></tr>
       <tr><td>API</td><td>FastAPI on Python 3.12, SQLAlchemy 2 async with asyncpg, Alembic migrations, layered routers, controllers, services and repositories.</td></tr>
-      <tr><td>Data and services</td><td>PostgreSQL 16 (citext, pg_trgm), S3 compatible storage (MinIO in development), SMTP email (Mailpit in development).</td></tr>
+      <tr><td>Data and services</td><td>PostgreSQL 16 (citext, pg_trgm), S3 compatible storage (MinIO in development). No email system: Leafy sends no email.</td></tr>
     </tbody>
   </table>
   <div class="callout warn"><span class="callout-title">Known issue: sample images</span><p>Some images in the DAHON dump are corrupted or mislabelled, so the extractor could not produce disease reference photos. Disease pages say "Reference photos coming soon" until a clean image set exists. Provenance and licensing must be checked before any public deploy.</p></div>
@@ -30,19 +30,19 @@
 <section class="sheet portrait overview">
   <h2>Where the project stands</h2>
   <div class="card-grid cols-2">
-    <div class="card accent"><span class="tag">Built</span><h3>Everything except the model</h3><p>Seed data (13 plants, 27 diseases). The API: auth, Google, email, account, catalog, scans, feedback. The web app: design system, splash, landing, handbook, auth, member shell, dashboard, account and the scan journey. Plus this document.</p></div>
-    <div class="card danger"><span class="tag">Not built</span><h3>Four open items</h3><p>1. The real ML model, written by the teammate. 2. Disease reference images, blocked by corrupt DAHON sample blobs. 3. Real Google credentials. 4. Hosting, which is undecided.</p></div>
+    <div class="card accent"><span class="tag">Built</span><h3>Everything except the model</h3><p>Seed data (13 plants, 27 diseases). The API: auth, Google (Firebase), account, catalog, scans, feedback. The web app: design system, splash, landing, handbook, auth, member shell, dashboard, account and the scan journey. Plus this document.</p></div>
+    <div class="card danger"><span class="tag">Not built</span><h3>Four open items</h3><p>1. The real ML model, written by the teammate. 2. Disease reference images, blocked by corrupt DAHON sample blobs. 3. The Firebase console setup (enable Google, authorized domains, key restriction) and a manual check with a real Google account. 4. Hosting, which is undecided.</p></div>
   </div>
 
   <h2>Confirmed decisions</h2>
   <div class="card-grid cols-2">
     <div class="card"><span class="tag">Auth</span><h3>Cookies set by Next.js</h3><p>JWT access token (15 min) and a rotating refresh token (30 days, 90 day family cap) in httpOnly cookies. Tokens never reach page scripts and there is no browser CORS.</p></div>
-    <div class="card"><span class="tag">Auth</span><h3>Google sign in</h3><p>Continue with Google beside email and password. Authorization Code flow with PKCE, state and nonce. The code exchange runs in FastAPI so the client secret stays on the API.</p></div>
+    <div class="card"><span class="tag">Auth</span><h3>Google sign in</h3><p>Continue with Google beside email and password, through Firebase Auth. The browser gets a Firebase ID token from a popup and FastAPI verifies it against Google's public certificates, so there is no client secret.</p></div>
     <div class="card"><span class="tag">Storage</span><h3>Two buckets, public handbook</h3><p>Private <code>leafy-scans</code> (presigned links, 10 minutes) and public <code>leafy-catalog</code>. The handbook is public; scans, history and account are private. Scan images are not used for training unless the team decides so and updates the Privacy Policy.</p></div>
     <div class="card"><span class="tag">Data</span><h3>Seed from DAHON</h3><p>The DAHON dump seeds the catalog now. Joel's dataset swaps in later through the same seed format.</p></div>
     <div class="card accent"><span class="tag">ML</span><h3>One function contract</h3><p><code>predict(image: bytes) -&gt; dict[str, str]</code> returns <code>{"plant": slug, "disease": slug, "healthy" or "unknown", optional "confidence": "0.93"}</code>. It receives the sanitized JPEG, long edge at most 2048 px, EXIF stripped. The stub raises <code>NotImplementedError</code>, which maps to 503 <code>ml_unavailable</code>.</p></div>
-    <div class="card"><span class="tag">Account</span><h3>Account scope for v1</h3><p>Sign up, sign in, sign out, email verification, forgot and reset password, edit profile, change password, delete account with all scans.</p></div>
-    <div class="card"><span class="tag">Tooling</span><h3>Default toolchain</h3><p>Python 3.12, uv, ruff, pytest, SQLAlchemy 2 async with asyncpg and Alembic. pnpm, Next.js 15, Tailwind. SMTP email with Mailpit in development.</p></div>
+    <div class="card accent"><span class="tag">Email</span><h3>No email, recovery through Google</h3><p>Leafy sends no email: SMTP, verification, reset links and notices are gone, and every signed in user can scan. Forgot your password? Sign in with Google using the same email, then set a new password in Account. A Google sign in under 10 minutes old needs no current password.</p></div>
+    <div class="card"><span class="tag">Tooling</span><h3>Default toolchain</h3><p>Python 3.12, uv, ruff, pytest, SQLAlchemy 2 async with asyncpg and Alembic. pnpm, Next.js 15, Tailwind.</p></div>
     <div class="card"><span class="tag">UI</span><h3>Leafy brand and rules</h3><p>Dark forest default with light mode. Josefin Sans Light caps, Poppins, Manrope. Titles of one or two lines, no hyphenation, sideways panels. English only for v1, strings in one dictionary.</p></div>
     <div class="card"><span class="tag">UX</span><h3>Honest progress</h3><p>Scans return 202 and run in the background. The UI shows real upload percent, then Checking image, Analyzing leaf, Saving result, Done.</p></div>
     <div class="card info"><span class="tag">Speed</span><h3>Lighthouse is the yardstick</h3><p>Four categories at 90 or more on mobile. LCP at most 2.5 s, INP at most 200 ms, CLS at most 0.1.</p></div>
@@ -55,10 +55,10 @@
     <tbody>
       <tr><td>Monorepo and compose</td><td>Scaffold, <code>docker-compose.yml</code>, <code>.env.example</code>, lint and CI skeleton. Dockerfiles for <code>api</code> and <code>app</code> are not written yet.</td><td><span class="status waiting">Partly</span></td></tr>
       <tr><td>Seed data</td><td>13 plants, 27 diseases, <code>labels.json</code>, <code>slug_overrides.yaml</code>, cleaning report, idempotent loader. Raspberry is not seeded, so it resolves to <code>unknown</code>.</td><td><span class="status built">Built</span></td></tr>
-      <tr><td>API core and account</td><td>Config, errors, envelope, models, auth, email tokens, Google sign in (mock until real keys), profile, delete account.</td><td><span class="status built">Built</span></td></tr>
+      <tr><td>API core and account</td><td>Config, errors, envelope, models, auth, Google sign in via Firebase (mock mode until the console is set up), profile, delete account.</td><td><span class="status built">Built</span></td></tr>
       <tr><td>Scans API</td><td>Storage, image validator, ML stub, resolver, async 202 flow, retry, janitor, stats, feedback and its CSV export.</td><td><span class="status built">Built</span></td></tr>
       <tr><td>Web foundation and brand</td><td>Env, <code>apiFetch</code>, cookies, middleware, auth handlers, tokens, logo set, splash, 3D scenes, sound.</td><td><span class="status built">Built</span></td></tr>
-      <tr><td>Public pages</td><td>Landing, handbook (plants, diseases, search), About, Privacy, Terms, SEO, PWA manifest, branded emails.</td><td><span class="status built">Built</span></td></tr>
+      <tr><td>Public pages</td><td>Landing, handbook (plants, diseases, search), About, Privacy, Terms, SEO, PWA manifest.</td><td><span class="status built">Built</span></td></tr>
       <tr><td>Member pages</td><td>Auth pages, dashboard, scan journey with progress UI, result panels, history, feedback, account.</td><td><span class="status built">Built</span></td></tr>
       <tr><td>Browser tests</td><td>Playwright suites for auth, member, scan, UI and the full stack, with layout assertions.</td><td><span class="status built">Built</span></td></tr>
       <tr><td>Lighthouse and PageSpeed</td><td>Lighthouse CI is configured. PageSpeed Insights needs a public URL.</td><td><span class="status waiting">Waits for hosting</span></td></tr>
@@ -72,7 +72,7 @@
     <tbody>
       <tr><td>The real <code>predict()</code></td><td>The teammate writes the ML. Leafy ships the abstract class, the stub, <code>labels.json</code>, <code>slug_overrides.yaml</code> and a one page guide (see the ML integration section). A dev only fake model lets the whole journey run.</td></tr>
       <tr><td>Joel’s dataset</td><td>Swapped into the seed format later.</td></tr>
-      <tr><td>Email change in profile</td><td>Needs re-verification, planned for v2.</td></tr>
+      <tr><td>Email change in profile</td><td>Planned for v2.</td></tr>
       <tr><td>Admin or CMS for handbook</td><td>Content changes by editing the seed JSON and re-running the idempotent seed.</td></tr>
       <tr><td>Deployment</td><td>Decided later. The repository stays deploy ready.</td></tr>
       <tr><td>Filipino translation, Google unlink, profile photo</td><td>English only for v1. The other two are not in v1.</td></tr>
@@ -83,7 +83,7 @@
   <div class="card-grid cols-2">
     <div class="card"><span class="tag">ML</span><h3>Plug in the model</h3><p>The teammate subclasses <code>MLInferenceService</code> and sets <code>ML_SERVICE=package.module:Class</code>. No other code changes.</p></div>
     <div class="card"><span class="tag">Images</span><h3>A clean image set</h3><p>Disease reference photos come from a clean source, such as Joel’s dataset, through the same seed format. Licensing is checked first.</p></div>
-    <div class="card"><span class="tag">Google</span><h3>Create the OAuth client</h3><p>The team creates the client in Google Cloud Console, sets the three Google variables and turns <code>GOOGLE_MOCK</code> off.</p></div>
+    <div class="card"><span class="tag">Google</span><h3>Set up Firebase Auth</h3><p>Enable Google in the Firebase console, check the authorized domains, restrict the browser API key, set <code>FIREBASE_PROJECT_ID</code> and the <code>NEXT_PUBLIC_FIREBASE_*</code> values, and keep <code>GOOGLE_MOCK</code> off.</p></div>
     <div class="card"><span class="tag">Hosting</span><h3>Pick a host</h3><p>Then write the Dockerfiles, set <code>S3_PUBLIC_ENDPOINT</code>, and run PageSpeed Insights on the public URL.</p></div>
   </div>
 </section>

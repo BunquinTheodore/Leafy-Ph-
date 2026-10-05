@@ -1,21 +1,21 @@
-// Section 6: Google sign in, part 1: start and consent (PKCE, state and nonce are created here).
+// Section 6: Google sign in, part 1: the Firebase popup and the ID token (no server involved yet).
 import { sequenceDiagram } from './_seq.mjs';
 
 export default async function seqGoogle(ctx) {
   return sequenceDiagram({
-    alt: 'Google sign in, part one. The browser asks Next.js to start. Next.js makes state, nonce and a PKCE code verifier and stores them in a short lived httpOnly cookie, then redirects to Google. The user picks an account and approves, and Google redirects back to the callback with a code and state.',
+    alt: 'Google sign in, part one. The user clicks Continue with Google. The browser lazy loads the Firebase SDK, which opens the Google popup. The user picks an account and approves. Firebase returns an ID token to the browser, which posts it to the Next.js route handler.',
     participants: [
-      { id: 'browser', title: 'Browser', sub: 'Leafy UI', kind: 'primary' },
-      { id: 'next', title: 'Next.js', sub: 'Route handlers' },
-      { id: 'google', title: 'Google', sub: 'Account picker and consent', kind: 'external' },
+      { id: 'browser', title: 'Browser', sub: 'Leafy UI and Firebase SDK', kind: 'primary' },
+      { id: 'firebase', title: 'Firebase and Google', sub: 'Popup, account picker', kind: 'external' },
+      { id: 'next', title: 'Next.js', sub: '/api/auth/google' },
     ],
     items: [
-      { t: 'msg', from: 'browser', to: 'next', label: 'GET /api/auth/google' },
-      { t: 'note', over: ['next'], text: 'Make state, nonce and a PKCE code_verifier. Keep them, and the sanitized next, in a 10 min httpOnly `__Host-` cookie (SameSite=Lax).' },
-      { t: 'msg', from: 'next', to: 'browser', label: '302 to Google + OAuth cookie', style: 'response' },
-      { t: 'msg', from: 'browser', to: 'google', label: 'GET authorize: S256 challenge, state, nonce, select_account' },
-      { t: 'note', over: ['google'], text: 'The user picks an account and approves openid, email and profile.' },
-      { t: 'msg', from: 'google', to: 'browser', label: '302 to the callback with code and state', style: 'response' },
+      { t: 'note', over: ['browser'], text: 'Click on Continue with Google. Only now the SDK loads (firebase/app and firebase/auth). No analytics.' },
+      { t: 'msg', from: 'browser', to: 'firebase', label: 'signInWithPopup (redirect if blocked)' },
+      { t: 'note', over: ['firebase'], text: 'The user picks a Google account and approves.' },
+      { t: 'msg', from: 'firebase', to: 'browser', label: 'Firebase ID token', style: 'response' },
+      { t: 'msg', from: 'browser', to: 'next', label: 'POST /api/auth/google {id_token}' },
+      { t: 'note', over: ['next'], text: 'Same origin check, and next is sanitized. No token is ever placed in a URL.' },
     ],
   }, ctx);
 }

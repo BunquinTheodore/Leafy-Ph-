@@ -10,7 +10,7 @@
     <colgroup><col style="width:18%"><col></colgroup>
     <thead><tr><th>Who</th><th>Pages</th></tr></thead>
     <tbody>
-      <tr><td>Guest</td><td>Landing, Handbook (public), Login, Register, Forgot and reset password, Verify email. A signed in user who opens a guest page goes to <code>/dashboard</code>.</td></tr>
+      <tr><td>Guest</td><td>Landing, Handbook (public), Login, Register. There are no forgot, reset or verify pages because there is no email. A signed in user who opens a guest page goes to <code>/dashboard</code>.</td></tr>
       <tr><td>Member</td><td>Dashboard, Scan, Scans (history), Scan detail, Handbook, Account. A signed out visitor on a member page goes to <code>/login?next=</code>.</td></tr>
       <tr><td>Navigation</td><td>Desktop: header with Handbook, Scan, History, Dashboard, theme toggle and user menu. Mobile: bottom bar with Home, a centered Scan button, History, Handbook and Account.</td></tr>
       <tr><td>Rule</td><td>Every page keeps one obvious next action.</td></tr>
@@ -23,10 +23,10 @@
     <thead><tr><th>Flow</th><th>Journey</th><th>Entry point</th></tr></thead>
     <tbody>
       <tr><td>1</td><td>First visit</td><td>Splash, then the landing page</td></tr>
-      <tr><td>2</td><td>Sign up and verify email</td><td><code>/register</code>, then the email link</td></tr>
+      <tr><td>2</td><td>Sign up</td><td><code>/register</code></td></tr>
       <tr><td>2b</td><td>Google sign in</td><td>Continue with Google on <code>/login</code> and <code>/register</code></td></tr>
       <tr><td>3</td><td>Sign in, session expiry and sign out</td><td><code>/login</code></td></tr>
-      <tr><td>3b</td><td>Forgot and reset password</td><td><code>/forgot-password</code></td></tr>
+      <tr><td>3b</td><td>Forgot password, through Google</td><td>Help text on <code>/login</code></td></tr>
       <tr><td>4</td><td>Scan a leaf, with four outcomes</td><td><code>/scan</code></td></tr>
       <tr><td>5</td><td>History and delete with undo</td><td><code>/scans</code></td></tr>
       <tr><td>6</td><td>Handbook browse</td><td><code>/handbook</code></td></tr>
@@ -54,19 +54,19 @@
 </section>
 
 <section class="sheet landscape">
-  <h2>Flow 2: sign up and verify email</h2>
-  <!-- @diagram diagrams/flow-signup.mjs caption="Sign up signs the user in at once. Verifying the email unlocks scanning, and a new link is always one tap away." -->
+  <h2>Flow 2: sign up</h2>
+  <!-- @diagram diagrams/flow-signup.mjs caption="Sign up signs the user in at once. There is no email step, and every signed in user can scan." -->
   <div class="legend flow-key">
     <span class="legend-title">Arrows</span>
     <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action</span>
-    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response or email sent</span>
+    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response or redirect</span>
     <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional or conditional</span>
   </div>
 </section>
 
 <section class="sheet landscape">
   <h2>Flow 2b: Google sign in</h2>
-  <!-- @diagram diagrams/flow-google.mjs caption="The browser legs run through Next.js. The code exchange and ID token check run in FastAPI, so the client secret never leaves the API." -->
+  <!-- @diagram diagrams/flow-google.mjs caption="A popup gives the browser a Firebase ID token. FastAPI verifies it against Google's public certificates, so there is no client secret." -->
   <div class="legend flow-key">
     <span class="legend-title">Arrows</span>
     <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action or request</span>
@@ -87,12 +87,12 @@
 </section>
 
 <section class="sheet landscape">
-  <h2>Flow 3b: forgot and reset password</h2>
-  <!-- @diagram diagrams/flow-recovery.mjs caption="The reply never reveals whether an email has an account. A reset ends every other session." -->
+  <h2>Flow 3b: forgot password, through Google</h2>
+  <!-- @diagram diagrams/flow-recovery.mjs caption="No email is sent. A Google sign in under 10 minutes old lets the user set a new password without the current one, and that ends every other session." -->
   <div class="legend flow-key">
     <span class="legend-title">Arrows</span>
     <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action</span>
-    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Email sent</span>
+    <span class="legend-item"><span class="ln dashed" aria-hidden="true"></span>Response</span>
     <span class="legend-item"><span class="ln dotted" aria-hidden="true"></span>Optional or conditional</span>
   </div>
 </section>
@@ -141,7 +141,7 @@
 
 <section class="sheet landscape">
   <h2>Flow 8: account</h2>
-  <!-- @diagram diagrams/flow-account.mjs caption="Three panels. Deleting the account needs a password, or typing DELETE for Google only users. Email change is not in v1." -->
+  <!-- @diagram diagrams/flow-account.mjs caption="Three panels. A Google session under 10 minutes old sets a new password without the current one. Deleting the account needs a password, or typing DELETE for Google only users. Email change is not in v1." -->
   <div class="legend flow-key">
     <span class="legend-title">Arrows</span>
     <span class="legend-item"><span class="ln" aria-hidden="true"></span>User action</span>

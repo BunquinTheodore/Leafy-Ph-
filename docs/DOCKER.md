@@ -10,7 +10,7 @@ See the Docker quickstart in the README for usage. This note records design choi
   Tests, `tools/` and `openapi.json` are excluded by `api/.dockerignore`.
 - `api/entrypoint.sh`: `serve` (default) = `alembic upgrade head`, `python -m app.seeds`, uvicorn
   (`app.main:create_app --factory`). Any other arguments are exec'd, which is how the `purge` service runs
-  `python -m app.jobs.purge_storage --loop` (it also calls `cleanup_tokens` on a timer).
+  `python -m app.jobs.purge_storage --loop` (it also calls `cleanup_tokens` on a timer to drop expired refresh tokens).
 - `app/Dockerfile`: deps, build and runtime stages. `next.config.ts` sets `output: "standalone"` and pins
   `outputFileTracingRoot` to the app folder so `server.js` is always at the top of `.next/standalone`.
   `public/` (brand, cursors, icons, handbook photos, og) is copied explicitly because standalone omits it.

@@ -46,3 +46,7 @@ Thumbs.db
 .next-*/
 test-results-*/
 .lighthouseci*/
+
+# scratch layout screenshots (regenerate with app/scripts/shoot-wide.mjs)
+docs/screens/wide-layout/
+docs/screens/auth-layout/

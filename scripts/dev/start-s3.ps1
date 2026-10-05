@@ -2,8 +2,7 @@
 #
 # Preferred: a local moto server (python, from the api dev dependencies; in memory, data is lost on
 # stop). If you have placed a minio.exe in .dev\bin it is used instead (API 9000, console 9001,
-# data in .dev\minio-data). MinIO binaries are no longer published upstream, see
-# download-binaries.ps1.
+# data in .dev\minio-data). MinIO binaries are no longer published upstream, so none is downloaded.
 . "$PSScriptRoot\common.ps1"
 Initialize-DevDirs
 if (Test-PortListening $MinioPort) { Write-Host "Port $MinioPort already in use, S3 may already be running."; return }

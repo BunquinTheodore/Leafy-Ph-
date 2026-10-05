@@ -21,8 +21,6 @@ $script:PgPassword = if ($env:LEAFY_DEV_PG_PASSWORD) { $env:LEAFY_DEV_PG_PASSWOR
 
 $script:MinioPort = 9000
 $script:MinioConsolePort = 9001
-$script:MailpitSmtpPort = 1025
-$script:MailpitUiPort = 8025
 
 function Initialize-DevDirs {
     foreach ($dir in @($DevDir, $BinDir, $LogDir, $PidDir)) {

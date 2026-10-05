@@ -102,6 +102,15 @@ jobs:
       ENV: dev
       ML_SERVICE: dev-fake
       GOOGLE_MOCK: "1"
+      ALLOW_INSECURE_MOCKS: "1"
+      # Firebase Auth placeholders (public identifiers; never put the real project values here).
+      # The API verifies mock signed tokens, the web build inlines the NEXT_PUBLIC values.
+      FIREBASE_PROJECT_ID: leafy-ci-placeholder
+      NEXT_PUBLIC_AUTH_MOCK: "1"
+      NEXT_PUBLIC_FIREBASE_API_KEY: ci-placeholder-api-key
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: leafy-ci-placeholder.firebaseapp.com
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: leafy-ci-placeholder
+      NEXT_PUBLIC_FIREBASE_APP_ID: 1:000000000000:web:ci-placeholder
       RATE_LIMIT_ENABLED: "false"
       S3_ENDPOINT_URL: http://127.0.0.1:9000
       S3_PUBLIC_ENDPOINT: http://127.0.0.1:9000

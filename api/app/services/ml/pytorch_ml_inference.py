@@ -1,17 +1,29 @@
-"""MobileNetV2 PlantVillage inference service (upgraded over the ResNet9 one).
+"""MobileNetV2 PlantVillage inference service with a CLIP "is this a leaf?" gate.
 
-(MODEL_PATH, ML_ALLOW_PICKLE, ML_RESIZE_MODE) as the arguments for inference service,
-The model utilized is Daksh159/plant-disease-mobilenetv2
+(MODEL_PATH, ML_ALLOW_PICKLE, ML_RESIZE_MODE, ML_LEAF_GATE, ...) are read from env.
+The classifier is Daksh159/plant-disease-mobilenetv2
 (torchvision mobilenet_v2, 224x224, ImageNet normalization).
 
+- Gate: a zero-shot CLIP model checks that the upload is a plant leaf BEFORE the
+  classifier runs. Non-leaf images return plant="unknown", disease="unknown".
+  The CLIP weights are downloaded automatically from Hugging Face on first start
+  (about 600 MB for the default model) and cached for later runs.
 - Handles any input size: MobileNetV2 ends in global average pooling, and every
   upload is brought to 224x224 with ML_RESIZE_MODE (crop | squash | pad | strict).
-  Images that are already 224x224 skip that step.
 - Weights load strictly via load_state_dict. Plain state_dicts use
   torch.load(weights_only=True); a full pickled model is only unpickled when
   ML_ALLOW_PICKLE is on (the default), and only for files you trust.
 - Class order is ASSUMED to be LABEL_MAP order (based on PlantVillage dataset labels)
 - Output labels are mapped explicitly to the app's taxonomy (LABEL_MAP).
+
+Extra dependency:  pip install transformers
+
+Env vars for the gate:
+  ML_LEAF_GATE         true/false   enable the gate (default true)
+  ML_GATE_THRESHOLD    float        min leaf probability to pass (default 0.5)
+  ML_GATE_MODEL        str          HF model id (default openai/clip-vit-base-patch32)
+  ML_GATE_CACHE_DIR    path         where to cache the download (default: HF cache)
+  ML_GATE_OFFLINE      true/false   never hit the network, use the cache only
 """
 import io
 import logging
@@ -86,7 +98,132 @@ INPUT_SIZE = 224  # MobileNetV2 checkpoint was trained at 224x224
 RESIZE_MODES = ("crop", "squash", "pad", "strict")
 PAD_COLOR = (128, 128, 128)
 
+# ---------------------------------------------------------------------------
+# CLIP leaf gate
+# ---------------------------------------------------------------------------
+DEFAULT_GATE_MODEL = "openai/clip-vit-base-patch32"
+DEFAULT_GATE_THRESHOLD = 0.5
 
+LEAF_PROMPTS = [
+    "a close-up photo of a plant leaf",
+    "a photo of a diseased leaf",
+    "a photo of a healthy green leaf",
+]
+NON_LEAF_PROMPTS = [
+    "a photo of a person",
+    "a photo of an animal",
+    "a photo of a hand",
+    "a photo of a room",
+    "a photo of a building",
+    "a photo of a vehicle",
+    "a photo of food",
+    "a photo of soil",
+    "a photo of a whole tree",
+    "a screenshot",
+    "a photo of a document with text",
+    "a blurry photo",
+]
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
+def _as_tensor(out) -> torch.Tensor:
+    """get_*_features returns a tensor in transformers 4.x; newer versions may
+    return a model-output object whose pooler_output holds the projected features."""
+    if isinstance(out, torch.Tensor):
+        return out
+    return out.pooler_output
+
+
+class CLIPLeafGate:
+    """Zero-shot "is this a plant leaf?" check.
+
+    Downloads the CLIP weights from Hugging Face on first use (cached afterwards),
+    encodes the text prompts ONCE, and then only runs the image encoder per request.
+    """
+
+    def __init__(
+        self,
+        device: torch.device,
+        model_name: str = DEFAULT_GATE_MODEL,
+        threshold: float = DEFAULT_GATE_THRESHOLD,
+        cache_dir: str | None = None,
+        offline: bool = False,
+    ):
+        try:
+            from transformers import CLIPImageProcessor, CLIPModel, CLIPTokenizer
+        except ImportError as exc:
+            raise MLConfigurationError(
+                "The leaf gate needs the 'transformers' package "
+                "(pip install transformers), or set ML_LEAF_GATE=false."
+            ) from exc
+
+        self.device = device
+        self.threshold = threshold
+        self.model_name = model_name
+
+        logger.info(
+            "Loading CLIP leaf gate %r (downloads on first run, then uses the cache)...",
+            model_name,
+        )
+        try:
+            self.model = (
+                CLIPModel.from_pretrained(
+                    model_name, cache_dir=cache_dir, local_files_only=offline
+                )
+                .to(device)
+                .eval()
+            )
+            self.tokenizer = CLIPTokenizer.from_pretrained(
+                model_name, cache_dir=cache_dir, local_files_only=offline
+            )
+            self.image_processor = CLIPImageProcessor.from_pretrained(
+                model_name, cache_dir=cache_dir, local_files_only=offline
+            )
+        except OSError as exc:
+            raise MLConfigurationError(
+                f"Could not load/download CLIP model {model_name!r}"
+                f"{' (offline mode, not in cache)' if offline else ''}: {exc}"
+            ) from exc
+
+        self.n_leaf = len(LEAF_PROMPTS)
+        prompts = LEAF_PROMPTS + NON_LEAF_PROMPTS
+        tokens = self.tokenizer(prompts, padding=True, return_tensors="pt").to(device)
+        with torch.inference_mode():
+            text_emb = _as_tensor(self.model.get_text_features(**tokens))
+            self.text_emb = F.normalize(text_emb, dim=-1)  # (n_prompts, d)
+            self.logit_scale = self.model.logit_scale.exp().item()
+        logger.info(
+            "CLIP leaf gate ready (threshold=%.2f, %d leaf / %d non-leaf prompts).",
+            threshold, self.n_leaf, len(NON_LEAF_PROMPTS),
+        )
+
+    @torch.inference_mode()
+    def leaf_probability(self, img: Image.Image) -> float:
+        pixel_values = self.image_processor(images=img, return_tensors="pt")[
+            "pixel_values"
+        ].to(self.device)
+        img_emb = F.normalize(
+            _as_tensor(self.model.get_image_features(pixel_values=pixel_values)),
+            dim=-1,
+        )  # (1, d)
+        logits = self.logit_scale * (img_emb @ self.text_emb.T)[0]  # (n_prompts,)
+        probs = logits.softmax(dim=0)
+        return probs[: self.n_leaf].sum().item()
+
+    def is_leaf(self, img: Image.Image) -> tuple[bool, float]:
+        p = self.leaf_probability(img)
+        return p >= self.threshold, p
+
+
+# ---------------------------------------------------------------------------
+# Inference service
+# ---------------------------------------------------------------------------
 class PytorchMLInferenceService(MLInferenceService):
     def __init__(
         self,
@@ -94,14 +231,14 @@ class PytorchMLInferenceService(MLInferenceService):
         device: str | None = None,
         allow_pickle: bool | None = None,
         resize_mode: str | None = None,
+        leaf_gate: bool | None = None,
+        gate_threshold: float | None = None,
     ):
         self.model_path = Path(
             model_path or os.getenv("MODEL_PATH") or DEFAULT_MODEL_PATH
         )
         if allow_pickle is None:
-            allow_pickle = os.getenv("ML_ALLOW_PICKLE", "true").strip().lower() in (
-                "1", "true", "yes", "on",
-            )
+            allow_pickle = _env_bool("ML_ALLOW_PICKLE", True)
         self.allow_pickle = allow_pickle
         self.resize_mode = (
             resize_mode or os.getenv("ML_RESIZE_MODE", "crop")
@@ -123,6 +260,30 @@ class PytorchMLInferenceService(MLInferenceService):
         )
         self.model = self._load_model()
 
+        # Leaf gate (CLIP). Loaded at startup so the download happens here,
+        # not on the first user request.
+        if leaf_gate is None:
+            leaf_gate = _env_bool("ML_LEAF_GATE", True)
+        self.gate: CLIPLeafGate | None = None
+        if leaf_gate:
+            if gate_threshold is None:
+                try:
+                    gate_threshold = float(
+                        os.getenv("ML_GATE_THRESHOLD", DEFAULT_GATE_THRESHOLD)
+                    )
+                except ValueError as exc:
+                    raise MLConfigurationError(
+                        "ML_GATE_THRESHOLD must be a number between 0 and 1."
+                    ) from exc
+            self.gate = CLIPLeafGate(
+                device=self.device,
+                model_name=os.getenv("ML_GATE_MODEL", DEFAULT_GATE_MODEL),
+                threshold=gate_threshold,
+                cache_dir=os.getenv("ML_GATE_CACHE_DIR") or None,
+                offline=_env_bool("ML_GATE_OFFLINE", False),
+            )
+        else:
+            logger.warning("Leaf gate disabled: non-leaf images will reach the classifier.")
 
     def _read_state_dict(self) -> dict:
         try:
@@ -179,7 +340,6 @@ class PytorchMLInferenceService(MLInferenceService):
             + " | ".join(errors)
         )
 
-
     def _fit(self, img: Image.Image) -> Image.Image:
         size = (INPUT_SIZE, INPUT_SIZE)
         if img.size == size:
@@ -198,8 +358,24 @@ class PytorchMLInferenceService(MLInferenceService):
     def predict(self, image: bytes) -> dict[str, str]:
         img = Image.open(io.BytesIO(image))
         img = ImageOps.exif_transpose(img).convert("RGB")
-        img = self._fit(img)
 
+        # Gate runs on the full-size image, BEFORE _fit, so a center-crop in the
+        # classifier's preprocessing can't hide context from it.
+        if self.gate is not None:
+            is_leaf, leaf_p = self.gate.is_leaf(img)
+            if not is_leaf:
+                logger.info(
+                    "Leaf gate rejected image (leaf_p=%.3f < %.2f).",
+                    leaf_p, self.gate.threshold,
+                )
+                # confidence here = how sure the gate is that this is NOT a leaf
+                return {
+                    "plant": "unknown",
+                    "disease": "unknown",
+                    "confidence": f"{1.0 - leaf_p:.2f}",
+                }
+
+        img = self._fit(img)
         x = self._transform(img).unsqueeze(0).to(self.device)
 
         with torch.inference_mode():

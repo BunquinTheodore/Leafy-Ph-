@@ -1,7 +1,17 @@
+"""Vanilla PlantVillage inference service.
+
+- Architecture copied from the Kaggle notebook (ResNet9).
+- Weights go through load_state_dict (strict) into that architecture.
+  Plain state_dicts load with torch.load(weights_only=True). If the file is a
+  full pickled model, it is unpickled once (only when ML_ALLOW_PICKLE is on,
+  which is the default) and its weights are copied into the notebook ResNet9.
+- No CLIP gate, no resizing/letterboxing/EXIF handling, no normalization, no
+  confidence threshold.
+- Output labels are mapped explicitly to the app's taxonomy (LABEL_MAP).
+"""
 import io
 import os
 import pickle
-import re
 import sys
 from pathlib import Path
 
@@ -14,95 +24,57 @@ from PIL import Image
 from app.services.ml.base import MLInferenceService
 from app.services.ml.dev_fake import MLConfigurationError
 
-PLANTVILLAGE_CLASSES = [
-    "Apple___Apple_scab",
-    "Apple___Black_rot",
-    "Apple___Cedar_apple_rust",
-    "Apple___healthy",
-    "Blueberry___healthy",
-    "Cherry_(including_sour)___Powdery_mildew",
-    "Cherry_(including_sour)___healthy",
-    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
-    "Corn_(maize)___Common_rust_",
-    "Corn_(maize)___Northern_Leaf_Blight",
-    "Corn_(maize)___healthy",
-    "Grape___Black_rot",
-    "Grape___Esca_(Black_Measles)",
-    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
-    "Grape___healthy",
-    "Orange___Haunglongbing_(Citrus_greening)",
-    "Peach___Bacterial_spot",
-    "Peach___healthy",
-    "Pepper,_bell___Bacterial_spot",
-    "Pepper,_bell___healthy",
-    "Potato___Early_blight",
-    "Potato___Late_blight",
-    "Potato___healthy",
-    "Raspberry___healthy",
-    "Soybean___healthy",
-    "Squash___Powdery_mildew",
-    "Strawberry___Leaf_scorch",
-    "Strawberry___healthy",
-    "Tomato___Bacterial_spot",
-    "Tomato___Early_blight",
-    "Tomato___Late_blight",
-    "Tomato___Leaf_Mold",
-    "Tomato___Septoria_leaf_spot",
-    "Tomato___Spider_mites Two-spotted_spider_mite",
-    "Tomato___Target_Spot",
-    "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
-    "Tomato___Tomato_mosaic_virus",
-    "Tomato___healthy",
-]
-
-LABEL_OVERRIDES: dict[str, tuple[str, str]] = {
+LABEL_MAP: dict[str, tuple[str, str]] = {
+    "Apple___Apple_scab": ("apple", "apple-scab"),
+    "Apple___Black_rot": ("apple", "black-rot"),
+    "Apple___Cedar_apple_rust": ("apple", "cedar-apple-rust"),
+    "Apple___healthy": ("apple", "healthy"),
+    "Blueberry___healthy": ("blueberry", "healthy"),
+    "Cherry_(including_sour)___Powdery_mildew": ("cherry", "powdery-mildew"),
+    "Cherry_(including_sour)___healthy": ("cherry", "healthy"),
+    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": ("corn", "gray-leaf-spot"),
+    "Corn_(maize)___Common_rust_": ("corn", "common-rust"),
+    "Corn_(maize)___Northern_Leaf_Blight": ("corn", "northern-corn-leaf-blight"),
+    "Corn_(maize)___healthy": ("corn", "healthy"),
+    "Grape___Black_rot": ("grape", "black-rot"),
+    "Grape___Esca_(Black_Measles)": ("grape", "esca"),
+    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": ("grape", "leaf-blight"),
+    "Grape___healthy": ("grape", "healthy"),
+    "Orange___Haunglongbing_(Citrus_greening)": ("orange", "huanglongbing"),
+    "Peach___Bacterial_spot": ("peach", "bacterial-spot"),
+    "Peach___healthy": ("peach", "healthy"),
+    "Pepper,_bell___Bacterial_spot": ("bell-pepper", "bacterial-spot"),
+    "Pepper,_bell___healthy": ("bell-pepper", "healthy"),
+    "Potato___Early_blight": ("potato", "early-blight"),
+    "Potato___Late_blight": ("potato", "late-blight"),
+    "Potato___healthy": ("potato", "healthy"),
+    "Raspberry___healthy": ("unknown", "unknown"),
+    "Soybean___healthy": ("soybean", "healthy"),
+    "Squash___Powdery_mildew": ("squash", "powdery-mildew"),
+    "Strawberry___Leaf_scorch": ("strawberry", "leaf-scorch"),
+    "Strawberry___healthy": ("strawberry", "healthy"),
+    "Tomato___Bacterial_spot": ("tomato", "bacterial-spot"),
+    "Tomato___Early_blight": ("tomato", "early-blight"),
+    "Tomato___Late_blight": ("tomato", "late-blight"),
+    "Tomato___Leaf_Mold": ("tomato", "leaf-mold"),
+    "Tomato___Septoria_leaf_spot": ("tomato", "septoria-leaf-spot"),
+    "Tomato___Spider_mites Two-spotted_spider_mite": ("tomato", "spider-mites"),
+    "Tomato___Target_Spot": ("tomato", "target-spot"),
+    "Tomato___Tomato_Yellow_Leaf_Curl_Virus": ("tomato", "tomato-yellow-leaf-curl-virus"),
+    "Tomato___Tomato_mosaic_virus": ("tomato", "tomato-mosaic-virus"),
+    "Tomato___healthy": ("tomato", "healthy"),
 }
-
-IMAGENET_MEAN = (0.485, 0.456, 0.406)
-IMAGENET_STD = (0.229, 0.224, 0.225)
 
 DEFAULT_MODEL_PATH = (
     Path(__file__).parent / "models" / "plant-disease-model-complete.pth"
 )
-
-LEAF_PROMPTS = [
-    "a photo of a plant leaf",
-    "a close-up photo of a diseased plant leaf",
-    "a photo of a healthy green leaf",
-]
-
-NOT_LEAF_PROMPTS = [
-    "a photo of a person",
-    "a photo of a human hand",
-    "a photo of an animal",
-    "a photo of a pet",
-    "a photo of a building",
-    "a photo of a car",
-    "a photo of food",
-    "a photo of a fruit",
-    "a photo of furniture",
-    "a photo of a room",
-    "a photo of the sky",
-    "a photo of a wall",
-    "a photo of soil or the ground",
-    "a screenshot",
-    "a photo of a document or text",
-    "a blurry photo",
-    "a photo of an object on a table",
-]
+INPUT_SIZE = 256
 
 
-def slugify(text: str) -> str:
-    """'Cherry_(including_sour)' -> 'cherry', 'Late_blight' -> 'late_blight'."""
-    text = re.sub(r"\(.*?\)", "", text)  # drop parentheticals
-    text = re.sub(r"[^a-zA-Z0-9]+", "_", text)  # collapse everything else
-    return text.strip("_").lower()
-
-
-def _conv_block(in_ch: int, out_ch: int, pool: bool = False) -> nn.Sequential:
+def ConvBlock(in_channels, out_channels, pool=False):
     layers = [
-        nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
-        nn.BatchNorm2d(out_ch),
+        nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+        nn.BatchNorm2d(out_channels),
         nn.ReLU(inplace=True),
     ]
     if pool:
@@ -111,17 +83,19 @@ def _conv_block(in_ch: int, out_ch: int, pool: bool = False) -> nn.Sequential:
 
 
 class ResNet9(nn.Module):
-
-    def __init__(self, in_channels: int, num_classes: int):
+    def __init__(self, in_channels, num_diseases):
         super().__init__()
-        self.conv1 = _conv_block(in_channels, 64)
-        self.conv2 = _conv_block(64, 128, pool=True)
-        self.res1 = nn.Sequential(_conv_block(128, 128), _conv_block(128, 128))
-        self.conv3 = _conv_block(128, 256, pool=True)
-        self.conv4 = _conv_block(256, 512, pool=True)
-        self.res2 = nn.Sequential(_conv_block(512, 512), _conv_block(512, 512))
+
+        self.conv1 = ConvBlock(in_channels, 64)
+        self.conv2 = ConvBlock(64, 128, pool=True)  # 128 x 64 x 64
+        self.res1 = nn.Sequential(ConvBlock(128, 128), ConvBlock(128, 128))
+
+        self.conv3 = ConvBlock(128, 256, pool=True)  # 256 x 16 x 16
+        self.conv4 = ConvBlock(256, 512, pool=True)  # 512 x 4 x 4
+        self.res2 = nn.Sequential(ConvBlock(512, 512), ConvBlock(512, 512))
+
         self.classifier = nn.Sequential(
-            nn.MaxPool2d(4), nn.Flatten(), nn.Linear(512, num_classes)
+            nn.MaxPool2d(4), nn.Flatten(), nn.Linear(512, num_diseases)
         )
 
     def forward(self, xb):
@@ -131,172 +105,98 @@ class ResNet9(nn.Module):
         out = self.conv3(out)
         out = self.conv4(out)
         out = self.res2(out) + out
-        return self.classifier(out)
-
-
-def _env_bool(name: str, default: bool) -> bool:
-    value = os.getenv(name)
-    return default if value is None else value.strip().lower() in ("1", "true", "yes", "on")
-
-
-def _env_float(name: str, default):
-    value = os.getenv(name)
-    return default if value is None else float(value)
+        out = self.classifier(out)
+        return out
 
 
 class PytorchMLInferenceService(MLInferenceService):
-    """PlantVillage classifier with an optional CLIP "is this a leaf?" gate.
-        This gate classifies and captures non-leaf items in order to improve
-        classification accuracy.
-    """
-
     def __init__(
         self,
         model_path: str | None = None,
-        classes: list[str] | None = None,
-        label_overrides: dict[str, tuple[str, str]] | None = None,
-        input_size: int = 256,
-        letterbox: bool = True,
-        min_confidence: float | None = 0.5,
         device: str | None = None,
-        leaf_gate: bool = True,
-        leaf_min_prob: float = 0.5,
-        clip_model: str | None = None,
+        allow_pickle: bool | None = None,
     ):
-        self.model_path = model_path or os.getenv("MODEL_PATH") or DEFAULT_MODEL_PATH
-        self.classes = classes or PLANTVILLAGE_CLASSES
-        self.label_overrides = label_overrides or LABEL_OVERRIDES
-        self.input_size = int(_env_float("ML_INPUT_SIZE", input_size))
-        self.letterbox = _env_bool("ML_LETTERBOX", letterbox)
-        self.min_confidence = _env_float("ML_MIN_CONFIDENCE", min_confidence)
+        self.model_path = Path(
+            model_path or os.getenv("MODEL_PATH") or DEFAULT_MODEL_PATH
+        )
+        if allow_pickle is None:
+            allow_pickle = os.getenv("ML_ALLOW_PICKLE", "true").strip().lower() in (
+                "1", "true", "yes", "on",
+            )
+        self.allow_pickle = allow_pickle
+        self.classes = list(LABEL_MAP)
         self.device = torch.device(
             device or ("cuda" if torch.cuda.is_available() else "cpu")
         )
-
-        self._pad_color = tuple(round(m * 255) for m in IMAGENET_MEAN)
-        steps = [T.ToTensor()]
-        if os.getenv("ML_NORMALIZE", "none").strip().lower() != "none":
-            steps.append(T.Normalize(IMAGENET_MEAN, IMAGENET_STD))
-        self._to_tensor = T.Compose(steps)
+        self._to_tensor = T.ToTensor()
 
         self.model = self._load_model()
 
-        self.leaf_gate = _env_bool("ML_LEAF_GATE", leaf_gate)
-        self.leaf_min_prob = _env_float("ML_LEAF_MIN_PROB", leaf_min_prob)
-        if self.leaf_gate:
-            self._load_gate(
-                clip_model
-                or os.getenv("CLIP_MODEL", "openai/clip-vit-base-patch32")
-            )
-        self._split = {c: self._to_slugs(c) for c in self.classes}
-
-    def _build_architecture(self) -> torch.nn.Module:
-        """note: Only used when the .pth is a state_dict."""
-        return ResNet9(3, len(self.classes))
-
-    def _load_model(self) -> torch.nn.Module:
-        if not Path(self.model_path).is_file():
-            raise MLConfigurationError(f"Model file not found: {self.model_path}")
+    def _read_state_dict(self) -> dict:
         try:
             obj = torch.load(
                 self.model_path, map_location=self.device, weights_only=True
             )
-        except pickle.UnpicklingError:
-            main = sys.modules["__main__"]
-            injected = not hasattr(main, "ResNet9")
-            if injected:
-                main.ResNet9 = ResNet9
-            try:
-                obj = torch.load(
-                    self.model_path, map_location=self.device, weights_only=False
-                )
-            except (AttributeError, ModuleNotFoundError) as exc:
+        except pickle.UnpicklingError as exc:
+            if not self.allow_pickle:
                 raise MLConfigurationError(
-                    "The model file is a full pickled model, but its class is not "
-                    f"importable ({exc}). Make the class importable where the "
-                    "pickle expects it, or re-save the model as a state_dict."
+                    f"{self.model_path} is not a plain state_dict (it looks like a "
+                    "full pickled model). Set ML_ALLOW_PICKLE=true to load it, or "
+                    "convert it with convert_to_state_dict.py."
                 ) from exc
-            finally:
-                if injected:
-                    del main.ResNet9
+            obj = self._load_full_pickle()
+        if isinstance(obj, nn.Module):
+            obj = obj.state_dict()
+        if isinstance(obj, dict):
+            for key in ("state_dict", "model_state_dict"):
+                if key in obj and isinstance(obj[key], dict):
+                    obj = obj[key]
+                    break
+        return {k.removeprefix("module."): v for k, v in obj.items()}
 
-        if isinstance(obj, torch.nn.Module):
-            model = obj
-        else:
-            state = obj
-            if isinstance(obj, dict):
-                for key in ("state_dict", "model_state_dict", "model"):
-                    if key in obj and isinstance(obj[key], dict):
-                        state = obj[key]
-                        break
-            state = {k.removeprefix("module."): v for k, v in state.items()}
-            model = self._build_architecture()
-            model.load_state_dict(state)
-
-        return model.to(self.device).eval()
-
-    def _to_slugs(self, label: str) -> tuple[str, str]:
-        if label in self.label_overrides:
-            return self.label_overrides[label]
-        plant, _, disease = label.partition("___")
-        return slugify(plant), slugify(disease) or "unknown"
-
-    def _preprocess(self, img: Image.Image) -> torch.Tensor:
-        size = self.input_size
-        if self.letterbox:
-            img.thumbnail((size, size), Image.Resampling.BICUBIC)
-            canvas = Image.new("RGB", (size, size), self._pad_color)
-            canvas.paste(img, ((size - img.width) // 2, (size - img.height) // 2))
-            img = canvas
-        else:
-            img = img.resize((size, size), Image.Resampling.BICUBIC)
-
-        return self._to_tensor(img).unsqueeze(0).to(self.device)
-
-    def _load_gate(self, name: str) -> None:
+    def _load_full_pickle(self):
+        main = sys.modules["__main__"]
+        injected = not hasattr(main, "ResNet9")
+        if injected:
+            main.ResNet9 = ResNet9
         try:
-            from transformers import CLIPModel, CLIPProcessor
-        except ImportError as exc:
+            return torch.load(
+                self.model_path, map_location=self.device, weights_only=False
+            )
+        except (AttributeError, ModuleNotFoundError) as exc:
             raise MLConfigurationError(
-                "The leaf gate needs `transformers`; install it or set "
-                "ML_LEAF_GATE=false"
+                "The model file is a full pickled model, but its class is not "
+                f"importable ({exc})."
             ) from exc
+        finally:
+            if injected:
+                del main.ResNet9
 
-        self._clip = CLIPModel.from_pretrained(name).to(self.device).eval()
-        self._clip_proc = CLIPProcessor.from_pretrained(name)
-        prompts = LEAF_PROMPTS + NOT_LEAF_PROMPTS
-        self._n_leaf_prompts = len(LEAF_PROMPTS)
-        self._clip_text = self._clip_proc(
-            text=prompts, return_tensors="pt", padding=True
-        ).to(self.device)
-
-    def _leaf_probability(self, img: Image.Image) -> float:
-        pixels = self._clip_proc(images=img, return_tensors="pt")["pixel_values"]
-        with torch.inference_mode():
-            out = self._clip(**self._clip_text, pixel_values=pixels.to(self.device))
-            probs = out.logits_per_image[0].softmax(dim=-1)
-        return probs[: self._n_leaf_prompts].sum().item()
+    def _load_model(self) -> nn.Module:
+        if not self.model_path.is_file():
+            raise MLConfigurationError(f"Model file not found: {self.model_path}")
+        model = ResNet9(3, len(self.classes))
+        model.load_state_dict(self._read_state_dict())  # strict
+        return model.to(self.device).eval()
 
     def predict(self, image: bytes) -> dict[str, str]:
         img = Image.open(io.BytesIO(image)).convert("RGB")
+        if img.size != (INPUT_SIZE, INPUT_SIZE):
+            raise ValueError(
+                f"Expected a {INPUT_SIZE}x{INPUT_SIZE} image (as in the dataset), "
+                f"got {img.size[0]}x{img.size[1]}. This vanilla service does no resizing."
+            )
 
-        if self.leaf_gate and self._leaf_probability(img) < self.leaf_min_prob:
-            return {"plant": "unknown", "disease": "unknown"}
-
-        x = self._preprocess(img)
+        x = self._to_tensor(img).unsqueeze(0).to(self.device)
 
         with torch.inference_mode():
             probs = F.softmax(self.model(x), dim=1)[0]
 
         confidence, idx = probs.max(dim=0)
-        confidence = confidence.item()
-        plant, disease = self._split[self.classes[idx.item()]]
-
-        if self.min_confidence is not None and confidence < self.min_confidence:
-            disease = "unknown"
+        plant, disease = LABEL_MAP[self.classes[idx.item()]]
 
         return {
             "plant": plant,
             "disease": disease,
-            "confidence": f"{confidence:.2f}",
+            "confidence": f"{confidence.item():.2f}",
         }

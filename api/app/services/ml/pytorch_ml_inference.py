@@ -1,28 +1,35 @@
-"""Vanilla PlantVillage inference service.
+"""MobileNetV2 PlantVillage inference service (upgraded over the ResNet9 one).
 
-- Architecture copied from the Kaggle notebook (ResNet9).
-- Weights go through load_state_dict (strict) into that architecture.
-  Plain state_dicts load with torch.load(weights_only=True). If the file is a
-  full pickled model, it is unpickled once (only when ML_ALLOW_PICKLE is on,
-  which is the default) and its weights are copied into the notebook ResNet9.
-- No CLIP gate, no resizing/letterboxing/EXIF handling, no normalization, no
-  confidence threshold.
+(MODEL_PATH, ML_ALLOW_PICKLE, ML_RESIZE_MODE) as the arguments for inference service,
+The model utilized is Daksh159/plant-disease-mobilenetv2
+(torchvision mobilenet_v2, 224x224, ImageNet normalization).
+
+- Handles any input size: MobileNetV2 ends in global average pooling, and every
+  upload is brought to 224x224 with ML_RESIZE_MODE (crop | squash | pad | strict).
+  Images that are already 224x224 skip that step.
+- Weights load strictly via load_state_dict. Plain state_dicts use
+  torch.load(weights_only=True); a full pickled model is only unpickled when
+  ML_ALLOW_PICKLE is on (the default), and only for files you trust.
+- Class order is ASSUMED to be LABEL_MAP order (based on PlantVillage dataset labels)
 - Output labels are mapped explicitly to the app's taxonomy (LABEL_MAP).
 """
 import io
+import logging
 import os
 import pickle
-import sys
 from pathlib import Path
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as T
-from PIL import Image
+from PIL import Image, ImageOps
+from torchvision import models
 
 from app.services.ml.base import MLInferenceService
 from app.services.ml.dev_fake import MLConfigurationError
+
+logger = logging.getLogger(__name__)
 
 LABEL_MAP: dict[str, tuple[str, str]] = {
     "Apple___Apple_scab": ("apple", "apple-scab"),
@@ -65,48 +72,19 @@ LABEL_MAP: dict[str, tuple[str, str]] = {
     "Tomato___healthy": ("tomato", "healthy"),
 }
 
-DEFAULT_MODEL_PATH = (
-    Path(__file__).parent / "models" / "plant-disease-model-complete.pth"
-)
-INPUT_SIZE = 256
+DEFAULT_MODEL_PATH = Path(__file__).parent / "models" / "mobilenetv2_plant.pth"
+IMAGENET_MEAN = (0.485, 0.456, 0.406)
+IMAGENET_STD = (0.229, 0.224, 0.225)
+INPUT_SIZE = 224  # MobileNetV2 checkpoint was trained at 224x224
 
-
-def ConvBlock(in_channels, out_channels, pool=False):
-    layers = [
-        nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-        nn.BatchNorm2d(out_channels),
-        nn.ReLU(inplace=True),
-    ]
-    if pool:
-        layers.append(nn.MaxPool2d(4))
-    return nn.Sequential(*layers)
-
-
-class ResNet9(nn.Module):
-    def __init__(self, in_channels, num_diseases):
-        super().__init__()
-
-        self.conv1 = ConvBlock(in_channels, 64)
-        self.conv2 = ConvBlock(64, 128, pool=True)  # 128 x 64 x 64
-        self.res1 = nn.Sequential(ConvBlock(128, 128), ConvBlock(128, 128))
-
-        self.conv3 = ConvBlock(128, 256, pool=True)  # 256 x 16 x 16
-        self.conv4 = ConvBlock(256, 512, pool=True)  # 512 x 4 x 4
-        self.res2 = nn.Sequential(ConvBlock(512, 512), ConvBlock(512, 512))
-
-        self.classifier = nn.Sequential(
-            nn.MaxPool2d(4), nn.Flatten(), nn.Linear(512, num_diseases)
-        )
-
-    def forward(self, xb):
-        out = self.conv1(xb)
-        out = self.conv2(out)
-        out = self.res1(out) + out
-        out = self.conv3(out)
-        out = self.conv4(out)
-        out = self.res2(out) + out
-        out = self.classifier(out)
-        return out
+# Note: This is the method to be used when handling images that are bigger than 224x224.
+# Configure this method with the ML_RESIZE_MODE env var
+#   crop   - resize the short side to 224, center-crop (leaf fills the frame)
+#   squash - resize straight to 224x224 (keeps everything, distorts aspect ratio)
+#   pad    - letterbox with a neutral gray (keeps everything, leaf gets smaller)
+#   strict - raise ValueError
+RESIZE_MODES = ("crop", "squash", "pad", "strict")
+PAD_COLOR = (128, 128, 128)
 
 
 class PytorchMLInferenceService(MLInferenceService):
@@ -115,6 +93,7 @@ class PytorchMLInferenceService(MLInferenceService):
         model_path: str | None = None,
         device: str | None = None,
         allow_pickle: bool | None = None,
+        resize_mode: str | None = None,
     ):
         self.model_path = Path(
             model_path or os.getenv("MODEL_PATH") or DEFAULT_MODEL_PATH
@@ -124,13 +103,26 @@ class PytorchMLInferenceService(MLInferenceService):
                 "1", "true", "yes", "on",
             )
         self.allow_pickle = allow_pickle
-        self.classes = list(LABEL_MAP)
+        self.resize_mode = (
+            resize_mode or os.getenv("ML_RESIZE_MODE", "crop")
+        ).strip().lower()
+        if self.resize_mode not in RESIZE_MODES:
+            raise MLConfigurationError(
+                f"ML_RESIZE_MODE must be one of {RESIZE_MODES}, got {self.resize_mode!r}"
+            )
+        self.classes = list(LABEL_MAP)  # index -> raw class name
         self.device = torch.device(
             device or ("cuda" if torch.cuda.is_available() else "cpu")
         )
-        self._to_tensor = T.ToTensor()
-
+        self._transform = T.Compose(
+            [T.ToTensor(), T.Normalize(IMAGENET_MEAN, IMAGENET_STD)]
+        )
+        logger.info(
+            "Assuming checkpoint class order == LABEL_MAP order (%d classes).",
+            len(self.classes),
+        )
         self.model = self._load_model()
+
 
     def _read_state_dict(self) -> dict:
         try:
@@ -141,10 +133,12 @@ class PytorchMLInferenceService(MLInferenceService):
             if not self.allow_pickle:
                 raise MLConfigurationError(
                     f"{self.model_path} is not a plain state_dict (it looks like a "
-                    "full pickled model). Set ML_ALLOW_PICKLE=true to load it, or "
-                    "convert it with convert_to_state_dict.py."
+                    "full pickled model). Set ML_ALLOW_PICKLE=true to load it."
                 ) from exc
-            obj = self._load_full_pickle()
+            # Only for files you trust: unpickling can execute code.
+            obj = torch.load(
+                self.model_path, map_location=self.device, weights_only=False
+            )
         if isinstance(obj, nn.Module):
             obj = obj.state_dict()
         if isinstance(obj, dict):
@@ -154,40 +148,59 @@ class PytorchMLInferenceService(MLInferenceService):
                     break
         return {k.removeprefix("module."): v for k, v in obj.items()}
 
-    def _load_full_pickle(self):
-        main = sys.modules["__main__"]
-        injected = not hasattr(main, "ResNet9")
-        if injected:
-            main.ResNet9 = ResNet9
-        try:
-            return torch.load(
-                self.model_path, map_location=self.device, weights_only=False
-            )
-        except (AttributeError, ModuleNotFoundError) as exc:
-            raise MLConfigurationError(
-                "The model file is a full pickled model, but its class is not "
-                f"importable ({exc})."
-            ) from exc
-        finally:
-            if injected:
-                del main.ResNet9
+    def _build_model(self, dropout_head: bool) -> nn.Module:
+        model = models.mobilenet_v2(weights=None)
+        in_features = model.classifier[1].in_features
+        n = len(self.classes)
+        model.classifier[1] = (
+            nn.Sequential(nn.Dropout(0.2), nn.Linear(in_features, n))
+            if dropout_head
+            else nn.Linear(in_features, n)
+        )
+        return model
 
     def _load_model(self) -> nn.Module:
         if not self.model_path.is_file():
             raise MLConfigurationError(f"Model file not found: {self.model_path}")
-        model = ResNet9(3, len(self.classes))
-        model.load_state_dict(self._read_state_dict())  # strict
-        return model.to(self.device).eval()
+        state = self._read_state_dict()
+
+        errors = []
+        for dropout_head in (True, False):
+            model = self._build_model(dropout_head)
+            try:
+                model.load_state_dict(state)
+            except RuntimeError as exc:
+                errors.append(f"dropout_head={dropout_head}: {str(exc)[:300]}")
+                continue
+            return model.to(self.device).eval()
+
+        raise MLConfigurationError(
+            "The weights do not fit torchvision mobilenet_v2 with either head. "
+            + " | ".join(errors)
+        )
+
+
+    def _fit(self, img: Image.Image) -> Image.Image:
+        size = (INPUT_SIZE, INPUT_SIZE)
+        if img.size == size:
+            return img
+        if self.resize_mode == "strict":
+            raise ValueError(
+                f"Expected a {INPUT_SIZE}x{INPUT_SIZE} image, got "
+                f"{img.size[0]}x{img.size[1]} (ML_RESIZE_MODE=strict)."
+            )
+        if self.resize_mode == "squash":
+            return img.resize(size, Image.Resampling.BICUBIC)
+        if self.resize_mode == "pad":
+            return ImageOps.pad(img, size, Image.Resampling.BICUBIC, color=PAD_COLOR)
+        return ImageOps.fit(img, size, Image.Resampling.BICUBIC)  # crop
 
     def predict(self, image: bytes) -> dict[str, str]:
-        img = Image.open(io.BytesIO(image)).convert("RGB")
-        if img.size != (INPUT_SIZE, INPUT_SIZE):
-            raise ValueError(
-                f"Expected a {INPUT_SIZE}x{INPUT_SIZE} image (as in the dataset), "
-                f"got {img.size[0]}x{img.size[1]}. This vanilla service does no resizing."
-            )
+        img = Image.open(io.BytesIO(image))
+        img = ImageOps.exif_transpose(img).convert("RGB")
+        img = self._fit(img)
 
-        x = self._to_tensor(img).unsqueeze(0).to(self.device)
+        x = self._transform(img).unsqueeze(0).to(self.device)
 
         with torch.inference_mode():
             probs = F.softmax(self.model(x), dim=1)[0]

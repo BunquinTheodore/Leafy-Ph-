@@ -26,6 +26,8 @@ Env vars for the gate:
   ML_GATE_OFFLINE      true/false   never hit the network, use the cache only
 """
 
+from __future__ import annotations
+
 import io
 import logging
 import os
@@ -133,12 +135,12 @@ def _env_bool(name: str, default: bool) -> bool:
     return raw.strip().lower() in ("1", "true", "yes", "on")
 
 
-def _as_tensor(out) -> torch.Tensor:
+def _as_tensor(out: torch.Tensor) -> torch.Tensor:
     """get_*_features returns a tensor in transformers 4.x; newer versions may
     return a model-output object whose pooler_output holds the projected features."""
     if isinstance(out, torch.Tensor):
         return out
-    return out.pooler_output
+    return torch.Tensor(out.pooler_output)
 
 
 class CLIPLeafGate:
@@ -173,15 +175,13 @@ class CLIPLeafGate:
             model_name,
         )
         try:
-            self.model = (
-                CLIPModel.from_pretrained(model_name, cache_dir=cache_dir, local_files_only=offline)
-                .to(device)
-                .eval()
-            )
-            self.tokenizer = CLIPTokenizer.from_pretrained(
+            self.model: CLIPModel = CLIPModel.from_pretrained(
+                model_name, cache_dir=cache_dir, local_files_only=offline
+            ).eval()  # type: ignore[no-untyped-call]
+            self.tokenizer: CLIPTokenizer = CLIPTokenizer.from_pretrained(
                 model_name, cache_dir=cache_dir, local_files_only=offline
             )
-            self.image_processor = CLIPImageProcessor.from_pretrained(
+            self.image_processor: CLIPImageProcessor = CLIPImageProcessor.from_pretrained(
                 model_name, cache_dir=cache_dir, local_files_only=offline
             )
         except OSError as exc:
@@ -215,7 +215,7 @@ class CLIPLeafGate:
         )  # (1, d)
         logits = self.logit_scale * (img_emb @ self.text_emb.T)[0]  # (n_prompts,)
         probs = logits.softmax(dim=0)
-        return probs[: self.n_leaf].sum().item()
+        return float(probs[: self.n_leaf].sum().item())
 
     def is_leaf(self, img: Image.Image) -> tuple[bool, float]:
         p = self.leaf_probability(img)
@@ -239,7 +239,7 @@ class PytorchMLInferenceService(MLInferenceService):
         if allow_pickle is None:
             allow_pickle = _env_bool("ML_ALLOW_PICKLE", True)
         self.allow_pickle = allow_pickle
-        self.resize_mode = (resize_mode or os.getenv("ML_RESIZE_MODE", "crop")).strip().lower()
+        self.resize_mode = (resize_mode or os.getenv("ML_RESIZE_MODE") or "crop").strip().lower()
         if self.resize_mode not in RESIZE_MODES:
             raise MLConfigurationError(
                 f"ML_RESIZE_MODE must be one of {RESIZE_MODES}, got {self.resize_mode!r}"
@@ -276,7 +276,7 @@ class PytorchMLInferenceService(MLInferenceService):
         else:
             logger.warning("Leaf gate disabled: non-leaf images will reach the classifier.")
 
-    def _read_state_dict(self) -> dict:
+    def _read_state_dict(self) -> dict[str, object]:
         try:
             obj = torch.load(self.model_path, map_location=self.device, weights_only=True)
         except pickle.UnpicklingError as exc:
@@ -305,7 +305,7 @@ class PytorchMLInferenceService(MLInferenceService):
             if dropout_head
             else nn.Linear(in_features, n)
         )
-        return model
+        return model.to(self.device).eval()  # type: ignore[no-any-return]
 
     def _load_model(self) -> nn.Module:
         if not self.model_path.is_file():
@@ -343,7 +343,7 @@ class PytorchMLInferenceService(MLInferenceService):
         return ImageOps.fit(img, size, Image.Resampling.BICUBIC)  # crop
 
     def predict(self, image: bytes) -> dict[str, str]:
-        img = Image.open(io.BytesIO(image))
+        img: Image.Image = Image.open(io.BytesIO(image))
         img = ImageOps.exif_transpose(img).convert("RGB")
 
         # Gate runs on the full-size image, BEFORE _fit, so a center-crop in the
@@ -370,7 +370,7 @@ class PytorchMLInferenceService(MLInferenceService):
             probs = F.softmax(self.model(x), dim=1)[0]
 
         confidence, idx = probs.max(dim=0)
-        plant, disease = LABEL_MAP[self.classes[idx.item()]]
+        plant, disease = LABEL_MAP[self.classes[int(idx.item())]]
 
         return {
             "plant": plant,

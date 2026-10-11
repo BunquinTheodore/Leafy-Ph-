@@ -79,7 +79,16 @@ python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
 exclude = ["app/db/migrations/"]
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = ["boto3.*", "botocore.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "torchvision.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "transformers.*"
 ignore_missing_imports = true

@@ -5,3 +5,14 @@ allowBuilds:
   protobufjs: false
 overrides:
   "next>postcss": "^8.5.28"
+  # note: the following overrides are required due to a current CVE
+  "@grpc/grpc-js@<1.13.6": ">=1.13.6"
+  "tmp@<0.2.6": ">=0.2.6"
+  "basic-ftp@<=6.2.0": ">=6.2.1"
+  "uuid@<11.1.1": "^11.1.1"
+
+auditConfig:
+  ignoreGhsas:
+    # all the following deps are dev-only tools
+    # since they don't have an upstream fix patch, they will be ignored for now.
+    - GHSA-vfj7-8cjw-p6xm

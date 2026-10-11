@@ -25,6 +25,7 @@ Env vars for the gate:
   ML_GATE_CACHE_DIR    path         where to cache the download (default: HF cache)
   ML_GATE_OFFLINE      true/false   never hit the network, use the cache only
 """
+
 import io
 import logging
 import os
@@ -173,9 +174,7 @@ class CLIPLeafGate:
         )
         try:
             self.model = (
-                CLIPModel.from_pretrained(
-                    model_name, cache_dir=cache_dir, local_files_only=offline
-                )
+                CLIPModel.from_pretrained(model_name, cache_dir=cache_dir, local_files_only=offline)
                 .to(device)
                 .eval()
             )
@@ -200,14 +199,16 @@ class CLIPLeafGate:
             self.logit_scale = self.model.logit_scale.exp().item()
         logger.info(
             "CLIP leaf gate ready (threshold=%.2f, %d leaf / %d non-leaf prompts).",
-            threshold, self.n_leaf, len(NON_LEAF_PROMPTS),
+            threshold,
+            self.n_leaf,
+            len(NON_LEAF_PROMPTS),
         )
 
     @torch.inference_mode()
     def leaf_probability(self, img: Image.Image) -> float:
-        pixel_values = self.image_processor(images=img, return_tensors="pt")[
-            "pixel_values"
-        ].to(self.device)
+        pixel_values = self.image_processor(images=img, return_tensors="pt")["pixel_values"].to(
+            self.device
+        )
         img_emb = F.normalize(
             _as_tensor(self.model.get_image_features(pixel_values=pixel_values)),
             dim=-1,
@@ -234,26 +235,18 @@ class PytorchMLInferenceService(MLInferenceService):
         leaf_gate: bool | None = None,
         gate_threshold: float | None = None,
     ):
-        self.model_path = Path(
-            model_path or os.getenv("MODEL_PATH") or DEFAULT_MODEL_PATH
-        )
+        self.model_path = Path(model_path or os.getenv("MODEL_PATH") or DEFAULT_MODEL_PATH)
         if allow_pickle is None:
             allow_pickle = _env_bool("ML_ALLOW_PICKLE", True)
         self.allow_pickle = allow_pickle
-        self.resize_mode = (
-            resize_mode or os.getenv("ML_RESIZE_MODE", "crop")
-        ).strip().lower()
+        self.resize_mode = (resize_mode or os.getenv("ML_RESIZE_MODE", "crop")).strip().lower()
         if self.resize_mode not in RESIZE_MODES:
             raise MLConfigurationError(
                 f"ML_RESIZE_MODE must be one of {RESIZE_MODES}, got {self.resize_mode!r}"
             )
         self.classes = list(LABEL_MAP)  # index -> raw class name
-        self.device = torch.device(
-            device or ("cuda" if torch.cuda.is_available() else "cpu")
-        )
-        self._transform = T.Compose(
-            [T.ToTensor(), T.Normalize(IMAGENET_MEAN, IMAGENET_STD)]
-        )
+        self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+        self._transform = T.Compose([T.ToTensor(), T.Normalize(IMAGENET_MEAN, IMAGENET_STD)])
         logger.info(
             "Assuming checkpoint class order == LABEL_MAP order (%d classes).",
             len(self.classes),
@@ -268,9 +261,7 @@ class PytorchMLInferenceService(MLInferenceService):
         if leaf_gate:
             if gate_threshold is None:
                 try:
-                    gate_threshold = float(
-                        os.getenv("ML_GATE_THRESHOLD", DEFAULT_GATE_THRESHOLD)
-                    )
+                    gate_threshold = float(os.getenv("ML_GATE_THRESHOLD", DEFAULT_GATE_THRESHOLD))
                 except ValueError as exc:
                     raise MLConfigurationError(
                         "ML_GATE_THRESHOLD must be a number between 0 and 1."
@@ -287,9 +278,7 @@ class PytorchMLInferenceService(MLInferenceService):
 
     def _read_state_dict(self) -> dict:
         try:
-            obj = torch.load(
-                self.model_path, map_location=self.device, weights_only=True
-            )
+            obj = torch.load(self.model_path, map_location=self.device, weights_only=True)
         except pickle.UnpicklingError as exc:
             if not self.allow_pickle:
                 raise MLConfigurationError(
@@ -297,9 +286,7 @@ class PytorchMLInferenceService(MLInferenceService):
                     "full pickled model). Set ML_ALLOW_PICKLE=true to load it."
                 ) from exc
             # Only for files you trust: unpickling can execute code.
-            obj = torch.load(
-                self.model_path, map_location=self.device, weights_only=False
-            )
+            obj = torch.load(self.model_path, map_location=self.device, weights_only=False)
         if isinstance(obj, nn.Module):
             obj = obj.state_dict()
         if isinstance(obj, dict):
@@ -366,7 +353,8 @@ class PytorchMLInferenceService(MLInferenceService):
             if not is_leaf:
                 logger.info(
                     "Leaf gate rejected image (leaf_p=%.3f < %.2f).",
-                    leaf_p, self.gate.threshold,
+                    leaf_p,
+                    self.gate.threshold,
                 )
                 # confidence here = how sure the gate is that this is NOT a leaf
                 return {

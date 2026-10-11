@@ -1,5 +1,3 @@
-"""Application settings. Missing or unsafe values stop startup (fail fast)."""
-
 from functools import lru_cache
 from typing import Literal, Self
 
@@ -32,6 +30,14 @@ class Settings(BaseSettings):
     argon2_parallelism: int = Field(default=1, ge=1)
 
     ml_service: str = "stub"
+    hf_home: str = Field(default="/var/cache/huggingface")  # Fixed: use /var/cache instead of /tmp
+    ml_leaf_gate: bool = Field(default=True)
+    ml_leaf_min_prob: float = Field(default=0.5)
+    ml_min_confidence: float = Field(default=0.5)
+    ml_input_size: int = Field(default=256)
+    ml_letterbox: bool = Field(default=True)
+    ml_normalize: str = Field(default="none")
+
     max_upload_bytes: int = Field(default=8_388_608, ge=1)
     scan_quota: int = Field(default=500, ge=1)
     ml_timeout: float = Field(default=30.0, ge=0.1, le=600.0)
@@ -99,6 +105,7 @@ class Settings(BaseSettings):
         return self
 
 
-@lru_cache
+@lru_cache(maxsize=1)
 def get_settings() -> Settings:
+    """Get or create the global settings instance (cached)."""
     return Settings()

@@ -19,10 +19,13 @@ export function MagnifierImage({
   src,
   alt,
   caption,
+  sourceUrl,
 }: {
   src: string;
   alt: string;
   caption?: string;
+  /** Link to the original photo page, shown as "Source" beside the caption. */
+  sourceUrl?: string;
 }) {
   const [lens, setLens] = useState<LensState | null>(null);
 
@@ -54,7 +57,19 @@ export function MagnifierImage({
           }}
         />
       ) : null}
-      {caption ? <figcaption>{caption}</figcaption> : null}
+      {caption ? (
+        <figcaption>
+          {caption}
+          {sourceUrl ? (
+            <>
+              {" "}
+              <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="vein-link">
+                Source
+              </a>
+            </>
+          ) : null}
+        </figcaption>
+      ) : null}
     </figure>
   );
 }

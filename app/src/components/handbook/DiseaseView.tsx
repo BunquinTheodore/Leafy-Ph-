@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useMemo, type ReactNode } from "react";
 import { causeSentence, handbookCopy } from "@/lib/handbook/copy";
 import type { ViewportSize } from "@/lib/handbook/device";
+import { diseasePhotos } from "@/lib/handbook/disease-photos";
 import { plantPhotoSrc } from "@/lib/handbook/photos";
 import { severityLevel } from "@/lib/handbook/severity";
 import type { SearchEntry } from "@/lib/handbook/search";
@@ -217,8 +218,33 @@ function CausesPanel({
   );
 }
 
+interface Shot {
+  src: string;
+  alt: string;
+  caption?: string;
+  /** Where the photo came from, linked from its caption. */
+  sourceUrl?: string;
+}
+
+/** Photos from the API when it has any, otherwise the bundled reference photos with their credits. */
+function shotsFor(disease: DiseaseDetail): Shot[] {
+  if (disease.images.length > 0)
+    return disease.images.map((image) => ({
+      src: image.url,
+      alt: image.alt_text ?? `${disease.display_name} on ${disease.plant.name}`,
+      caption: image.alt_text ?? undefined,
+    }));
+  return diseasePhotos(disease.plant.slug, disease.slug).map((photo) => ({
+    src: photo.src,
+    alt: photo.alt,
+    caption: `Photo: ${photo.credit}, ${photo.license}`,
+    sourceUrl: photo.source,
+  }));
+}
+
 function ImagesPanel({ disease, related }: { disease: DiseaseDetail; related: SearchEntry[] }) {
-  if (disease.images.length === 0) {
+  const shots = shotsFor(disease);
+  if (shots.length === 0) {
     return (
       <Shell title="Images">
         <EmptyState
@@ -239,12 +265,13 @@ function ImagesPanel({ disease, related }: { disease: DiseaseDetail; related: Se
   return (
     <Shell title="Images">
       <div className="shots" data-no-drag>
-        {disease.images.map((image) => (
+        {shots.map((shot) => (
           <MagnifierImage
-            key={image.url}
-            src={image.url}
-            alt={image.alt_text ?? `${disease.display_name} on ${disease.plant.name}`}
-            caption={image.alt_text ?? undefined}
+            key={shot.src}
+            src={shot.src}
+            alt={shot.alt}
+            caption={shot.caption}
+            sourceUrl={shot.sourceUrl}
           />
         ))}
       </div>

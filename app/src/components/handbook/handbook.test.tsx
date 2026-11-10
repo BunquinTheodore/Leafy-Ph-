@@ -156,8 +156,20 @@ describe("DiseaseView", () => {
   });
 
   it("shows the graceful empty state when there are no reference photos", () => {
-    render(<DiseaseView disease={detail()} />);
+    render(
+      <DiseaseView
+        disease={detail({ plant: { slug: "cherry", name: "Cherry" }, slug: "powdery-mildew" })}
+      />,
+    );
     expect(screen.getByText("Reference photos coming soon")).toBeInTheDocument();
+  });
+
+  it("falls back to the bundled credited photos when the API has none", () => {
+    const { container } = render(<DiseaseView disease={detail()} />);
+    const images = within(container.querySelector("#images") as HTMLElement);
+    expect(images.getAllByAltText("Early Blight on Tomato").length).toBeGreaterThan(0);
+    expect(images.getAllByText(/^Photo: .+, .+/).length).toBeGreaterThan(0);
+    expect(images.queryByText("Reference photos coming soon")).toBeNull();
   });
 
   it("shows reference photos with a lens when images exist", () => {
@@ -212,8 +224,9 @@ describe("Suggestions", () => {
   });
 
   it("shows related diseases when a disease has no photos", () => {
-    const related = buildSearchIndex([], [summary("tomato", "Tomato", "Late Blight")]);
-    render(<DiseaseView disease={detail()} related={related} />);
+    const related = buildSearchIndex([], [summary("cherry", "Cherry", "Late Blight")]);
+    const noPhotos = detail({ plant: { slug: "cherry", name: "Cherry" }, slug: "powdery-mildew" });
+    render(<DiseaseView disease={noPhotos} related={related} />);
     expect(screen.getByRole("link", { name: /Late Blight/ })).toBeInTheDocument();
   });
 });

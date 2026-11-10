@@ -2,6 +2,7 @@
 
 import io
 import threading
+import uuid
 from typing import Any
 
 import httpx
@@ -27,6 +28,7 @@ from tests.support.ml_fakes import ScriptedML
 pytestmark = pytest.mark.integration
 
 
+@pytest.mark.tc("TC-007")
 async def test_create_returns_202_and_stores_a_clean_jpeg(
     client: httpx.AsyncClient, auth: dict[str, str], storage: FakeStorage, ml: ScriptedML
 ) -> None:
@@ -43,6 +45,7 @@ async def test_create_returns_202_and_stores_a_clean_jpeg(
     ml.gate.set()
 
 
+@pytest.mark.tc("TC-007")
 async def test_worker_walks_the_stages_and_completes(
     client: httpx.AsyncClient, auth: dict[str, str], settle: Settle, ml: ScriptedML
 ) -> None:
@@ -98,6 +101,7 @@ async def test_healthy_verdict(
     assert done["confidence"] is None
 
 
+@pytest.mark.tc("TC-009")
 async def test_unknown_plant_and_raw_prediction_stored(
     client: httpx.AsyncClient,
     auth: dict[str, str],
@@ -156,6 +160,7 @@ async def test_other_errors_fail_with_prediction_failed_and_never_leak(
 
 
 @pytest.mark.parametrize("ml_timeout", [0.2])
+@pytest.mark.tc("TC-010")
 async def test_timeout_fails_with_prediction_failed(
     client: httpx.AsyncClient, auth: dict[str, str], settle: Settle, ml: ScriptedML
 ) -> None:
@@ -185,6 +190,7 @@ async def test_missing_stored_image_fails_the_scan(
 # ---- validation and limits -----------------------------------------------------------------
 
 
+@pytest.mark.tc("TC-015")
 async def test_requires_authentication(client: httpx.AsyncClient) -> None:
     response = await client.post(SCANS, files={"image": ("a.jpg", make_image(), "image/jpeg")})
     assert response.status_code == 401
@@ -209,6 +215,7 @@ async def test_a_user_who_never_verified_an_email_can_scan(
         (b"", 422, "invalid_image"),
     ],
 )
+@pytest.mark.tc("TC-008")
 async def test_invalid_uploads(
     client: httpx.AsyncClient,
     auth: dict[str, str],
@@ -223,12 +230,14 @@ async def test_invalid_uploads(
     assert storage.objects == {}
 
 
+@pytest.mark.tc("TC-017")
 async def test_too_large_upload(client: httpx.AsyncClient, auth: dict[str, str]) -> None:
     response = await upload(client, auth, b"\xff\xd8\xff" + b"0" * (8 * 1024 * 1024 + 10))
     assert response.status_code == 413
     assert response.json()["error"]["code"] == "payload_too_large"
 
 
+@pytest.mark.tc("TC-016")
 async def test_missing_file_field(client: httpx.AsyncClient, auth: dict[str, str]) -> None:
     response = await client.post(SCANS, headers=auth, data={"note": "x"})
     assert response.status_code == 422
@@ -273,6 +282,8 @@ async def test_storage_outage_on_upload(
 # ---- ownership --------------------------------------------------------------------------------
 
 
+@pytest.mark.tc("TC-011")
+@pytest.mark.tc("TC-019")
 async def test_other_users_get_404(
     client: httpx.AsyncClient, auth: dict[str, str], other_auth: dict[str, str], settle: Settle
 ) -> None:
@@ -293,3 +304,20 @@ async def test_unknown_scan_id_is_404_and_bad_id_is_422(
     missing = "00000000-0000-4000-8000-000000000000"
     assert (await client.get(f"{SCANS}/{missing}", headers=auth)).status_code == 404
     assert (await client.get(f"{SCANS}/not-a-uuid", headers=auth)).status_code == 422
+
+
+@pytest.mark.tc("TC-019")
+async def test_another_members_scan_is_indistinguishable_from_a_missing_one(
+    client: httpx.AsyncClient, auth: dict[str, str], other_auth: dict[str, str], settle: Settle
+) -> None:
+    scan_id = await upload_and_settle(client, auth, settle)
+    foreign = await client.get(f"{SCANS}/{scan_id}", headers=other_auth)
+    missing = await client.get(f"{SCANS}/{uuid.uuid4()}", headers=other_auth)
+
+    assert foreign.status_code == missing.status_code == 404
+    assert foreign.json()["data"] is None
+    assert foreign.json()["error"]["code"] == missing.json()["error"]["code"]
+    assert foreign.json()["error"]["message"] == missing.json()["error"]["message"]
+    assert scan_id not in foreign.text
+    for leaked in ("verdict", "plant", "disease", "confidence", "image"):
+        assert leaked not in foreign.text.lower()

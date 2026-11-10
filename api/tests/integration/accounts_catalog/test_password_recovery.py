@@ -36,6 +36,7 @@ async def _login_ok(client: httpx.AsyncClient, password: str) -> bool:
     return response.status_code == 200
 
 
+@pytest.mark.tc("TC-004")
 async def test_a_fresh_google_session_can_set_a_new_password_without_the_current_one(
     client: httpx.AsyncClient, google: MockGoogleProvider
 ) -> None:

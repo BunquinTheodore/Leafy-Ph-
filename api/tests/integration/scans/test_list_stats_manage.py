@@ -124,6 +124,7 @@ async def test_processing_scans_show_in_the_list(
 # ---- stats ---------------------------------------------------------------------------------
 
 
+@pytest.mark.tc("TC-012")
 async def test_stats_counts_completed_only(
     client: httpx.AsyncClient,
     auth: dict[str, str],
@@ -257,6 +258,7 @@ async def test_retry_reuses_the_stored_image(
     assert len(ml.calls) == 2
 
 
+@pytest.mark.tc("TC-018")
 async def test_retry_only_for_failed_scans(
     client: httpx.AsyncClient, auth: dict[str, str], settle: Settle, ml: ScriptedML
 ) -> None:

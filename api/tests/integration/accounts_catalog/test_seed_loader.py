@@ -5,7 +5,13 @@ import shutil
 from pathlib import Path
 
 import pytest
-from app.db.models import Disease, DiseaseEntry, Plant
+from app.db.models import (
+    Disease,
+    DiseaseAffectedSpecies,
+    DiseaseEntry,
+    DiseaseImage,
+    Plant,
+)
 from app.seeds.loader import (
     SEEDS_DIR,
     SeedError,
@@ -84,6 +90,7 @@ async def test_pathogen_types_use_the_database_enum_values(session_factory: Fact
         assert late.value == "oomycete"
 
 
+@pytest.mark.tc("SEED-01")
 async def test_loading_twice_changes_nothing(session_factory: Factory) -> None:
     bundle = load_bundle()
     await seed_database(session_factory, bundle)
@@ -221,3 +228,32 @@ def test_command_line_loads_and_checks(
         assert main(["--check"]) == 0
     finally:
         get_settings.cache_clear()
+
+
+async def _catalog_snapshot(factory: Factory) -> dict[str, list[tuple[object, ...]]]:
+    """Every row of every catalog table, minus bookkeeping timestamps, in a stable order."""
+    snapshot: dict[str, list[tuple[object, ...]]] = {}
+    async with factory() as session:
+        for model in (Plant, Disease, DiseaseEntry, DiseaseAffectedSpecies, DiseaseImage):
+            columns = [c for c in model.__table__.columns if not c.name.endswith("_at")]
+            rows = (
+                await session.execute(
+                    select(*columns).order_by(*model.__table__.primary_key.columns)
+                )
+            ).all()
+            snapshot[model.__tablename__] = [tuple(row) for row in rows]
+    return snapshot
+
+
+@pytest.mark.tc("SEED-01")
+async def test_a_second_run_keeps_every_catalog_table_identical(session_factory: Factory) -> None:
+    bundle = load_bundle()
+    first_report = await seed_database(session_factory, bundle)
+    before = await _catalog_snapshot(session_factory)
+    second_report = await seed_database(session_factory, bundle)
+    after = await _catalog_snapshot(session_factory)
+
+    assert before["plant"] and before["disease"] and before["disease_entry"]
+    assert before["disease_affected_species"]
+    assert after == before
+    assert second_report == first_report

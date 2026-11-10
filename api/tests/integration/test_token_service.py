@@ -117,6 +117,7 @@ async def test_second_use_inside_grace_returns_access_only(
     assert len(await harness.rows()) == 2  # no extra token was minted
 
 
+@pytest.mark.tc("TC-003")
 async def test_reuse_after_grace_revokes_family_and_the_revocation_persists(
     harness: Harness, user_id: uuid.UUID
 ) -> None:

@@ -96,6 +96,7 @@ async def _age(engine: AsyncEngine, scan_id: str, when: Any) -> None:
         )
 
 
+@pytest.mark.tc("TC-010")
 async def test_stale_worker_cannot_corrupt_a_retried_run(
     app: FastAPI,
     client: httpx.AsyncClient,

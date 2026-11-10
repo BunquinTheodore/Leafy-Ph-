@@ -55,6 +55,7 @@ async def test_list_plants_returns_all_thirteen_sorted_by_name(
     )
 
 
+@pytest.mark.tc("TC-006")
 async def test_catalog_is_public_and_wrapped_in_the_envelope(
     client: httpx.AsyncClient, seeded: None
 ) -> None:
@@ -120,6 +121,7 @@ async def test_unknown_plant_is_404_with_the_error_envelope(
     assert response.json()["data"] is None
 
 
+@pytest.mark.tc("TC-006")
 async def test_disease_detail_groups_entries_by_kind_in_order(
     client: httpx.AsyncClient, seeded: None
 ) -> None:
@@ -289,3 +291,29 @@ async def test_no_n_plus_one_queries(app: FastAPI, client: httpx.AsyncClient, se
     assert len(diseases) == 1
     assert len(plant) == 2
     assert len(disease) == 4
+
+
+@pytest.mark.tc("TC-006")
+async def test_a_signed_out_visitor_gets_plant_and_disease_details(
+    client: httpx.AsyncClient, seeded: None
+) -> None:
+    for path in (
+        "/api/v1/plants",
+        "/api/v1/plants/tomato",
+        "/api/v1/plants/tomato/diseases/early-blight",
+    ):
+        response = await client.get(path)
+        assert "authorization" not in response.request.headers
+        assert "cookie" not in response.request.headers
+        assert response.status_code == 200, path
+        assert response.json()["error"] is None
+
+    plant = (await client.get("/api/v1/plants/tomato")).json()["data"]
+    assert plant["name"] == "Tomato"
+    assert any(disease["slug"] == "early-blight" for disease in plant["diseases"])
+
+    disease = (await client.get("/api/v1/plants/tomato/diseases/early-blight")).json()["data"]
+    assert disease["plant"]["slug"] == "tomato"
+    assert disease["slug"] == "early-blight"
+    assert disease["symptoms"]
+    assert disease["treatments"]

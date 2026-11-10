@@ -37,6 +37,8 @@ async def _put(
 # ---- feedback ------------------------------------------------------------------------------
 
 
+@pytest.mark.tc("TC-013")
+@pytest.mark.tc("TC-014")
 async def test_feedback_upsert_and_delete(
     client: httpx.AsyncClient, auth: dict[str, str], settle: Settle
 ) -> None:
@@ -92,6 +94,7 @@ async def test_correct_flag_drops_corrections(
         {"is_correct": False, "correct_plant": "tomato", "correct_disease": "nope"},
     ],
 )
+@pytest.mark.tc("TC-013")
 async def test_feedback_validation(
     client: httpx.AsyncClient, auth: dict[str, str], settle: Settle, body: dict[str, Any]
 ) -> None:
@@ -114,6 +117,7 @@ async def test_healthy_is_a_valid_correction(
     assert response.status_code == 200
 
 
+@pytest.mark.tc("TC-020")
 async def test_feedback_only_on_completed_scans(
     client: httpx.AsyncClient, auth: dict[str, str], settle: Settle, ml: ScriptedML
 ) -> None:

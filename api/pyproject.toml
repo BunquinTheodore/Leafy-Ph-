@@ -59,6 +59,7 @@ pythonpath = ["."]
 addopts = "-ra --strict-markers"
 markers = [
   "integration: needs a real Postgres (pytest-postgresql)",
+  "tc(id): traceability to a test case ID (TC-001 ...) in docs/test-cases.md",
 ]
 
 [tool.coverage.run]

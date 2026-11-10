@@ -186,6 +186,7 @@ async def test_delete_without_a_password_is_a_validation_error(client: httpx.Asy
     assert response.status_code == 422
 
 
+@pytest.mark.tc("TC-005")
 async def test_delete_removes_the_account_and_queues_every_scan_image(
     client: httpx.AsyncClient,
     engine: AsyncEngine,
@@ -231,6 +232,7 @@ async def test_the_old_access_token_stops_working_after_deletion(
     assert refresh.status_code == 401
 
 
+@pytest.mark.tc("TC-005")
 async def test_account_is_deleted_even_when_storage_is_down_and_the_outbox_retries(
     client: httpx.AsyncClient,
     engine: AsyncEngine,
@@ -251,7 +253,13 @@ async def test_account_is_deleted_even_when_storage_is_down_and_the_outbox_retri
     assert response.status_code == 200
     await settle()
     assert await _count(engine, "users") == 0
+    assert await _count(engine, "scan") == 0
     assert await _count(engine, "storage_deletion") == 2
+    async with engine.connect() as conn:
+        queued = {
+            row[0] for row in await conn.execute(text("SELECT object_key FROM storage_deletion"))
+        }
+    assert queued == set(keys)
     assert len(storage.objects) == 2
 
     purge = PurgeService(session_factory, storage, clock)

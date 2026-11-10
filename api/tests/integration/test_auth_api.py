@@ -71,6 +71,7 @@ async def test_register_is_rate_limited(client: httpx.AsyncClient) -> None:
     assert int(response.headers["retry-after"]) > 0
 
 
+@pytest.mark.tc("TC-001")
 async def test_login_success_and_me(client: httpx.AsyncClient) -> None:
     await _register(client)
     response = await client.post(
@@ -84,6 +85,7 @@ async def test_login_success_and_me(client: httpx.AsyncClient) -> None:
     assert me.json()["data"]["auth_methods"] == ["password"]
 
 
+@pytest.mark.tc("TC-002")
 async def test_login_failures_are_uniform_invalid_credentials(client: httpx.AsyncClient) -> None:
     await _register(client)
     wrong = await client.post(
@@ -111,6 +113,7 @@ async def test_login_is_rate_limited_per_ip_and_email(client: httpx.AsyncClient)
     assert other.status_code == 401
 
 
+@pytest.mark.tc("TC-003")
 async def test_refresh_rotation_grace_and_reuse_detection(
     client: httpx.AsyncClient, clock: FixedClock
 ) -> None:
@@ -205,3 +208,40 @@ async def test_health_and_readiness(client: httpx.AsyncClient) -> None:
     ready = await client.get("/api/v1/readyz")
     assert ready.status_code == 200
     assert ready.json()["data"] == {"status": "ready"}
+
+
+async def _session_rows(engine: AsyncEngine) -> int:
+    async with engine.connect() as conn:
+        return int((await conn.execute(text("SELECT count(*) FROM refresh_token"))).scalar_one())
+
+
+@pytest.mark.tc("TC-001")
+async def test_valid_login_issues_a_stored_session(
+    client: httpx.AsyncClient, engine: AsyncEngine
+) -> None:
+    await _register(client)
+    before = await _session_rows(engine)
+    response = await client.post(
+        "/api/v1/auth/login", json={"email": "leaf@example.com", "password": PASSWORD}
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["access_token"]
+    assert data["refresh_token"]
+    assert await _session_rows(engine) == before + 1
+
+
+@pytest.mark.tc("TC-002")
+async def test_wrong_password_issues_no_session(
+    client: httpx.AsyncClient, engine: AsyncEngine
+) -> None:
+    await _register(client)
+    before = await _session_rows(engine)
+    response = await client.post(
+        "/api/v1/auth/login", json={"email": "leaf@example.com", "password": "wrong password!"}
+    )
+    assert response.status_code == 401
+    assert response.json().get("data") is None
+    assert "access_token" not in response.text
+    assert "refresh_token" not in response.text
+    assert await _session_rows(engine) == before

@@ -26,7 +26,9 @@ x-api-env: &api-env
   GOOGLE_MOCK: ${GOOGLE_MOCK:-0}
   # Next forwards one validated client address, so the API trusts exactly one hop.
   TRUSTED_PROXY_HOPS: ${API_TRUSTED_PROXY_HOPS:-1}
-  HF_HOME: /tmp/huggingface
+  # The CLIP gate weights are baked into the image at /opt/hf-cache and HF_HOME /
+  # ML_GATE_CACHE_DIR / ML_GATE_OFFLINE come from the image ENV, so a container
+  # start needs no Hugging Face round trip.
   ML_LEAF_GATE: ${ML_LEAF_GATE:-true}
   ML_LEAF_MIN_PROB: ${ML_LEAF_MIN_PROB:-0.5}
   ML_MIN_CONFIDENCE: ${ML_MIN_CONFIDENCE:-0.5}

@@ -18,6 +18,13 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
+# Bake the CLIP leaf gate into the image so container start needs no Hugging Face
+# round trip. GATE_MODEL must match ML_GATE_MODEL at run time (both default to the
+# same repo); the runtime runs with ML_GATE_OFFLINE=1 and reads this cache.
+ARG GATE_MODEL=openai/clip-vit-base-patch32
+RUN /app/.venv/bin/python -c "from huggingface_hub import snapshot_download; \
+snapshot_download('${GATE_MODEL}', cache_dir='/opt/hf-cache')"
+
 # ---- runtime ----
 FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime
 # Defaults carry no secrets. DATABASE_URL, JWT_SECRET, S3_ACCESS_KEY and S3_SECRET_KEY
@@ -26,11 +33,16 @@ ENV ENV=prod \
     PORT=8000 \
     PATH="/app/.venv/bin:${PATH}" \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    HF_HOME=/opt/hf-cache \
+    ML_GATE_CACHE_DIR=/opt/hf-cache \
+    ML_GATE_OFFLINE=1
 RUN groupadd --system --gid 10001 leafy \
     && useradd --system --uid 10001 --gid leafy --no-create-home --shell /usr/sbin/nologin leafy
 WORKDIR /app
 COPY --from=builder --chown=leafy:leafy /app/.venv /app/.venv
+# The CLIP gate weights baked in the builder stage: no download at container start.
+COPY --from=builder --chown=leafy:leafy /opt/hf-cache /opt/hf-cache
 # Only what runs: the package (seed JSON and catalog photos live under app/seeds),
 # the Alembic config and the entrypoint. Tests, tools and dev files stay out.
 COPY --chown=leafy:leafy alembic.ini ./

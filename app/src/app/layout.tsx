@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Josefin_Sans, Manrope, Poppins } from "next/font/google";
+import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
 import type { ReactNode } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -14,24 +14,25 @@ import { siteOrigin } from "@/lib/seo/origin";
 import { Providers } from "./providers";
 import "./globals.css";
 
-const josefin = Josefin_Sans({
-  subsets: ["latin"],
-  weight: ["300"],
+const josefin = localFont({
+  src: "./fonts/josefin-sans-300.woff2",
+  weight: "300",
   display: "swap",
   variable: "--font-josefin",
-  adjustFontFallback: true,
 });
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["500", "600"],
+const poppins = localFont({
+  src: [
+    { path: "./fonts/poppins-500.woff2", weight: "500" },
+    { path: "./fonts/poppins-600.woff2", weight: "600" },
+  ],
   display: "swap",
   variable: "--font-poppins",
 });
 
-const manrope = Manrope({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
+const manrope = localFont({
+  src: "./fonts/manrope-var.woff2",
+  weight: "200 800",
   display: "swap",
   variable: "--font-manrope",
 });

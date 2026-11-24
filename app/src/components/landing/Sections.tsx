@@ -178,14 +178,23 @@ export function Faq({ items }: { items: FaqItem[] }) {
     <section className="lp-body" aria-labelledby="faq-title">
       <Head eyebrow={copy.eyebrow} title={copy.title} id="faq-title" />
       <SpotlightSurface className="faq">
-        {items.map((item, index) => (
-          <details key={item.question} name="faq" open={index === 0}>
-            <summary>
-              {item.question}
-              <ChevronDown size={20} strokeWidth={1.5} aria-hidden="true" />
-            </summary>
-            <p>{item.answer}</p>
-          </details>
+        {/* Two independent columns (first half, second half), so opening an answer only grows its
+            own column. The shared name keeps one answer open across both. */}
+        {[
+          items.slice(0, Math.ceil(items.length / 2)),
+          items.slice(Math.ceil(items.length / 2)),
+        ].map((column, columnIndex) => (
+          <div className="faq__col" key={columnIndex}>
+            {column.map((item) => (
+              <details key={item.question} name="faq" open={item === items[0]}>
+                <summary>
+                  {item.question}
+                  <ChevronDown size={20} strokeWidth={1.5} aria-hidden="true" />
+                </summary>
+                <p>{item.answer}</p>
+              </details>
+            ))}
+          </div>
         ))}
       </SpotlightSurface>
     </section>

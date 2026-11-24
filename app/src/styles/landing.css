@@ -17,7 +17,8 @@
   display: grid;
   align-content: center;
   gap: clamp(20px, 4vh, 48px);
-  width: 100%;
+  /* The shared container, so every slide lines up with the header logo and the pager. */
+  width: min(100%, var(--container-max));
 }
 
 .lp-head {
@@ -100,48 +101,55 @@
   opacity: 1;
 }
 
-/* ---- Hero: headline across the container, text right under it, leaf scene beside the text ---- */
+/* ---- Hero: one copy block and one leaf scene, side by side, centered in the shared container ---- */
 .hero {
   display: grid;
-  width: 100%;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-areas:
-    "head head"
-    "body scene";
-  align-items: start;
+  width: min(100%, var(--container-max));
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  grid-template-areas: "copy scene";
+  align-items: center;
   column-gap: var(--split-gap);
-  row-gap: clamp(14px, 3vh, 36px);
 }
 
 .hero__copy {
-  display: contents;
+  grid-area: copy;
+  display: grid;
+  min-width: 0;
+  justify-items: start;
+  gap: clamp(20px, 4.4vh, 48px);
 }
 
 .hero__head {
-  grid-area: head;
   container-type: inline-size;
   display: grid;
-  gap: var(--space-3);
+  width: 100%;
+  gap: var(--space-4);
   justify-items: start;
 }
 
-/* One line that fills the container: the size follows the container width. */
+/* Two balanced lines that fill the copy column. The size follows the column width, and the
+   viewport height caps it so the whole block always fits between the header and the pager. */
 .hero .display-hero {
-  font-size: clamp(1.5rem, 8.6cqi, 14rem);
+  font-size: clamp(2.25rem, min(11.8cqi, 16vh), 10rem);
+  line-height: 1.04;
   letter-spacing: 0.1em;
+  white-space: normal;
+  text-wrap: balance;
+  /* Optical: Josefin's K carries side bearing, so its stem lands on the same line as the
+     eyebrow, the text and the buttons (the diagonal Y below overshoots a little, as it should). */
+  margin-left: -0.095em;
 }
 
 .hero__body {
-  grid-area: body;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: clamp(16px, 3vh, 28px);
+  gap: clamp(16px, 3.4vh, 32px);
 }
 
 .hero__body .blurb {
   font-size: calc(clamp(1.0625rem, 1rem + 0.5vw, 1.375rem) * var(--ui-scale));
-  max-width: 34ch;
+  max-width: 36ch;
 }
 
 .hero__actions {
@@ -152,9 +160,9 @@
 
 .hero__scene {
   grid-area: scene;
-  align-self: start;
+  align-self: center;
   width: 100%;
-  height: clamp(190px, 36vh, 480px);
+  height: clamp(280px, 62vh, 680px);
   -webkit-mask-image: radial-gradient(closest-side, #000 70%, transparent);
   mask-image: radial-gradient(closest-side, #000 70%, transparent);
 }
@@ -199,9 +207,20 @@
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "scene"
-      "head"
-      "body";
+      "copy";
+    align-items: start;
     row-gap: clamp(8px, 2vh, 24px);
+  }
+
+  .hero__copy {
+    gap: clamp(8px, 2vh, 24px);
+  }
+
+  /* Narrow screens keep the headline on one line that fills the width. */
+  .hero .display-hero {
+    font-size: clamp(1.5rem, 8.6cqi, 14rem);
+    white-space: nowrap;
+    text-wrap: nowrap;
   }
 
   .hero__scene {
@@ -309,6 +328,19 @@
   text-wrap: pretty;
 }
 
+/* Tall wide screens: the steps and reasons slides grow with the free height so they stay filled. */
+@media (min-width: 1500px) and (min-height: 800px) {
+  .steps,
+  .reasons {
+    font-size: 1.18em;
+  }
+
+  .lp-body:has(.steps) .lp-head .h2,
+  .lp-body:has(.reasons) .lp-head .h2 {
+    font-size: calc(clamp(1.5rem, 1rem + 1.6vw, 2.5rem) * var(--ui-scale) * 1.25);
+  }
+}
+
 /* ---- Plants we cover: two centered rows of square thumbnails that fill the width ---- */
 .lp-plants {
   --cols: 5;
@@ -366,7 +398,7 @@
 
 @media (min-width: 960px) {
   .lp-plants {
-    --tile-max: max(72px, calc((100dvh - 500px) / 2));
+    --tile-max: max(72px, calc((100dvh - 540px) / 2));
   }
 }
 
@@ -492,15 +524,34 @@
   align-items: start;
 }
 
+/* Each column flows on its own, so an opened answer never leaves a dead gap beside it. */
+.faq__col {
+  display: grid;
+  gap: inherit;
+  align-content: start;
+  min-width: 0;
+}
+
 @media (min-width: 960px) {
   .faq {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (min-width: 1500px) {
+/* Wide screens: the heading takes the left column and the questions the right two thirds, so the
+   slide is one group on the shared container edges instead of a title above a loose grid. */
+@media (min-width: 1200px) {
+  .lp-body:has(.faq) {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.9fr);
+    column-gap: var(--split-gap);
+    align-items: start;
+  }
+}
+
+@media (min-width: 1500px) and (min-height: 800px) {
   .faq {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    font-size: 1.12em;
+    gap: var(--space-4);
   }
 }
 
@@ -559,7 +610,7 @@
   justify-items: center;
   align-content: center;
   gap: clamp(16px, 3.4vh, 40px);
-  width: 100%;
+  width: min(100%, var(--container-max));
   text-align: center;
 }
 

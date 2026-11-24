@@ -288,8 +288,12 @@ export function SlidePanels({
         </button>
       </div>
 
-      {showHint && !touched && count > 1 ? (
-        <p className="panels__hint m-0 pb-3">Swipe, drag or use the arrow keys.</p>
+      {showHint && count > 1 ? (
+        // The line keeps its space after the first interaction, so the pager and the panel
+        // height never jump when the hint fades out.
+        <p className="panels__hint m-0 pb-3" data-touched={touched} aria-hidden={touched}>
+          Swipe, drag or use the arrow keys.
+        </p>
       ) : null}
       <p className="sr-only" aria-live="polite">
         {current ? `Panel ${active + 1} of ${count}: ${current.title}` : ""}

@@ -228,6 +228,13 @@
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text);
+  transition: opacity var(--dur-panel) var(--ease);
+}
+
+/* After the first interaction the hint fades out but keeps its line, so nothing moves. */
+.panels__hint[data-touched="true"] {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Phones: dots shrink to share one row (never wrap), controls and panel padding get tighter. */

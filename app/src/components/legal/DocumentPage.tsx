@@ -21,7 +21,7 @@ interface DocumentPageProps {
 
 function SectionPanel({ section, decorate }: { section: LegalSection; decorate: boolean }) {
   return (
-    <article className="doc-panel">
+    <article className={decorate ? "doc-panel doc-panel--decorated" : "doc-panel"}>
       <div className="doc-panel__side">
         <h2 className="h2">{section.title}</h2>
         {decorate ? (

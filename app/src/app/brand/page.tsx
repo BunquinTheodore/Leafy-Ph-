@@ -9,6 +9,7 @@ import {
   TypeSection,
   VoiceSection,
 } from "./sections";
+import "./brand.css";
 
 export const metadata: Metadata = {
   title: "Brand guide",
@@ -29,7 +30,7 @@ const panels: Panel[] = [
 export default function BrandPage() {
   return (
     <div className="stage-fill">
-      <SlidePanels label="Brand guide" panels={panels} />
+      <SlidePanels label="Brand guide" panels={panels} className="brand-guide" />
     </div>
   );
 }

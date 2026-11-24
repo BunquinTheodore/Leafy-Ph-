@@ -1,0 +1,432 @@
+/* Brand guide: every panel is one grouped composition on the shared container (left edge on the header
+   logo, right edge on the header nav), centered between the header and the pager and fitted to the
+   viewport. Wide screens use a 12 column grid, tablets and phones a 6 column grid that may scroll inside. */
+.brand-guide .panels__panel {
+  /* Slim, symmetrical padding: the group is centered in the room between header and pager. */
+  padding-block: var(--space-3);
+}
+
+.brand-panel {
+  --b-gap: clamp(10px, 1.7vh, 20px);
+  /* Reading size grows with the screen and is held back on short ones. */
+  --b-text: clamp(1rem, min(1.2vw, 2.5vh), 1.375rem);
+  --b-note: clamp(0.875rem, min(0.95vw, 2vh), 1.125rem);
+  display: grid;
+  gap: var(--b-gap);
+}
+
+.brand-panel__head {
+  display: grid;
+  gap: 2px;
+}
+
+.brand-panel__head .display {
+  max-width: none;
+  font-size: calc(clamp(1.5rem, min(1rem + 1.8vw, 5.4vh), 2.75rem) * var(--ui-scale));
+}
+
+/* ---- Grid: 12 columns on wide screens, 6 below 1024px. Spans are set with the b-N classes. ---- */
+.brand-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--b-gap);
+  align-items: start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.brand-grid > * {
+  min-width: 0;
+}
+
+.brand-grid--center {
+  align-items: center;
+}
+
+.brand-grid--stretch {
+  align-items: stretch;
+}
+
+/* Cards and alerts inside a stretched cell take the full height of the row. */
+.brand-grid--stretch > * > .card,
+.brand-grid--stretch > * > .alert {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.b-2,
+.b-3 {
+  grid-column: span 2;
+}
+
+.b-3 {
+  grid-column: span 3;
+}
+
+.b-4,
+.b-6,
+.b-8,
+.b-12 {
+  grid-column: span 6;
+}
+
+@media (min-width: 1024px) {
+  .brand-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .b-4 {
+    grid-column: span 4;
+  }
+
+  .b-6 {
+    grid-column: span 6;
+  }
+
+  .b-8 {
+    grid-column: span 8;
+  }
+
+  .b-12 {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 639px) {
+  .b-2 {
+    grid-column: span 3;
+  }
+}
+
+/* ---- Cards: the shared card with a slimmer padding, so a row of them stays short ---- */
+.brand-guide .card {
+  padding: clamp(10px, 2vh, 22px) clamp(12px, 1.1vw, 22px);
+}
+
+.brand-guide .card-vein::before {
+  left: clamp(12px, 1.1vw, 22px);
+  right: clamp(12px, 1.1vw, 22px);
+}
+
+.brand-card {
+  display: grid;
+  align-content: start;
+  gap: var(--b-gap);
+}
+
+.brand-card .h3 {
+  font-size: calc(clamp(1.0625rem, min(0.9rem + 0.45vw, 2.7vh), 1.5rem) * var(--ui-scale));
+}
+
+.brand-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--b-gap);
+}
+
+/* The last card of a stack takes the rest of the row, so the bottoms line up. */
+.brand-stack > :last-child {
+  flex: 1 1 auto;
+}
+
+.brand-card code {
+  font-size: calc(var(--b-note) * 0.9);
+}
+
+.brand-note {
+  margin: 0;
+  font-size: var(--b-note);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.brand-panel .prose {
+  max-width: 72ch;
+  margin: 0;
+  font-size: var(--b-text);
+}
+
+.brand-panel > .blurb {
+  max-width: 80ch;
+  margin: 0;
+  font-size: clamp(1.0625rem, min(1.6vw, 3.3vh), 2rem);
+}
+
+/* ---- Logo ---- */
+.brand-tile {
+  display: grid;
+  align-self: stretch;
+  place-items: center;
+  min-height: clamp(76px, 11vh, 150px);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.brand-tile svg {
+  width: auto;
+}
+
+.brand-logo-h {
+  height: min(calc(52px * var(--ui-scale)), 7.2vh);
+}
+
+.brand-logo-s {
+  height: min(calc(72px * var(--ui-scale)), 10.4vh);
+}
+
+/* The mark tiles show the mark large, so a row of them never reads as a few small icons far apart. */
+.brand-logo-m {
+  height: clamp(72px, 8.6vh, 120px);
+}
+
+.brand-logo-text {
+  font-size: calc(var(--b-text) * 0.92);
+}
+
+/* App icon, maskable icon, favicon and wordmark: four figures on the same grid, each with its label. */
+.brand-assets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--b-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 1024px) {
+  .brand-assets {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.brand-assets > li {
+  display: grid;
+  grid-template-rows: var(--asset-h) auto;
+  align-content: start;
+  align-items: center;
+  justify-items: start;
+  gap: 6px;
+  --asset-h: min(calc(80px * var(--ui-scale)), 10vh);
+}
+
+.brand-assets img {
+  height: auto;
+  width: var(--asset-h);
+}
+
+.brand-assets img.brand-favicon {
+  width: calc(var(--asset-h) * 0.5);
+}
+
+.brand-assets svg {
+  height: min(calc(30px * var(--ui-scale)), 4.2vh);
+  width: auto;
+}
+
+.brand-assets .brand-note {
+  align-self: start;
+  font-size: calc(var(--b-note) * 0.85);
+}
+
+/* ---- Color ---- */
+.brand-swatch {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.brand-swatch__chip {
+  height: clamp(36px, 8.5vh, 90px);
+}
+
+.brand-swatch__name {
+  padding: clamp(6px, 1.2vh, 12px) var(--space-3);
+  font-size: var(--b-note);
+}
+
+.brand-swatch__name p {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 500;
+}
+
+.brand-swatch__name code {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.brand-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+/* ---- Type ---- */
+.brand-sample {
+  margin: 0;
+}
+
+.brand-sample--display {
+  font-size: clamp(1.4rem, min(2vw, 4vh), 2.5rem);
+}
+
+.brand-sample--heading {
+  font-size: clamp(1.25rem, min(1.8vw, 3.6vh), 2rem);
+}
+
+.brand-sample--reading {
+  font-size: clamp(1.0625rem, min(1.3vw, 2.8vh), 1.5rem);
+  line-height: 1.4;
+}
+
+/* ---- Voice ---- */
+.brand-tagline {
+  margin: 0;
+  font-size: clamp(1.125rem, min(1.55vw, 3.2vh), 2.125rem);
+}
+
+.brand-voice .alert {
+  font-size: var(--b-note);
+}
+
+/* ---- Components: tight rows, so the three columns fit a short screen without wrapping ---- */
+.brand-components .flex {
+  gap: 6px;
+}
+
+.brand-components .brand-note {
+  font-size: 0.9375rem;
+}
+
+.brand-components .alert {
+  padding: var(--space-2) var(--space-3);
+}
+
+.brand-components .empty {
+  padding: var(--space-2);
+}
+
+.brand-components .skeleton-tall {
+  height: clamp(24px, 5vh, 72px);
+}
+
+/* Between 1024 and 1400px the button rows of the first and third card need the extra width. */
+@media (min-width: 1024px) {
+  .brand-components {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .brand-components > .b-4 {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .brand-components {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.8fr) minmax(0, 1.1fr);
+  }
+}
+
+/* ---- Motion ---- */
+.brand-sounds {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.brand-sounds > li {
+  min-width: 0;
+}
+
+@media (max-width: 639px) {
+  .brand-sounds {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.brand-cursors {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  background: #06120b;
+}
+
+/* ---- Rules ---- */
+.brand-rules {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-body);
+  font-size: var(--b-text);
+  line-height: 1.5;
+}
+
+.brand-rules li {
+  margin: 0 0 0.5em;
+}
+
+.brand-rules li:last-child {
+  margin-bottom: 0;
+}
+
+/* Short screens (a 1280x720 laptop): slimmer rows, so every panel still fits between header and pager.
+   The pager keeps the swipe hint line (about 33px), so the breakpoints sit 40px above the raw sizes. */
+@media (max-height: 820px) {
+  .brand-guide .panels__panel {
+    padding-block: 6px;
+  }
+
+  .brand-panel {
+    --b-gap: 10px;
+  }
+
+  .brand-panel__head .display {
+    font-size: calc(clamp(1.5rem, 4.6vh, 2.5rem) * var(--ui-scale));
+  }
+
+  .brand-guide .card {
+    padding-block: 10px;
+  }
+}
+
+/* Laptop height (1280x720): the densest panels need a little more air than the shared rows give. */
+@media (max-height: 740px) {
+  .brand-panel {
+    --b-gap: 8px;
+  }
+
+  .brand-guide .card {
+    padding-block: 8px;
+  }
+}
+
+/* Tall screens: roomier rows and bigger reading text, so the group fills the space. */
+@media (min-height: 920px) {
+  .brand-panel {
+    --b-gap: clamp(14px, 2.1vh, 28px);
+    --b-text: clamp(1.0625rem, min(1.45vw, 2.95vh), 1.75rem);
+    --b-note: clamp(0.9375rem, min(1.05vw, 2.2vh), 1.25rem);
+  }
+
+  /* Panels with room to spare breathe a little more. */
+  .brand-panel--roomy {
+    --b-gap: clamp(18px, 3.2vh, 40px);
+  }
+
+  .brand-guide .card {
+    padding: clamp(16px, 2.6vh, 28px) clamp(16px, 1.4vw, 28px);
+  }
+
+  .brand-guide .card-vein::before {
+    left: clamp(16px, 1.4vw, 28px);
+    right: clamp(16px, 1.4vw, 28px);
+  }
+}

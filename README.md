@@ -1,4 +1,4 @@
-# Leafy PH
+# Leafy: A Plant Leaf Disease Classifier
 
 Leafy PH is a web application for preliminary plant leaf disease screening. A signed-in user can upload or take a photo of a leaf, review the suggested result, and revisit past scans. Anyone can browse the plant and disease handbook for symptoms, reference photos, treatment, and prevention information.
 

@@ -13,7 +13,9 @@ A scan can return a suggested disease, a healthy result, or an unknown result. T
 
 ## 🐳 Quickstart with Docker
 
-Use Git and **Docker Compose 2.24.4 or later**. The API image build downloads the CLIP model from Hugging Face, so allow time and network access for the first build.
+**Docker is the recommended way to run Leafy PH with real predictions.** The API image includes the MobileNetV2 classifier and its weights. It also downloads the optional CLIP leaf-check model during the first build, so allow extra time and keep an internet connection available.
+
+To get started, install Git and Docker Compose 2.24.4 or later, then clone the repository and copy the environment template. The API image build downloads the CLIP model from Hugging Face, so allow time and network access for the first build.
 
 ```bash
 git clone https://github.com/BunquinTheodore/Leafy-Ph-.git
@@ -131,6 +133,17 @@ Set `S3_PUBLIC_ENDPOINT` to the same browser-reachable origin in both services. 
 The Firebase JS SDK obtains the ID token in the browser. FastAPI verifies it with Google's public signing certificates. A verified Google sign-in can link to an existing account with the same email. Within 10 minutes of that sign-in, the user can set a password from **Account** without entering the previous one. Leafy has no email verification or password-reset email flow.
 
 ### 🧠 Machine learning
+
+Leafy PH uses MobileNetV2 to suggest a plant or disease result from an uploaded leaf photo. When enabled, the CLIP leaf check screens the image before classification.
+
+#### Using a different model
+
+The bundled classifier is ready to use with the default Docker configuration. If you want to try different weights or a different model architecture, you can configure the API to use either:
+
+- **Compatible MobileNetV2 weights.** Set `MODEL_PATH` in the API environment to point to your checkpoint.
+- **A different model architecture.** Implement `MLInferenceService` and set `ML_SERVICE` to your adapter’s `package.module:ClassName`. Map its outputs to Leafy PH’s supported plant and disease labels.
+
+For Docker, make the weights available inside the API container and pass any custom settings through a Compose override. Rebuild the API image if you add adapter code or dependencies. See the [ML integration guide](docs/ML_INTEGRATION.md) for the interface and supported labels.
 
 The bundled [MobileNetV2 adapter](api/app/services/ml/pytorch_ml_inference.py) loads the repository's `mobilenetv2_plant.pth` weights and maps PlantVillage labels to the Leafy handbook. With the leaf check enabled, `openai/clip-vit-base-patch32` screens the photo before disease classification. Docker downloads the CLIP assets during image build and loads them offline at runtime from `/opt/hf-cache`.
 

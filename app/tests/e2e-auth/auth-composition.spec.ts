@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const DESKTOP_SIZES = [
   { width: 1908, height: 835 },
@@ -6,18 +6,16 @@ const DESKTOP_SIZES = [
   { width: 1440, height: 900 },
   { width: 1280, height: 720 },
 ] as const;
-const STACKED_SIZES = [
-  { width: 768, height: 1024 },
-  { width: 390, height: 844 },
-] as const;
+const TABLET = { width: 768, height: 1024 } as const;
+const PHONE = { width: 390, height: 844 } as const;
 const ROUTES = ["/login", "/register"] as const;
 const MAX_GAP_RATIO = 0.4;
-const CENTER_SHARE = 0.7;
-/** Below this width the group naturally spans more than the center 70 percent. */
-const WIDE_FROM = 1600;
+/** Sub pixel rounding between the header and the page container. */
+const EDGE_TOLERANCE = 2;
+const PHONE_CARD_MAX = 520;
 
 /** Right edge of the headline block's real content (not its stretched grid cell). */
-async function headlineRight(page: import("@playwright/test").Page): Promise<number> {
+async function headlineRight(page: Page): Promise<number> {
   return page.evaluate(() => {
     const intro = document.querySelector(".auth-intro");
     if (!intro) return -1;
@@ -31,40 +29,69 @@ async function headlineRight(page: import("@playwright/test").Page): Promise<num
   });
 }
 
-test.describe("auth composition: no dead middle, form near the content", () => {
+/** The page container as the header draws it: logo left edge to the last nav control's right edge. */
+async function headerEdges(page: Page): Promise<{ left: number; right: number }> {
+  return page.evaluate(() => {
+    const logo = document.querySelector(".site-header a[href='/']");
+    const controls = [...document.querySelectorAll(".site-header a, .site-header button")].filter(
+      (el) => el.getBoundingClientRect().width > 1,
+    );
+    return {
+      left: logo ? logo.getBoundingClientRect().left : -1,
+      right: controls.length ? controls[controls.length - 1]!.getBoundingClientRect().right : -1,
+    };
+  });
+}
+
+test.describe("auth composition: on the page container, no dead middle", () => {
   for (const route of ROUTES) {
     for (const size of DESKTOP_SIZES) {
-      test(`${route} ${size.width}x${size.height} is one centered group`, async ({ page }) => {
+      test(`${route} ${size.width}x${size.height} fills the header container`, async ({ page }) => {
         await page.setViewportSize(size);
         await page.goto(`${route}?nosplash`);
         const card = await page.locator(".auth-card").boundingBox();
         const intro = await page.locator(".auth-intro").boundingBox();
+        const edges = await headerEdges(page);
         expect(card && intro).toBeTruthy();
+        expect(
+          Math.abs(intro!.x - edges.left),
+          "copy starts on the header logo edge",
+        ).toBeLessThanOrEqual(EDGE_TOLERANCE);
+        expect(
+          Math.abs(card!.x + card!.width - edges.right),
+          "card ends on the nav edge",
+        ).toBeLessThanOrEqual(EDGE_TOLERANCE);
         const gap = card!.x - (await headlineRight(page));
         expect(gap, "gap between headline and form card").toBeGreaterThan(0);
         expect(gap / size.width, "gap share of viewport").toBeLessThan(MAX_GAP_RATIO);
-        const margin = size.width >= WIDE_FROM ? (size.width * (1 - CENTER_SHARE)) / 2 : 0;
-        expect(card!.x, "card inside the center 70 percent").toBeGreaterThanOrEqual(margin);
-        expect(card!.x + card!.width).toBeLessThanOrEqual(size.width - margin);
-        expect(intro!.x, "headline sits inside the viewport gutters").toBeGreaterThan(
-          size.width * 0.1,
-        );
       });
     }
 
-    for (const size of STACKED_SIZES) {
-      test(`${route} ${size.width}x${size.height} stacks with a centered form`, async ({
-        page,
-      }) => {
-        await page.setViewportSize(size);
-        await page.goto(`${route}?nosplash`);
-        const card = await page.locator(".auth-card").boundingBox();
-        const intro = await page.locator(".auth-intro").boundingBox();
-        expect(intro!.y + intro!.height).toBeLessThanOrEqual(card!.y + 1);
-        expect(card!.width).toBeLessThanOrEqual(520);
-        const centerOffset = Math.abs(card!.x + card!.width / 2 - size.width / 2);
-        expect(centerOffset).toBeLessThan(2);
-      });
-    }
+    test(`${route} ${TABLET.width}x${TABLET.height} stacks across the container`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(TABLET);
+      await page.goto(`${route}?nosplash`);
+      const card = await page.locator(".auth-card").boundingBox();
+      const intro = await page.locator(".auth-intro").boundingBox();
+      const edges = await headerEdges(page);
+      expect(intro!.y + intro!.height).toBeLessThanOrEqual(card!.y + 1);
+      expect(Math.abs(intro!.x - edges.left)).toBeLessThanOrEqual(EDGE_TOLERANCE);
+      expect(Math.abs(card!.x - edges.left)).toBeLessThanOrEqual(EDGE_TOLERANCE);
+      expect(Math.abs(card!.x + card!.width - edges.right)).toBeLessThanOrEqual(EDGE_TOLERANCE);
+    });
+
+    test(`${route} ${PHONE.width}x${PHONE.height} stacks with a centered form`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(PHONE);
+      await page.goto(`${route}?nosplash`);
+      const card = await page.locator(".auth-card").boundingBox();
+      const intro = await page.locator(".auth-intro").boundingBox();
+      expect(intro!.y + intro!.height).toBeLessThanOrEqual(card!.y + 1);
+      expect(card!.width).toBeLessThanOrEqual(PHONE_CARD_MAX);
+      const centerOffset = Math.abs(card!.x + card!.width / 2 - PHONE.width / 2);
+      expect(centerOffset).toBeLessThan(2);
+    });
   }
 });

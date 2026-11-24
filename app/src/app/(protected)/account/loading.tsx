@@ -8,7 +8,14 @@ export default function AccountLoading() {
         <Skeleton style={{ height: 40, width: 220 }} />
       </header>
       <div className="acct-stage__panels">
-        <div className="acct" style={{ padding: "24px var(--gutter)" }}>
+        <div
+          className="acct"
+          style={{
+            width: "min(100% - 2 * var(--gutter), var(--container-max))",
+            marginInline: "auto",
+            paddingBlock: "var(--space-4)",
+          }}
+        >
           <Skeleton style={{ height: 160 }} />
           <Skeleton style={{ height: 280 }} />
         </div>

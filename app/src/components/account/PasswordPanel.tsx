@@ -96,7 +96,7 @@ export function PasswordPanel({ user, recentGoogle = false }: PasswordPanelProps
       </div>
       <form
         method="post"
-        className="card card-glass card-vein acct__form"
+        className="card card-glass card-vein acct__form acct__form--pair"
         onSubmit={submit}
         noValidate
       >

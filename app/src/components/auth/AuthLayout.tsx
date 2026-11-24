@@ -1,5 +1,5 @@
 import { ScanLine, ShieldCheck, Stethoscope } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Card } from "../ui/Display";
 import { AuthBackdrop } from "./AuthBackdrop";
 import "./auth.css";
@@ -29,11 +29,9 @@ const BENEFITS = [
 /** The page's single h1 (one or two lines) with a short blurb beside the card. */
 export function AuthIntro({ eyebrow, title, blurb }: AuthIntroProps) {
   return (
-    <div className="auth-intro">
+    <div className="auth-intro" style={{ "--chars": title.length } as CSSProperties}>
       <p className="eyebrow m-0">{eyebrow}</p>
-      <h1 className="display" data-short={title.length <= 10}>
-        {title}
-      </h1>
+      <h1 className="display">{title}</h1>
       <p className="blurb m-0">{blurb}</p>
       <ul className="auth-benefits">
         {BENEFITS.map(({ icon: Icon, text }) => (

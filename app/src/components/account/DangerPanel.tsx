@@ -91,7 +91,7 @@ export function DangerPanel({ user, onDeleted }: DangerPanelProps) {
       </div>
       <form
         method="post"
-        className="card card-glass acct__form acct__form--danger"
+        className="card card-glass acct__form acct__form--pair acct__form--danger"
         onSubmit={review}
         noValidate
       >

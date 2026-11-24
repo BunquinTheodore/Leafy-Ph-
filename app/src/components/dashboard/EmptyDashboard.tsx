@@ -8,11 +8,17 @@ const copy = member.dashboard;
 export function EmptyDashboard() {
   return (
     <section className="dash-empty card card-glass card-vein" aria-labelledby="dash-empty-title">
-      <Camera className="dash-empty__icon" size={44} strokeWidth={1.5} aria-hidden="true" />
-      <h2 id="dash-empty-title" className="h2 dash-empty__title">
-        {copy.emptyTitle}
-      </h2>
-      <p className="blurb m-0">{copy.emptyBody}</p>
+      <div className="dash-empty__lead">
+        <Camera className="dash-empty__icon" size={44} strokeWidth={1.5} aria-hidden="true" />
+        <h2 id="dash-empty-title" className="h2 dash-empty__title">
+          {copy.emptyTitle}
+        </h2>
+        <p className="blurb m-0">{copy.emptyBody}</p>
+        <LinkButton href="/scan" size="lg">
+          <ScanLine size={20} strokeWidth={1.5} aria-hidden="true" />
+          {copy.scanCta}
+        </LinkButton>
+      </div>
       <ol className="dash-empty__steps">
         {copy.emptySteps.map((step, index) => (
           <li key={step}>
@@ -23,10 +29,6 @@ export function EmptyDashboard() {
           </li>
         ))}
       </ol>
-      <LinkButton href="/scan" size="lg">
-        <ScanLine size={20} strokeWidth={1.5} aria-hidden="true" />
-        {copy.scanCta}
-      </LinkButton>
     </section>
   );
 }

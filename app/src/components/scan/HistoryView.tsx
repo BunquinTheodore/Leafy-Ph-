@@ -197,7 +197,7 @@ export function HistoryView({ initial, plants }: HistoryViewProps) {
   let body;
   if (failed && visible.length === 0) {
     body = (
-      <div className="hist__state">
+      <div className="hist__state card card-glass">
         <Alert tone="warning" title={copy.errorTitle}>
           {copy.errorBody}
         </Alert>
@@ -208,7 +208,7 @@ export function HistoryView({ initial, plants }: HistoryViewProps) {
     );
   } else if (visible.length === 0 && !loading) {
     body = (
-      <div className="hist__state">
+      <div className="hist__state card card-glass">
         {filtered ? (
           <EmptyState
             headingLevel={2}

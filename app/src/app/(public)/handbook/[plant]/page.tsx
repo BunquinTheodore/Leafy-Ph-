@@ -53,8 +53,10 @@ export default async function PlantPage({ params }: Params) {
               items={[{ label: "Handbook", href: "/handbook" }, { label: plant.name }]}
             />
             {eyebrow ? <p className="eyebrow m-0">{eyebrow}</p> : null}
-            <h1 className="display hb__title">{plant.name}</h1>
-            {plant.scientific_name ? <p className="hb__sci">{plant.scientific_name}</p> : null}
+            <div className="hb__titlerow">
+              <h1 className="display hb__title">{plant.name}</h1>
+              {plant.scientific_name ? <p className="hb__sci">{plant.scientific_name}</p> : null}
+            </div>
           </div>
         </div>
         <PlantPanels

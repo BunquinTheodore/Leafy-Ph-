@@ -69,7 +69,7 @@ function Overview({ plant }: { plant: PlantDetail }) {
               alt={plant.image_alt ?? `${plant.name} plant`}
               fill
               priority
-              sizes="(min-width: 900px) 24vw, 0px"
+              sizes="(min-width: 900px) 40vw, (min-width: 700px) 100vw, 0px"
             />
           ) : null}
           <LeafAccent size="72px" className="plant-photo__accent" />
@@ -77,6 +77,12 @@ function Overview({ plant }: { plant: PlantDetail }) {
       </div>
     </div>
   );
+}
+
+/** Pages of nearly equal size, so the last page is never a lone short row (9 becomes 5 and 4, not 6 and 3). */
+export function balancedChunk<T>(items: readonly T[], size: number): T[][] {
+  const pages = Math.max(1, Math.ceil(items.length / size));
+  return chunk(items, Math.ceil(items.length / pages));
 }
 
 function DiseasePage({
@@ -90,7 +96,7 @@ function DiseasePage({
     <div className="dp-list">
       <h2 className="h2">{`${copy.diseases} of ${plant.name}`}</h2>
       <ul
-        className="rail-grid m-0 list-none p-0"
+        className="rail-grid rail-grid--fill"
         data-variant="compact"
         aria-label={`${plant.name} diseases`}
       >
@@ -147,7 +153,7 @@ export function PlantPanels({
       ];
     }
     const entries = buildSearchIndex([], plant.diseases);
-    const pages = chunk(entries, perPanel);
+    const pages = balancedChunk(entries, perPanel);
     return [
       overview,
       ...pages.map<Panel>((page, position) => ({

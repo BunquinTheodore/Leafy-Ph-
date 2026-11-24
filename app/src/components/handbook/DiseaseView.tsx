@@ -16,7 +16,7 @@ import { LinkButton } from "../ui/Button";
 import { EmptyState, SEVERITY_LABELS } from "../ui/Display";
 import { LeafAccent } from "./LeafAccent";
 import { Suggestions } from "./Suggestions";
-import { MagnifierImage } from "./MagnifierImage";
+import { MagnifierImage, type PhotoSource } from "./MagnifierImage";
 import { TermText } from "./TermText";
 import { useViewportSize } from "./useViewportSize";
 
@@ -44,7 +44,7 @@ function Aside({ disease, caption }: { disease: DiseaseDetail; caption: string }
     <div className="dp__aside dp__aside--photo">
       {src ? (
         <div className="duotone plant-photo">
-          <Image src={src} alt="" fill sizes="(min-width: 1100px) 22vw, 0px" />
+          <Image src={src} alt="" fill sizes="(min-width: 1100px) 32vw, 100vw" />
           <LeafAccent tone={tone} size="64px" className="plant-photo__accent" />
         </div>
       ) : (
@@ -218,28 +218,33 @@ function CausesPanel({
   );
 }
 
-interface Shot {
-  src: string;
-  alt: string;
-  caption?: string;
-  /** Where the photo came from, linked from its caption. */
-  sourceUrl?: string;
+interface Shot extends PhotoSource {
+  /** The bundled credited photo shown if this one cannot be loaded from storage. */
+  fallback?: PhotoSource;
 }
 
-/** Photos from the API when it has any, otherwise the bundled reference photos with their credits. */
+const bundledShot = (photo: ReturnType<typeof diseasePhotos>[number]): PhotoSource => ({
+  src: photo.src,
+  alt: photo.alt,
+  caption: `Photo: ${photo.credit}, ${photo.license}`,
+  sourceUrl: photo.source,
+});
+
+/**
+ * Photos from the API when it has any, otherwise the bundled reference photos with their credits.
+ * An API photo that cannot be loaded falls back to the bundled photo of the same disease.
+ */
 function shotsFor(disease: DiseaseDetail): Shot[] {
+  const bundled = diseasePhotos(disease.plant.slug, disease.slug).map(bundledShot);
   if (disease.images.length > 0)
-    return disease.images.map((image) => ({
+    return disease.images.map((image, position) => ({
       src: image.url,
       alt: image.alt_text ?? `${disease.display_name} on ${disease.plant.name}`,
       caption: image.alt_text ?? undefined,
+      // Only a photo of its own: never repeat one bundled picture under several credits.
+      fallback: bundled[position],
     }));
-  return diseasePhotos(disease.plant.slug, disease.slug).map((photo) => ({
-    src: photo.src,
-    alt: photo.alt,
-    caption: `Photo: ${photo.credit}, ${photo.license}`,
-    sourceUrl: photo.source,
-  }));
+  return bundled;
 }
 
 function ImagesPanel({ disease, related }: { disease: DiseaseDetail; related: SearchEntry[] }) {
@@ -272,6 +277,7 @@ function ImagesPanel({ disease, related }: { disease: DiseaseDetail; related: Se
             alt={shot.alt}
             caption={shot.caption}
             sourceUrl={shot.sourceUrl}
+            fallback={shot.fallback}
           />
         ))}
       </div>

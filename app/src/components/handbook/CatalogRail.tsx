@@ -57,7 +57,10 @@ export function CatalogRail({
         id: `${idPrefix}-${index + 1}`,
         title: `Page ${index + 1}`,
         content: (
-          <ul className="rail-grid m-0 list-none p-0" data-variant={variant}>
+          <ul
+            className={variant === "compact" ? "rail-grid rail-grid--fill" : "rail-grid"}
+            data-variant={variant}
+          >
             {page.map((entry, position) => (
               <li key={entry.href} className="min-w-0">
                 {entry.kind === "plant" && variant === "plants" ? (

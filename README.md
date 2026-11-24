@@ -1,17 +1,17 @@
-# Leafy: A Plant Leaf Disease Classifier
+# 🌿 Leafy: A Plant Leaf Disease Classifier
 
 Leafy PH is a web application for preliminary plant leaf disease screening. A signed-in user can upload or take a photo of a leaf, review the suggested result, and revisit past scans. Anyone can browse the plant and disease handbook for symptoms, reference photos, treatment, and prevention information.
 
 A scan can return a suggested disease, a healthy result, or an unknown result. The classifier is limited to its supported labels, and lighting, image quality, and symptoms that look alike can affect the result. Use the result as a starting point when checking the handbook.
 
-## Features
+## ✨ Features
 
 - **Leaf screening.** Submit a JPEG, PNG, or WebP photo. The default upload limit is 8 MiB. The API validates the image, removes metadata during re-encoding, and queues it for analysis.
 - **Public handbook.** Search plants and diseases, read symptom and treatment guidance, and view zoomable reference photos. The catalog contains 13 plants and 27 disease entries. Classifier coverage differs from handbook coverage.
 - **Member tools.** View recent scans and statistics, filter scan history, retry eligible failed scans, and submit corrections on completed scans.
 - **Accounts.** Register with email and password or use Google sign-in when Firebase is configured. Members can update their profile and delete their account.
 
-## Quickstart with Docker
+## 🐳 Quickstart with Docker
 
 Use Git and **Docker Compose 2.24.4 or later**. The API image build downloads the CLIP model from Hugging Face, so allow time and network access for the first build.
 
@@ -52,7 +52,7 @@ docker compose down
 
 `docker compose down` keeps the database and object-storage volumes.
 
-## Native dev without Docker
+## 🪟 Native dev without Docker
 
 The PowerShell scripts require **Windows**, **Node.js 20 or later**, **pnpm 12.8.1**, **uv**, and **PostgreSQL 17** binaries. The API uses **Python 3.12**, which uv can install when it resolves the project environment. If PostgreSQL is installed outside the default directory, set `PG_BIN` to the directory containing its executables.
 
@@ -81,7 +81,7 @@ The native script enables mock Google sign-in and uses `dev-fake`, which generat
 | `-SkipBuild` | Reuse the previous Next.js build. |
 | `-Stop` | Stop the local services. Add `-KeepInfra` to leave PostgreSQL and object storage running. |
 
-## Architecture and project layout
+## 🏗️ Architecture and project layout
 
 Next.js renders pages and forwards application API requests to FastAPI. FastAPI handles authentication, catalog queries, scan storage, and background inference. The browser loads handbook images and signed scan-image URLs from the configured storage endpoint.
 
@@ -93,7 +93,7 @@ Next.js renders pages and forwards application API requests to FastAPI. FastAPI 
 | [`docker-compose.yml`](docker-compose.yml) | Web, API, PostgreSQL, MinIO, and cleanup services |
 | [`docs/`](docs/) | Deployment, machine learning, performance, and test documentation |
 
-### API reference
+### 🔌 API reference
 
 FastAPI endpoints use the `/api/v1` prefix. The health endpoint checks that the process responds. Readiness also checks the database. Use `/docs` on the development API for endpoint and schema details, or browse the tracked [OpenAPI specification](api/openapi.json).
 
@@ -104,7 +104,7 @@ uv run python -m app.tools.export_openapi
 pnpm api:types
 ```
 
-## Configuration
+## ⚙️ Configuration
 
 Docker Compose reads [the root environment template](.env.example). For manually started services, use the [API template](api/.env.example) as `api/.env` and the [web template](app/.env.example) as `app/.env.local`. Keep actual credentials out of version control.
 
@@ -122,7 +122,7 @@ Docker Compose reads [the root environment template](.env.example). For manually
 
 Set `S3_PUBLIC_ENDPOINT` to the same browser-reachable origin in both services. The API uses it for image URLs, and Next.js allows that origin in its image policy. A Compose hostname such as `minio` is appropriate for `S3_ENDPOINT_URL` inside the network.
 
-### Google sign-in setup
+### 🔐 Google sign-in setup
 
 1. Enable the Google provider in Firebase Authentication. Add the hostname you use to access the app to the authorized domains.
 2. Set `FIREBASE_PROJECT_ID` for FastAPI. Copy the Firebase web app's `apiKey`, `authDomain`, `projectId`, and `appId` to the matching `NEXT_PUBLIC_FIREBASE_*` values for Next.js. Both services must use the same Firebase project.
@@ -130,7 +130,7 @@ Set `S3_PUBLIC_ENDPOINT` to the same browser-reachable origin in both services. 
 
 The Firebase JS SDK obtains the ID token in the browser. FastAPI verifies it with Google's public signing certificates. A verified Google sign-in can link to an existing account with the same email. Within 10 minutes of that sign-in, the user can set a password from **Account** without entering the previous one. Leafy has no email verification or password-reset email flow.
 
-### Machine learning
+### 🧠 Machine learning
 
 The bundled [MobileNetV2 adapter](api/app/services/ml/pytorch_ml_inference.py) loads the repository's `mobilenetv2_plant.pth` weights and maps PlantVillage labels to the Leafy handbook. With the leaf check enabled, `openai/clip-vit-base-patch32` screens the photo before disease classification. Docker downloads the CLIP assets during image build and loads them offline at runtime from `/opt/hf-cache`.
 
@@ -140,7 +140,7 @@ The bundled [MobileNetV2 adapter](api/app/services/ml/pytorch_ml_inference.py) l
 
 The adapter reads `ML_GATE_THRESHOLD` and defaults to `0.5`. The stock Compose file forwards `ML_LEAF_MIN_PROB` instead of `ML_GATE_THRESHOLD`. Setting only `ML_GATE_THRESHOLD` in the root `.env` leaves the container on the adapter’s default threshold. For custom weights or an alternate adapter, see the [ML integration contract](docs/ML_INTEGRATION.md).
 
-## Tests and checks
+## 🧪 Tests and checks
 
 From `api/`:
 
@@ -173,7 +173,7 @@ For browser tests, install Chromium once with `pnpm exec playwright install chro
 
 See the [CI workflow](.github/workflows/ci.yml) for automated checks. For layout audits and performance checks, see the [performance guide](docs/PERFORMANCE.md).
 
-## Deployment notes
+## 🚀 Deployment notes
 
 Use the base Compose file to avoid loading the development override. Set the production environment and credentials before starting the services.
 
@@ -185,7 +185,7 @@ Set `ENV=prod`, use the site’s HTTPS URL for `APP_ORIGIN`, and enable secure c
 
 The About, Privacy, and Terms pages take their contact and team details from [`site-config.ts`](app/src/lib/site-config.ts). Fill in the published contact and team information and review handbook image attribution before releasing the service.
 
-## Further reading
+## 📚 Further reading
 
 - [Contributing guide](CONTRIBUTING.md)
 - [Docker image notes](docs/DOCKER.md)
